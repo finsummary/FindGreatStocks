@@ -10,6 +10,8 @@ class DataScheduler {
   }
 
   private startScheduler() {
+    console.log('DataScheduler starting...');
+    
     // Schedule updates every 24 hours (86400000 ms)
     // In production, this would check if it's after market close (4 PM ET)
     this.updateInterval = setInterval(() => {
@@ -24,12 +26,17 @@ class DataScheduler {
     try {
       // Always perform full sync on startup to ensure latest data
       console.log('Performing startup data sync to ensure latest data...');
-      // Use setTimeout to avoid blocking server startup
-      setTimeout(async () => {
-        await this.performFullSync();
-      }, 2000); // Wait 2 seconds after server starts
+      // Use immediate async execution
+      setImmediate(async () => {
+        try {
+          await this.performFullSync();
+          console.log('Startup data sync completed successfully');
+        } catch (error) {
+          console.error('Error during startup data sync:', error);
+        }
+      });
     } catch (error) {
-      console.error('Error during startup data sync:', error);
+      console.error('Error setting up startup data sync:', error);
     }
   }
 

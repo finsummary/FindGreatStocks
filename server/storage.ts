@@ -35,7 +35,8 @@ export class MemStorage implements IStorage {
     this.currentCompanyId = 1;
     this.currentFavoriteId = 1;
     
-    // Start with empty storage - data will be loaded by scheduler
+    // Storage starts empty - scheduler will load data from API
+    console.log('MemStorage initialized - waiting for scheduler to load data');
   }
 
   async getUser(id: number): Promise<User | undefined> {
