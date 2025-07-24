@@ -1,5 +1,4 @@
 import { companies, favorites, users, type User, type InsertUser, type Company, type InsertCompany, type Favorite } from "@shared/schema";
-import { extendedSampleCompanies } from "./extended-sample-data";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -36,20 +35,7 @@ export class MemStorage implements IStorage {
     this.currentCompanyId = 1;
     this.currentFavoriteId = 1;
     
-    // Initialize with real financial data
-    this.initializeCompanies();
-  }
-
-  private initializeCompanies() {
-    // Use extended sample data with 1000+ companies
-    extendedSampleCompanies.forEach((companyData) => {
-      const company: Company = {
-        id: this.currentCompanyId++,
-        ...companyData,
-        logoUrl: companyData.logoUrl || null
-      };
-      this.companies.set(company.id, company);
-    });
+    // Start with empty storage - data will be loaded by scheduler
   }
 
   async getUser(id: number): Promise<User | undefined> {

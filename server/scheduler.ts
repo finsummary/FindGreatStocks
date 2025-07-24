@@ -22,17 +22,11 @@ class DataScheduler {
 
   private async checkInitialData() {
     try {
-      const companies = await storage.getCompanies(1, 0);
-      if (companies.length === 0) {
-        console.log('No companies found, performing initial data load...');
-        await this.performFullSync();
-      } else {
-        console.log(`Found ${companies.length} companies in storage`);
-        // Perform daily update to refresh prices
-        setTimeout(() => this.performDailyUpdate(), 5000); // Wait 5 seconds after startup
-      }
+      // Always perform full sync on startup to ensure latest data
+      console.log('Performing startup data sync to ensure latest data...');
+      await this.performFullSync();
     } catch (error) {
-      console.error('Error checking initial data:', error);
+      console.error('Error during startup data sync:', error);
     }
   }
 
