@@ -50,40 +50,132 @@ export class FinancialDataService {
 
   async fetchTopCompaniesByMarketCap(limit: number = 100): Promise<FMPCompany[]> {
     try {
-      // Lower market cap threshold to get more companies (10 million instead of 1 billion)
-      const marketCapThreshold = 10000000; // $10M instead of $1B
-      const apiLimit = Math.min(limit, 5000); // FMP API max per request
+      const allCompanies: FMPCompany[] = [];
       
-      console.log(`Fetching companies with market cap > $${marketCapThreshold.toLocaleString()} (limit: ${apiLimit})`);
+      // Strategy 1: Multiple market cap thresholds to get more companies
+      const thresholds = [
+        1000000000,   // $1B+ (large cap)
+        100000000,    // $100M+ (mid cap)
+        10000000,     // $10M+ (small cap)
+        1000000       // $1M+ (micro cap)
+      ];
       
-      const companies = await this.makeRequest(`/stock-screener?marketCapMoreThan=${marketCapThreshold}&limit=${apiLimit}&isActivelyTrading=true`);
-      
-      if (!Array.isArray(companies)) {
-        console.error("Unexpected response format:", companies);
-        return [];
+      for (const threshold of thresholds) {
+        console.log(`Fetching companies with market cap > $${threshold.toLocaleString()}`);
+        
+        try {
+          const companies = await this.makeRequest(`/stock-screener?marketCapMoreThan=${threshold}&limit=5000&isActivelyTrading=true`);
+          
+          if (Array.isArray(companies)) {
+            console.log(`Raw API response for $${threshold.toLocaleString()}+: ${companies.length} companies`);
+            
+            // Filter and add new companies
+            const filteredBatch = companies
+              .filter(company => 
+                company.marketCap && 
+                company.marketCap > 0 && 
+                company.symbol && 
+                company.companyName &&
+                company.price &&
+                company.price > 0 &&
+                !this.isIndexFundOrETF(company.symbol, company.companyName) &&
+                // Avoid duplicates
+                !allCompanies.some(existing => existing.symbol === company.symbol)
+              );
+            
+            allCompanies.push(...filteredBatch);
+            console.log(`Added ${filteredBatch.length} new companies. Total: ${allCompanies.length}`);
+            
+            // If we have enough companies, break early
+            if (allCompanies.length >= limit) {
+              break;
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching companies for threshold $${threshold}:`, error);
+          // Continue with next threshold
+        }
+        
+        // Small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
-
-      console.log(`Raw API response: ${companies.length} companies received`);
-
-      // Filter out companies without essential data, ETFs/index funds, and sort by market cap
-      const filteredCompanies = companies
-        .filter(company => 
-          company.marketCap && 
-          company.marketCap > 0 && 
-          company.symbol && 
-          company.companyName &&
-          company.price &&
-          company.price > 0 &&
-          // Filter out ETFs, index funds, and other non-company securities
-          !this.isIndexFundOrETF(company.symbol, company.companyName)
-        )
+      
+      // Strategy 2: Try different exchanges for international companies
+      const exchanges = ['NYSE', 'NASDAQ', 'TSX', 'LSE', 'EURONEXT', 'XETRA', 'SIX', 'ASX', 'HKEX', 'BSE'];
+      
+      for (const exchange of exchanges) {
+        if (allCompanies.length >= limit) break;
+        
+        try {
+          console.log(`Fetching companies from ${exchange} exchange`);
+          const companies = await this.makeRequest(`/stock-screener?exchange=${exchange}&limit=1000&isActivelyTrading=true`);
+          
+          if (Array.isArray(companies)) {
+            const filteredBatch = companies
+              .filter(company => 
+                company.marketCap && 
+                company.marketCap > 0 && 
+                company.symbol && 
+                company.companyName &&
+                company.price &&
+                company.price > 0 &&
+                !this.isIndexFundOrETF(company.symbol, company.companyName) &&
+                !allCompanies.some(existing => existing.symbol === company.symbol)
+              );
+            
+            allCompanies.push(...filteredBatch);
+            console.log(`Added ${filteredBatch.length} companies from ${exchange}. Total: ${allCompanies.length}`);
+          }
+        } catch (error) {
+          console.error(`Error fetching from ${exchange}:`, error);
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      // Strategy 3: Try sector-based filtering to get more diversity
+      const sectors = ['Technology', 'Healthcare', 'Financial Services', 'Consumer Cyclical', 'Industrials', 'Energy', 'Utilities', 'Consumer Defensive', 'Real Estate', 'Basic Materials', 'Communication Services'];
+      
+      for (const sector of sectors) {
+        if (allCompanies.length >= limit) break;
+        
+        try {
+          console.log(`Fetching companies from ${sector} sector`);
+          const companies = await this.makeRequest(`/stock-screener?sector=${encodeURIComponent(sector)}&limit=500&isActivelyTrading=true`);
+          
+          if (Array.isArray(companies)) {
+            const filteredBatch = companies
+              .filter(company => 
+                company.marketCap && 
+                company.marketCap > 0 && 
+                company.symbol && 
+                company.companyName &&
+                company.price &&
+                company.price > 0 &&
+                !this.isIndexFundOrETF(company.symbol, company.companyName) &&
+                !allCompanies.some(existing => existing.symbol === company.symbol)
+              );
+            
+            allCompanies.push(...filteredBatch);
+            console.log(`Added ${filteredBatch.length} companies from ${sector}. Total: ${allCompanies.length}`);
+          }
+        } catch (error) {
+          console.error(`Error fetching from ${sector} sector:`, error);
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      // Sort all companies by market cap and limit
+      const finalCompanies = allCompanies
         .sort((a, b) => b.marketCap - a.marketCap)
         .slice(0, limit);
-
-      console.log(`After filtering: ${filteredCompanies.length} companies remaining`);
-      return filteredCompanies;
+      
+      console.log(`Final result: ${finalCompanies.length} companies after deduplication and sorting`);
+      return finalCompanies;
+      
     } catch (error) {
-      console.error("Error fetching companies:", error);
+      console.error("Error in comprehensive company fetch:", error);
       throw error;
     }
   }

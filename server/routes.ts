@@ -97,10 +97,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Fetch real financial data and update storage
   app.post("/api/companies/sync", async (req, res) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 5000; // Default to maximum
+      const limit = parseInt(req.query.limit as string) || 10000; // Increased default limit
       const updateOnly = req.query.updateOnly === 'true'; // For daily price updates
       
-      console.log(`Starting financial data sync... (limit: ${limit}, updateOnly: ${updateOnly})`);
+      console.log(`Starting comprehensive financial data sync... (limit: ${limit}, updateOnly: ${updateOnly})`);
       
       if (!updateOnly) {
         // Clear existing data only for full sync
@@ -108,9 +108,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Cleared existing company data");
       }
       
-      // Fetch data from FMP API
+      // Fetch data from FMP API using comprehensive strategy
+      const startTime = Date.now();
       const allCompanies = await financialDataService.fetchTopCompaniesByMarketCap(limit);
-      console.log(`Fetched ${allCompanies.length} companies from FMP`);
+      const fetchTime = Date.now() - startTime;
+      
+      console.log(`Fetched ${allCompanies.length} companies from FMP in ${fetchTime}ms`);
 
       if (allCompanies.length === 0) {
         return res.status(500).json({ 
@@ -121,6 +124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let totalMarketCap = 0;
       let companiesProcessed = 0;
+      const processingStartTime = Date.now();
 
       if (updateOnly) {
         // Update existing companies with new prices and market caps
@@ -143,25 +147,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalMarketCap += company.marketCap;
         }
       } else {
-        // Full sync - skip profile fetching since API key doesn't support it
-        // Convert and store companies directly from screener data
-        for (let i = 0; i < allCompanies.length; i++) {
-          const company = allCompanies[i];
-          const convertedCompany = financialDataService.convertToCompanySchema(company, i + 1);
-          await storage.createCompany(convertedCompany);
-          totalMarketCap += parseFloat(convertedCompany.marketCap);
-          companiesProcessed++;
+        // Full sync - convert and store companies directly from screener data
+        const batchSize = 50; // Process in batches for better performance
+        
+        for (let i = 0; i < allCompanies.length; i += batchSize) {
+          const batch = allCompanies.slice(i, i + batchSize);
+          
+          // Process batch in parallel
+          const promises = batch.map(async (company, index) => {
+            try {
+              const globalRank = i + index + 1;
+              const convertedCompany = financialDataService.convertToCompanySchema(company, globalRank);
+              await storage.createCompany(convertedCompany);
+              companiesProcessed++;
+              return parseFloat(convertedCompany.marketCap);
+            } catch (error) {
+              console.error(`Error processing company ${company.symbol}:`, error);
+              return 0;
+            }
+          });
+          
+          const batchMarketCaps = await Promise.all(promises);
+          totalMarketCap += batchMarketCaps.reduce((sum, cap) => sum + cap, 0);
+          
+          console.log(`Processed batch ${Math.floor(i/batchSize) + 1}: ${companiesProcessed} companies total`);
         }
       }
 
+      const processingTime = Date.now() - processingStartTime;
+      const totalTime = Date.now() - startTime;
+      
       console.log(`Successfully ${updateOnly ? 'updated' : 'synced'} ${companiesProcessed} companies from API`);
+      console.log(`Performance: Fetch: ${fetchTime}ms, Processing: ${processingTime}ms, Total: ${totalTime}ms`);
       
       res.json({ 
         message: `Financial data ${updateOnly ? 'updated' : 'synchronized'} successfully from FMP API`,
         companiesUpdated: companiesProcessed,
         totalMarketCap,
         source: "FMP API",
-        updateOnly
+        updateOnly,
+        performance: {
+          fetchTimeMs: fetchTime,
+          processingTimeMs: processingTime,
+          totalTimeMs: totalTime
+        }
       });
     } catch (error) {
       console.error("Error syncing financial data:", error);
