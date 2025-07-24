@@ -201,8 +201,71 @@ export class FinancialDataService {
       country: getCountryName(countryCode),
       countryCode,
       rank,
-      logoUrl: profile?.image || `https://logo.clearbit.com/${this.getDomainFromCompanyName(fmpCompany.companyName || fmpCompany.name)}`
+      logoUrl: profile?.image || this.getLogoUrl(fmpCompany.symbol, fmpCompany.companyName || fmpCompany.name)
     };
+  }
+
+  private getLogoUrl(symbol: string, companyName: string): string {
+    // Symbol-based logo mapping for better accuracy
+    const symbolToLogoMap: Record<string, string> = {
+      'AAPL': 'https://logo.clearbit.com/apple.com',
+      'MSFT': 'https://logo.clearbit.com/microsoft.com', 
+      'GOOGL': 'https://logo.clearbit.com/google.com',
+      'GOOG': 'https://logo.clearbit.com/google.com',
+      'AMZN': 'https://logo.clearbit.com/amazon.com',
+      'TSLA': 'https://logo.clearbit.com/tesla.com',
+      'META': 'https://logo.clearbit.com/meta.com',
+      'NVDA': 'https://logo.clearbit.com/nvidia.com',
+      'BRK-B': 'https://logo.clearbit.com/berkshirehathaway.com',
+      'BRK.B': 'https://logo.clearbit.com/berkshirehathaway.com',
+      'TSM': 'https://logo.clearbit.com/tsmc.com',
+      'V': 'https://logo.clearbit.com/visa.com',
+      'JPM': 'https://logo.clearbit.com/jpmorganchase.com',
+      'JNJ': 'https://logo.clearbit.com/jnj.com',
+      'WMT': 'https://logo.clearbit.com/walmart.com',
+      'PG': 'https://logo.clearbit.com/pg.com',
+      'MA': 'https://logo.clearbit.com/mastercard.com',
+      'UNH': 'https://logo.clearbit.com/unitedhealthgroup.com',
+      'HD': 'https://logo.clearbit.com/homedepot.com',
+      'ORCL': 'https://logo.clearbit.com/oracle.com',
+      'CVX': 'https://logo.clearbit.com/chevron.com',
+      'KO': 'https://logo.clearbit.com/coca-cola.com',
+      'PFE': 'https://logo.clearbit.com/pfizer.com',
+      'BAC': 'https://logo.clearbit.com/bankofamerica.com',
+      'ABBV': 'https://logo.clearbit.com/abbvie.com',
+      'CRM': 'https://logo.clearbit.com/salesforce.com',
+      'NFLX': 'https://logo.clearbit.com/netflix.com',
+      'ADBE': 'https://logo.clearbit.com/adobe.com',
+      'CSCO': 'https://logo.clearbit.com/cisco.com',
+      'ACN': 'https://logo.clearbit.com/accenture.com',
+      'TMO': 'https://logo.clearbit.com/thermofisher.com',
+      'DHR': 'https://logo.clearbit.com/danaher.com',
+      'DIS': 'https://logo.clearbit.com/disney.com',
+      'MCD': 'https://logo.clearbit.com/mcdonalds.com',
+      'VZ': 'https://logo.clearbit.com/verizon.com',
+      'CMCSA': 'https://logo.clearbit.com/comcast.com',
+      'NVO': 'https://logo.clearbit.com/novonordisk.com',
+      'ASML': 'https://logo.clearbit.com/asml.com',
+      'NKE': 'https://logo.clearbit.com/nike.com',
+      'INTC': 'https://logo.clearbit.com/intel.com',
+      'IBM': 'https://logo.clearbit.com/ibm.com',
+      'GE': 'https://logo.clearbit.com/ge.com',
+      'F': 'https://logo.clearbit.com/ford.com',
+      'T': 'https://logo.clearbit.com/att.com',
+      'GM': 'https://logo.clearbit.com/gm.com',
+      'SBUX': 'https://logo.clearbit.com/starbucks.com',
+      'PYPL': 'https://logo.clearbit.com/paypal.com',
+      'UBER': 'https://logo.clearbit.com/uber.com',
+      'SHOP': 'https://logo.clearbit.com/shopify.com'
+    };
+
+    // Try symbol first
+    if (symbolToLogoMap[symbol]) {
+      return symbolToLogoMap[symbol];
+    }
+
+    // Fallback to domain-based mapping
+    return `https://logo.clearbit.com/${this.getDomainFromCompanyName(companyName)}`;
   }
 
   private getDomainFromCompanyName(companyName: string): string {
@@ -212,6 +275,7 @@ export class FinancialDataService {
       'Microsoft Corporation': 'microsoft.com',
       'Alphabet Inc.': 'google.com',
       'Amazon.com Inc.': 'amazon.com',
+      'Amazon.com, Inc.': 'amazon.com',
       'Tesla, Inc.': 'tesla.com',
       'Meta Platforms, Inc.': 'meta.com',
       'NVIDIA Corporation': 'nvidia.com',
