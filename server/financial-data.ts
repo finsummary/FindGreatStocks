@@ -32,11 +32,16 @@ export class FinancialDataService {
       throw new Error("FMP_API_KEY is not configured");
     }
 
-    const url = `${FMP_BASE_URL}${endpoint}?apikey=${FMP_API_KEY}`;
+    const url = `${FMP_BASE_URL}${endpoint}&apikey=${FMP_API_KEY}`;
     console.log(`Fetching: ${endpoint}`);
+    console.log(`Full URL: ${url.replace(FMP_API_KEY, '[HIDDEN]')}`);
     
     const response = await fetch(url);
+    console.log(`Response status: ${response.status} ${response.statusText}`);
+    
     if (!response.ok) {
+      const errorText = await response.text();
+      console.log(`Error response body: ${errorText}`);
       throw new Error(`FMP API error: ${response.status} ${response.statusText}`);
     }
     
