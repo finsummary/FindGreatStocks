@@ -70,35 +70,101 @@ export const extendedSampleCompanies: InsertCompany[] = [
   { name: "JD.com Inc.", symbol: "JD", marketCap: "121000000000", price: "38.90", dailyChange: "0.89", dailyChangePercent: "2.34", country: "China", countryCode: "cn", rank: 49, logoUrl: "https://logo.clearbit.com/jd.com" },
   { name: "Baidu Inc.", symbol: "BIDU", marketCap: "109870000000", price: "98.45", dailyChange: "2.34", dailyChangePercent: "2.43", country: "China", countryCode: "cn", rank: 50, logoUrl: "https://logo.clearbit.com/baidu.com" },
 
-  // Fill out to demonstrate scale - next 50 companies
-  ...Array.from({ length: 950 }, (_, i) => {
-    const rank = i + 51;
-    const companyNames = [
-      "Advanced Semiconductor Corp", "Global Energy Solutions", "International Banking Group", "Digital Media Networks",
-      "Healthcare Innovation Inc", "Automotive Manufacturing Co", "Renewable Power Systems", "Financial Technology Ltd",
-      "Biotechnology Research Corp", "Consumer Electronics Group", "Industrial Materials Inc", "Software Solutions LLC",
-      "Telecommunications Services", "Real Estate Investment Trust", "Food & Beverage Corporation", "Retail Chain Holdings",
-      "Transportation Logistics Co", "Entertainment Media Group", "Insurance Services Inc", "Construction Materials Ltd"
-    ];
+  // More real companies with proper logos and realistic market caps
+  { name: "Intel Corporation", symbol: "INTC", marketCap: "198760000000", price: "48.45", dailyChange: "1.23", dailyChangePercent: "2.61", country: "United States", countryCode: "us", rank: 51, logoUrl: "https://logo.clearbit.com/intel.com" },
+  { name: "Walmart Inc.", symbol: "WMT", marketCap: "543210000000", price: "165.78", dailyChange: "2.34", dailyChangePercent: "1.43", country: "United States", countryCode: "us", rank: 52, logoUrl: "https://logo.clearbit.com/walmart.com" },
+  { name: "Exxon Mobil Corporation", symbol: "XOM", marketCap: "432100000000", price: "101.23", dailyChange: "3.45", dailyChangePercent: "3.53", country: "United States", countryCode: "us", rank: 53, logoUrl: "https://logo.clearbit.com/exxonmobil.com" },
+  { name: "Wells Fargo & Company", symbol: "WFC", marketCap: "198760000000", price: "48.90", dailyChange: "0.67", dailyChangePercent: "1.39", country: "United States", countryCode: "us", rank: 54, logoUrl: "https://logo.clearbit.com/wellsfargo.com" },
+  { name: "Eli Lilly and Company", symbol: "LLY", marketCap: "654320000000", price: "678.90", dailyChange: "12.34", dailyChangePercent: "1.85", country: "United States", countryCode: "us", rank: 55, logoUrl: "https://logo.clearbit.com/lilly.com" },
+  
+  // More international companies  
+  { name: "Kenvue Inc.", symbol: "KVUE", marketCap: "43210000000", price: "22.45", dailyChange: "0.34", dailyChangePercent: "1.54", country: "United States", countryCode: "us", rank: 56, logoUrl: "https://logo.clearbit.com/kenvue.com" },
+  { name: "Rio Tinto Group", symbol: "RIO", marketCap: "98760000000", price: "64.56", dailyChange: "1.23", dailyChangePercent: "1.94", country: "United Kingdom", countryCode: "gb", rank: 57, logoUrl: "https://logo.clearbit.com/riotinto.com" },
+  { name: "Shell plc", symbol: "SHEL", marketCap: "232100000000", price: "60.78", dailyChange: "0.89", dailyChangePercent: "1.49", country: "United Kingdom", countryCode: "gb", rank: 58, logoUrl: "https://logo.clearbit.com/shell.com" },
+  { name: "BP p.l.c.", symbol: "BP", marketCap: "87650000000", price: "29.45", dailyChange: "0.56", dailyChangePercent: "1.94", country: "United Kingdom", countryCode: "gb", rank: 59, logoUrl: "https://logo.clearbit.com/bp.com" },
+  { name: "Unilever PLC", symbol: "UL", marketCap: "132100000000", price: "51.23", dailyChange: "0.78", dailyChangePercent: "1.55", country: "United Kingdom", countryCode: "gb", rank: 60, logoUrl: "https://logo.clearbit.com/unilever.com" },
+
+  // Generate remaining companies with realistic market caps following proper rankings
+  ...Array.from({ length: 940 }, (_, i) => {
+    const rank = i + 61;
     
-    const sectors = ["Tech", "Energy", "Finance", "Healthcare", "Auto", "Consumer", "Industrial", "Telecom"];
+    // Real company names that should have logos available
+    const realCompanies = [
+      { name: "IBM Corporation", symbol: "IBM", domain: "ibm.com" },
+      { name: "General Electric Company", symbol: "GE", domain: "ge.com" },
+      { name: "Ford Motor Company", symbol: "F", domain: "ford.com" },
+      { name: "AT&T Inc.", symbol: "T", domain: "att.com" },
+      { name: "General Motors Company", symbol: "GM", domain: "gm.com" },
+      { name: "Caterpillar Inc.", symbol: "CAT", domain: "caterpillar.com" },
+      { name: "3M Company", symbol: "MMM", domain: "3m.com" },
+      { name: "Boeing Company", symbol: "BA", domain: "boeing.com" },
+      { name: "American Express Company", symbol: "AXP", domain: "americanexpress.com" },
+      { name: "Goldman Sachs Group Inc.", symbol: "GS", domain: "goldmansachs.com" },
+      { name: "Morgan Stanley", symbol: "MS", domain: "morganstanley.com" },
+      { name: "Nike Inc.", symbol: "NKE", domain: "nike.com" },
+      { name: "Starbucks Corporation", symbol: "SBUX", domain: "starbucks.com" },
+      { name: "PayPal Holdings Inc.", symbol: "PYPL", domain: "paypal.com" },
+      { name: "Uber Technologies Inc.", symbol: "UBER", domain: "uber.com" },
+      { name: "Airbnb Inc.", symbol: "ABNB", domain: "airbnb.com" },
+      { name: "Shopify Inc.", symbol: "SHOP", domain: "shopify.com" },
+      { name: "Zoom Video Communications Inc.", symbol: "ZM", domain: "zoom.us" },
+      { name: "Spotify Technology S.A.", symbol: "SPOT", domain: "spotify.com" },
+      { name: "Square Inc.", symbol: "SQ", domain: "squareup.com" },
+      { name: "Twitter Inc.", symbol: "TWTR", domain: "twitter.com" },
+      { name: "Snapchat Inc.", symbol: "SNAP", domain: "snapchat.com" },
+      { name: "Pinterest Inc.", symbol: "PINS", domain: "pinterest.com" },
+      { name: "Dropbox Inc.", symbol: "DBX", domain: "dropbox.com" },
+      { name: "Slack Technologies Inc.", symbol: "WORK", domain: "slack.com" },
+      { name: "Palantir Technologies Inc.", symbol: "PLTR", domain: "palantir.com" },
+      { name: "Snowflake Inc.", symbol: "SNOW", domain: "snowflake.com" },
+      { name: "CrowdStrike Holdings Inc.", symbol: "CRWD", domain: "crowdstrike.com" },
+      { name: "Okta Inc.", symbol: "OKTA", domain: "okta.com" },
+      { name: "Datadog Inc.", symbol: "DDOG", domain: "datadoghq.com" },
+      { name: "Splunk Inc.", symbol: "SPLK", domain: "splunk.com" },
+      { name: "ServiceNow Inc.", symbol: "NOW", domain: "servicenow.com" },
+      { name: "Workday Inc.", symbol: "WDAY", domain: "workday.com" },
+      { name: "Atlassian Corporation Plc", symbol: "TEAM", domain: "atlassian.com" },
+      { name: "Twilio Inc.", symbol: "TWLO", domain: "twilio.com" },
+      { name: "MongoDB Inc.", symbol: "MDB", domain: "mongodb.com" },
+      { name: "Elastic N.V.", symbol: "ESTC", domain: "elastic.co" },
+      { name: "HubSpot Inc.", symbol: "HUBS", domain: "hubspot.com" },
+      { name: "DocuSign Inc.", symbol: "DOCU", domain: "docusign.com" },
+      { name: "Zscaler Inc.", symbol: "ZS", domain: "zscaler.com" }
+    ];
+
     const countries = [
-      { name: "United States", code: "us" }, { name: "China", code: "cn" }, { name: "Japan", code: "jp" },
-      { name: "Germany", code: "de" }, { name: "United Kingdom", code: "gb" }, { name: "France", code: "fr" },
-      { name: "Canada", code: "ca" }, { name: "South Korea", code: "kr" }, { name: "India", code: "in" },
-      { name: "Australia", code: "au" }, { name: "Netherlands", code: "nl" }, { name: "Switzerland", code: "ch" }
+      { name: "United States", code: "us" }, 
+      { name: "China", code: "cn" }, 
+      { name: "Japan", code: "jp" },
+      { name: "Germany", code: "de" }, 
+      { name: "United Kingdom", code: "gb" }, 
+      { name: "France", code: "fr" },
+      { name: "Canada", code: "ca" }, 
+      { name: "South Korea", code: "kr" }, 
+      { name: "India", code: "in" },
+      { name: "Australia", code: "au" }, 
+      { name: "Netherlands", code: "nl" }, 
+      { name: "Switzerland", code: "ch" }
     ];
     
-    const companyName = `${companyNames[i % companyNames.length]} ${sectors[i % sectors.length]}`;
+    // Use real companies for first 40, then cycle through
+    const company = realCompanies[i % realCompanies.length];
     const country = countries[i % countries.length];
-    const symbol = `${companyName.split(' ').map(w => w[0]).join('').toUpperCase()}${rank}`;
-    const baseMarketCap = Math.max(500000000, 500000000000 - (rank * 1000000000));
-    const basePrice = Math.max(10, 500 - (rank * 2));
-    const changePercent = (Math.random() - 0.5) * 10; // -5% to +5%
+    const symbol = i < realCompanies.length ? company.symbol : `${company.symbol}${Math.floor(i / realCompanies.length)}`;
+    
+    // Realistic market cap calculation: Start from 150B and decline gradually
+    const baseMarketCap = Math.max(
+      1000000000, // Min 1B market cap
+      150000000000 - (rank * 150000000) // Start at 150B, decrease by 150M per rank
+    );
+    
+    // Realistic stock price between $10-500
+    const basePrice = Math.max(10, Math.min(500, 200 - (rank * 0.2)));
+    const changePercent = ((Math.random() - 0.5) * 8); // -4% to +4%
     const change = (basePrice * changePercent / 100);
     
     return {
-      name: companyName,
+      name: company.name,
       symbol: symbol,
       marketCap: baseMarketCap.toString(),
       price: basePrice.toFixed(2),
@@ -107,7 +173,7 @@ export const extendedSampleCompanies: InsertCompany[] = [
       country: country.name,
       countryCode: country.code,
       rank: rank,
-      logoUrl: `https://logo.clearbit.com/${companyName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '')}.com`
+      logoUrl: `https://logo.clearbit.com/${company.domain}`
     } as InsertCompany;
   })
 ];
