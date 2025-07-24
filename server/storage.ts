@@ -1,4 +1,6 @@
 import { companies, favorites, users, type User, type InsertUser, type Company, type InsertCompany, type Favorite } from "@shared/schema";
+import { db } from "./db";
+import { eq, sql, desc, asc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -17,6 +19,109 @@ export interface IStorage {
   getFavorites(userId: number): Promise<Company[]>;
   addFavorite(userId: number, companyId: number): Promise<Favorite>;
   removeFavorite(userId: number, companyId: number): Promise<void>;
+}
+
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async getCompanies(limit = 50, offset = 0, sortBy = 'rank', sortOrder: 'asc' | 'desc' = 'asc', search?: string, country?: string): Promise<Company[]> {
+    let query = db.select().from(companies);
+    
+    // Apply sorting - default to rank ascending
+    if (sortBy === 'rank') {
+      query = query.orderBy(sortOrder === 'desc' ? desc(companies.rank) : asc(companies.rank));
+    } else if (sortBy === 'marketCap') {
+      query = query.orderBy(sortOrder === 'desc' ? desc(sql`CAST(${companies.marketCap} AS BIGINT)`) : asc(sql`CAST(${companies.marketCap} AS BIGINT)`));
+    } else if (sortBy === 'name') {
+      query = query.orderBy(sortOrder === 'desc' ? desc(companies.name) : asc(companies.name));
+    }
+    
+    // Apply pagination
+    query = query.limit(limit).offset(offset);
+    
+    return await query;
+  }
+
+  async getCompanyCount(search?: string, country?: string): Promise<number> {
+    const result = await db.select({ count: sql`count(*)` }).from(companies);
+    return Number(result[0]?.count || 0);
+  }
+
+  async getCompanyBySymbol(symbol: string): Promise<Company | undefined> {
+    const [company] = await db.select().from(companies).where(eq(companies.symbol, symbol));
+    return company || undefined;
+  }
+
+  async createCompany(insertCompany: InsertCompany): Promise<Company> {
+    const [company] = await db
+      .insert(companies)
+      .values(insertCompany)
+      .returning();
+    return company;
+  }
+
+  async updateCompany(symbol: string, updates: Partial<Company>): Promise<void> {
+    await db
+      .update(companies)
+      .set(updates)
+      .where(eq(companies.symbol, symbol));
+  }
+
+  async clearAllCompanies(): Promise<void> {
+    await db.delete(companies);
+  }
+
+  async getFavorites(userId: number): Promise<Company[]> {
+    const result = await db
+      .select({
+        id: companies.id,
+        rank: companies.rank,
+        name: companies.name,
+        symbol: companies.symbol,
+        marketCap: companies.marketCap,
+        price: companies.price,
+        dailyChange: companies.dailyChange,
+        dailyChangePercent: companies.dailyChangePercent,
+        country: companies.country,
+        countryCode: companies.countryCode,
+        logoUrl: companies.logoUrl,
+      })
+      .from(favorites)
+      .innerJoin(companies, eq(favorites.companyId, companies.id))
+      .where(eq(favorites.userId, userId));
+    
+    return result;
+  }
+
+  async addFavorite(userId: number, companyId: number): Promise<Favorite> {
+    const [favorite] = await db
+      .insert(favorites)
+      .values({ userId, companyId })
+      .returning();
+    return favorite;
+  }
+
+  async removeFavorite(userId: number, companyId: number): Promise<void> {
+    await db
+      .delete(favorites)
+      .where(eq(favorites.userId, userId));
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -175,4 +280,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

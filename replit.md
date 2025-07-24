@@ -103,11 +103,11 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### July 24, 2025 - Automated Daily Updates Implementation
-- **Removed Manual Sync Buttons**: Eliminated "Update Prices" and "Full Sync" buttons from UI as requested
-- **Added Automatic Scheduler**: Created `server/scheduler.ts` with DataScheduler class for automated updates
-- **Daily Price Updates**: System automatically refreshes all company prices after market close (4 PM ET / 9 PM UTC)
-- **Startup Data Check**: Scheduler performs initial data load if no companies exist, otherwise refreshes prices
-- **Market Hours Awareness**: Updates only occur between 9 PM UTC and 2 AM UTC (after market close)
-- **Current Status**: 2,845 companies loaded with $96.66T total market cap, real-time FMP API data
-- **Last Update Tracking**: Added timestamp tracking to show users when data was last refreshed
+### July 24, 2025 - Database Migration and Data Persistence
+- **PostgreSQL Migration**: Successfully migrated from in-memory storage to PostgreSQL database for data persistence
+- **Database Setup**: Created database schema with companies, users, and favorites tables using Drizzle ORM
+- **Data Persistence**: Companies data now persists across server restarts, solving "No Companies Available" issue
+- **Authentic Market Data**: 604 companies loaded with $79.32T total market cap from FMP API
+- **Current Rankings**: NVIDIA ($4.24T), Microsoft ($3.80T), Apple ($3.19T) showing real market capitalizations
+- **Automated Scheduler**: Daily updates continue to work with database storage for automatic price refreshes
+- **Database Storage**: Replaced MemStorage with DatabaseStorage class implementing full CRUD operations
