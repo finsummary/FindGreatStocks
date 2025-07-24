@@ -1,0 +1,136 @@
+import { storage } from './storage';
+import { financialDataService } from './financial-data';
+
+class DataScheduler {
+  private updateInterval: NodeJS.Timeout | null = null;
+  private isUpdating = false;
+
+  constructor() {
+    this.startScheduler();
+  }
+
+  private startScheduler() {
+    // Schedule updates every 24 hours (86400000 ms)
+    // In production, this would check if it's after market close (4 PM ET)
+    this.updateInterval = setInterval(() => {
+      this.performDailyUpdate();
+    }, 24 * 60 * 60 * 1000);
+
+    // Also perform initial update on startup if no data exists
+    this.checkInitialData();
+  }
+
+  private async checkInitialData() {
+    try {
+      const companies = await storage.getCompanies(1, 0);
+      if (companies.length === 0) {
+        console.log('No companies found, performing initial data load...');
+        await this.performFullSync();
+      } else {
+        console.log(`Found ${companies.length} companies in storage`);
+        // Perform daily update to refresh prices
+        setTimeout(() => this.performDailyUpdate(), 5000); // Wait 5 seconds after startup
+      }
+    } catch (error) {
+      console.error('Error checking initial data:', error);
+    }
+  }
+
+  private async performFullSync() {
+    if (this.isUpdating) {
+      console.log('Update already in progress, skipping...');
+      return;
+    }
+
+    this.isUpdating = true;
+    console.log('Starting full company data sync...');
+
+    try {
+      // Clear existing data
+      await storage.clearAllCompanies();
+      
+      // Fetch maximum available companies
+      const companies = await financialDataService.fetchTopCompaniesByMarketCap(5000);
+      console.log(`Fetched ${companies.length} companies from FMP API`);
+
+      // Store companies without profiles to avoid API key issues
+      for (let i = 0; i < companies.length; i++) {
+        const company = companies[i];
+        const convertedCompany = financialDataService.convertToCompanySchema(company, i + 1);
+        await storage.createCompany(convertedCompany);
+      }
+
+      console.log(`Successfully synced ${companies.length} companies`);
+    } catch (error) {
+      console.error('Error during full sync:', error);
+    } finally {
+      this.isUpdating = false;
+    }
+  }
+
+  private async performDailyUpdate() {
+    if (this.isUpdating) {
+      console.log('Update already in progress, skipping...');
+      return;
+    }
+
+    // Check if it's after market close (4 PM ET / 9 PM UTC)
+    const now = new Date();
+    const utcHour = now.getUTCHours();
+    
+    // Only update between 9 PM UTC (4 PM ET) and 2 AM UTC (9 PM ET)
+    if (utcHour < 21 && utcHour > 2) {
+      console.log('Market is still open, skipping update...');
+      return;
+    }
+
+    this.isUpdating = true;
+    console.log('Starting daily price update...');
+
+    try {
+      // Fetch latest prices
+      const companies = await financialDataService.fetchTopCompaniesByMarketCap(5000);
+      console.log(`Fetched ${companies.length} companies for price update`);
+
+      let updatedCount = 0;
+      for (const company of companies) {
+        const existingCompany = await storage.getCompanyBySymbol(company.symbol);
+        
+        if (existingCompany) {
+          const updatedData = {
+            marketCap: company.marketCap.toString(),
+            price: company.price.toFixed(2),
+            dailyChange: (company.change || 0).toFixed(2),
+            dailyChangePercent: (company.changesPercentage || 0).toFixed(2)
+          };
+          
+          await storage.updateCompany(company.symbol, updatedData);
+          updatedCount++;
+        }
+      }
+
+      console.log(`Successfully updated prices for ${updatedCount} companies`);
+    } catch (error) {
+      console.error('Error during daily update:', error);
+    } finally {
+      this.isUpdating = false;
+    }
+  }
+
+  public async forceUpdate() {
+    await this.performDailyUpdate();
+  }
+
+  public async forceFullSync() {
+    await this.performFullSync();
+  }
+
+  public stop() {
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+      this.updateInterval = null;
+    }
+  }
+}
+
+export const dataScheduler = new DataScheduler();

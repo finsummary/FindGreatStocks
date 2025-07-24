@@ -1,13 +1,11 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { Moon, Sun, Globe, DollarSign, RefreshCw, Database } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Moon, Sun, Globe, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CompanyTable } from "@/components/company-table";
 import { useTheme } from "@/components/theme-provider";
-import { useToast } from "@/hooks/use-toast";
 import { formatMarketCap } from "@/lib/format";
-import { queryClient } from "@/lib/queryClient";
 
 export default function Home() {
   const { theme, setTheme } = useTheme();
@@ -15,7 +13,6 @@ export default function Home() {
   const [selectedCountry, setSelectedCountry] = useState("all");
   const [currency, setCurrency] = useState("USD");
   const [language, setLanguage] = useState("EN");
-  const { toast } = useToast();
 
   const { data: marketStats } = useQuery({
     queryKey: ['/api/market/stats'],
@@ -25,44 +22,6 @@ export default function Home() {
         throw new Error('Failed to fetch market stats');
       }
       return response.json();
-    },
-  });
-
-  const syncMutation = useMutation({
-    mutationFn: async ({ limit = 5000, updateOnly = false }: { limit?: number; updateOnly?: boolean }) => {
-      const params = new URLSearchParams();
-      params.append('limit', limit.toString());
-      if (updateOnly) params.append('updateOnly', 'true');
-      
-      const response = await fetch(`/api/companies/sync?${params}`, {
-        method: 'POST',
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to sync financial data');
-      }
-      return response.json();
-    },
-    onSuccess: (data) => {
-      const title = data.updateOnly ? "Prices updated" : "Financial data synchronized";
-      const description = data.updateOnly 
-        ? `Updated prices for ${data.companiesUpdated} companies` 
-        : `Updated ${data.companiesUpdated} companies with real market data`;
-      
-      toast({
-        title,
-        description,
-      });
-      // Invalidate queries to refresh the UI
-      queryClient.invalidateQueries({ queryKey: ['/api/companies'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/market/stats'] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Sync failed",
-        description: error.message,
-        variant: "destructive",
-      });
     },
   });
 
@@ -83,41 +42,6 @@ export default function Home() {
 
             {/* Controls */}
             <div className="flex items-center space-x-2">
-              {/* Daily Price Update */}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => syncMutation.mutate({ limit: 5000, updateOnly: true })}
-                disabled={syncMutation.isPending}
-                className="flex items-center gap-2"
-              >
-                {syncMutation.isPending ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-                <span className="hidden sm:inline">
-                  {syncMutation.isPending ? 'Updating...' : 'Update Prices'}
-                </span>
-              </Button>
-
-              {/* Full Data Sync */}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => syncMutation.mutate({ limit: 5000, updateOnly: false })}
-                disabled={syncMutation.isPending}
-                className="flex items-center gap-2"
-              >
-                {syncMutation.isPending ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Database className="h-4 w-4" />
-                )}
-                <span className="hidden sm:inline">
-                  {syncMutation.isPending ? 'Syncing...' : 'Full Sync'}
-                </span>
-              </Button>
 
               {/* Language Selector */}
               <Button variant="outline" size="sm" className="flex items-center gap-2">
@@ -159,6 +83,11 @@ export default function Home() {
                 Total market cap: <span className="font-semibold text-primary">
                   {marketStats?.formattedTotalMarketCap || '$127.029 T'}
                 </span>
+                {marketStats?.lastUpdate && (
+                  <span className="text-sm ml-4">
+                    • Last updated: {new Date(marketStats.lastUpdate).toLocaleDateString()}
+                  </span>
+                )}
               </p>
             </div>
           </div>

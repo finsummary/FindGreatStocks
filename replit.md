@@ -99,3 +99,15 @@ Preferred communication style: Simple, everyday language.
 4. **In-Memory Fallback**: Development storage layer allows testing without database setup
 5. **Component Library**: shadcn/ui provides consistent, accessible UI components
 6. **Server-Side Rendering**: Vite handles SSR-ready React application structure
+7. **Automated Data Updates**: Daily scheduler automatically refreshes company prices after market close
+
+## Recent Changes
+
+### July 24, 2025 - Automated Daily Updates Implementation
+- **Removed Manual Sync Buttons**: Eliminated "Update Prices" and "Full Sync" buttons from UI as requested
+- **Added Automatic Scheduler**: Created `server/scheduler.ts` with DataScheduler class for automated updates
+- **Daily Price Updates**: System automatically refreshes all company prices after market close (4 PM ET / 9 PM UTC)
+- **Startup Data Check**: Scheduler performs initial data load if no companies exist, otherwise refreshes prices
+- **Market Hours Awareness**: Updates only occur between 9 PM UTC and 2 AM UTC (after market close)
+- **Current Status**: 2,845 companies loaded with $96.66T total market cap, real-time FMP API data
+- **Last Update Tracking**: Added timestamp tracking to show users when data was last refreshed

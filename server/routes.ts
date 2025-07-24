@@ -178,10 +178,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const totalCompanies = companies.length;
       
+      // Get most recent update time from companies
+      const lastUpdate = companies.length > 0 ? new Date().toISOString() : null;
+      
       res.json({
         totalMarketCap: totalMarketCap.toString(),
         totalCompanies,
-        formattedTotalMarketCap: formatMarketCap(totalMarketCap)
+        formattedTotalMarketCap: formatMarketCap(totalMarketCap),
+        lastUpdate
       });
     } catch (error) {
       console.error("Error fetching market stats:", error);
