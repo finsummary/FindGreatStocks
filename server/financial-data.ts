@@ -52,19 +52,53 @@ export class FinancialDataService {
     try {
       const allCompanies: FMPCompany[] = [];
       
-      // Strategy 1: Multiple market cap thresholds to get more companies
+      // Strategy 1: Focus on US exchanges first for major companies
+      console.log("Fetching US companies from NYSE and NASDAQ first...");
+      
+      const usExchanges = ['NYSE', 'NASDAQ'];
+      for (const exchange of usExchanges) {
+        try {
+          const companies = await this.makeRequest(`/stock-screener?exchange=${exchange}&marketCapMoreThan=1000000000&limit=2000&isActivelyTrading=true`);
+          
+          if (Array.isArray(companies)) {
+            console.log(`Raw API response from ${exchange}: ${companies.length} companies`);
+            
+            const filteredBatch = companies
+              .filter(company => 
+                company.marketCap && 
+                company.marketCap > 0 && 
+                company.symbol && 
+                company.companyName &&
+                company.price &&
+                company.price > 0 &&
+                !this.isIndexFundOrETF(company.symbol, company.companyName) &&
+                !allCompanies.some(existing => existing.symbol === company.symbol)
+              );
+            
+            allCompanies.push(...filteredBatch);
+            console.log(`Added ${filteredBatch.length} US companies from ${exchange}. Total: ${allCompanies.length}`);
+          }
+        } catch (error) {
+          console.error(`Error fetching from ${exchange}:`, error);
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      // Strategy 2: Multiple market cap thresholds for remaining companies
       const thresholds = [
         1000000000,   // $1B+ (large cap)
         100000000,    // $100M+ (mid cap)
         10000000,     // $10M+ (small cap)
-        1000000       // $1M+ (micro cap)
       ];
       
       for (const threshold of thresholds) {
-        console.log(`Fetching companies with market cap > $${threshold.toLocaleString()}`);
+        if (allCompanies.length >= limit) break;
+        
+        console.log(`Fetching additional companies with market cap > $${threshold.toLocaleString()}`);
         
         try {
-          const companies = await this.makeRequest(`/stock-screener?marketCapMoreThan=${threshold}&limit=5000&isActivelyTrading=true`);
+          const companies = await this.makeRequest(`/stock-screener?marketCapMoreThan=${threshold}&limit=3000&isActivelyTrading=true`);
           
           if (Array.isArray(companies)) {
             console.log(`Raw API response for $${threshold.toLocaleString()}+: ${companies.length} companies`);
@@ -85,25 +119,18 @@ export class FinancialDataService {
             
             allCompanies.push(...filteredBatch);
             console.log(`Added ${filteredBatch.length} new companies. Total: ${allCompanies.length}`);
-            
-            // If we have enough companies, break early
-            if (allCompanies.length >= limit) {
-              break;
-            }
           }
         } catch (error) {
           console.error(`Error fetching companies for threshold $${threshold}:`, error);
-          // Continue with next threshold
         }
         
-        // Small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      // Strategy 2: Try different exchanges for international companies
-      const exchanges = ['NYSE', 'NASDAQ', 'TSX', 'LSE', 'EURONEXT', 'XETRA', 'SIX', 'ASX', 'HKEX', 'BSE'];
+      // Strategy 3: International exchanges (but skip NYSE/NASDAQ since we got them first)
+      const internationalExchanges = ['TSX', 'LSE', 'ASX', 'HKEX'];
       
-      for (const exchange of exchanges) {
+      for (const exchange of internationalExchanges) {
         if (allCompanies.length >= limit) break;
         
         try {
@@ -166,9 +193,19 @@ export class FinancialDataService {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      // Sort all companies by market cap and limit
+      // Prioritize US companies and sort by market cap
       const finalCompanies = allCompanies
-        .sort((a, b) => b.marketCap - a.marketCap)
+        .sort((a, b) => {
+          // First prioritize US companies
+          const aIsUS = (a.country === 'US' || a.country === 'United States' || a.exchangeShortName === 'NYSE' || a.exchangeShortName === 'NASDAQ');
+          const bIsUS = (b.country === 'US' || b.country === 'United States' || b.exchangeShortName === 'NYSE' || b.exchangeShortName === 'NASDAQ');
+          
+          if (aIsUS && !bIsUS) return -1;
+          if (!aIsUS && bIsUS) return 1;
+          
+          // Then sort by market cap within each group
+          return b.marketCap - a.marketCap;
+        })
         .slice(0, limit);
       
       console.log(`Final result: ${finalCompanies.length} companies after deduplication and sorting`);
@@ -393,26 +430,32 @@ export class FinancialDataService {
   }
 
   isIndexFundOrETF(symbol: string, companyName: string): boolean {
-    // Common ETF and index fund patterns
+    // Comprehensive ETF and index fund patterns
     const excludePatterns = [
-      // ETF patterns
-      /ETF$/i,
-      /^(SPY|QQQ|IWM|EFA|EEM|VTI|VOO|VEA|VWO|AGG|LQD|TLT|GLD|SLV|USO|XLF|XLE|XLI|XLK|XLV|XLY|XLP|XLB|XLU|XLRE|XBI|XME|XRT|IYR|SOXX|ARKK|ARKQ|ARKW|ARKG|ARKF|JETS|KWEB|ICLN|MOON|BOTZ|ESPO|HERO|UFO|CHAD|LRNZ|MEME)$/i,
-      // Vanguard funds - comprehensive patterns
-      /^V[A-Z]{2,6}X?$/i, // VTSAX, VTIAX, VBTLX, VOO, VTI, VEA, etc.
-      /^VSMPX$/i, // Vanguard Total Stock Mkt Idx Instl Pls
-      /^VITSX$/i, // Vanguard Total Stock Market Index Fund
-      /^VFIAX$/i, // Vanguard 500 Index Fund Admiral Shares
-      /^VTSAX$/i, // Vanguard Total Stock Market Index Fund Admiral Shares
-      /^VOO$/i,   // Vanguard S&P 500 ETF
-      /^VTI$/i,   // Vanguard Total Stock Market ETF
-      /^VEA$/i,   // Vanguard FTSE Developed Markets ETF
-      /Vanguard.*(?:Index|ETF|Fund|Total|S&P|Stock|Market|Admiral|Institutional)/i,
-      /Total.*(?:Stock|Market).*(?:Index|Fund)/i,
-      /S&P.*500.*(?:Index|ETF|Fund)/i,
-      // Fidelity funds
-      /^F[A-Z]{4,6}X?$/i, // FXNAX, FSKAX, etc.
-      /Fidelity.*(?:Index|Fund)/i,
+      // Core ETF patterns
+      /ETF/i, /UCITS/i, /Index/i, /Fund/i, /Trust/i, /DR/i,
+      
+      // European ETF providers (major culprits)
+      /Lyxor/i, /Xtrackers/i, /Amundi/i, /iShares/i, /Vanguard/i,
+      /STOXX/i, /MSCI/i, /Core/i, /Prime/i, /ESG/i, /Broad/i, /CTB/i,
+      
+      // Exchange suffixes that indicate ETFs
+      /\.L$/i, /\.PA$/i, /\.DE$/i, /\.MI$/i, /\.AS$/i, /\.SW$/i,
+      
+      // US ETF patterns
+      /^(SPY|QQQ|IWM|EFA|EEM|VTI|VOO|VEA|VWO|AGG|LQD|TLT|GLD|SLV|USO)$/i,
+      /^(XLF|XLE|XLI|XLK|XLV|XLY|XLP|XLB|XLU|XLRE|XBI|XME|XRT|IYR|SOXX)$/i,
+      /^(ARKK|ARKQ|ARKW|ARKG|ARKF|JETS|KWEB|ICLN|BOTZ|ESPO)$/i,
+      
+      // Specific problem symbols we've seen
+      /^(MEUD|XMEU|XSX6|CEUR|PRIR|0R15)$/i,
+      
+      // Numbered or coded symbols (often ETFs)
+      /^[0-9][A-Z][0-9][0-9]/i, // Pattern like "0R15"
+      /^[A-Z]{4,6}\.L$/i,        // London exchange ETFs
+      
+      // Common fund keywords
+      /Solutions/i, /Select/i, /Choice/i, /Portfolio/i,
       // SPDR funds
       /^SPY|SPDR/i,
       // Other common patterns
