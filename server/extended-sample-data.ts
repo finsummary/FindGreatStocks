@@ -71,18 +71,18 @@ export const extendedSampleCompanies: InsertCompany[] = [
   { name: "Baidu Inc.", symbol: "BIDU", marketCap: "109870000000", price: "98.45", dailyChange: "2.34", dailyChangePercent: "2.43", country: "China", countryCode: "cn", rank: 50, logoUrl: "https://logo.clearbit.com/baidu.com" },
 
   // More real companies with proper logos and realistic market caps
-  { name: "Intel Corporation", symbol: "INTC", marketCap: "198760000000", price: "48.45", dailyChange: "1.23", dailyChangePercent: "2.61", country: "United States", countryCode: "us", rank: 51, logoUrl: "https://logo.clearbit.com/intel.com" },
-  { name: "Walmart Inc.", symbol: "WMT", marketCap: "543210000000", price: "165.78", dailyChange: "2.34", dailyChangePercent: "1.43", country: "United States", countryCode: "us", rank: 52, logoUrl: "https://logo.clearbit.com/walmart.com" },
-  { name: "Exxon Mobil Corporation", symbol: "XOM", marketCap: "432100000000", price: "101.23", dailyChange: "3.45", dailyChangePercent: "3.53", country: "United States", countryCode: "us", rank: 53, logoUrl: "https://logo.clearbit.com/exxonmobil.com" },
-  { name: "Wells Fargo & Company", symbol: "WFC", marketCap: "198760000000", price: "48.90", dailyChange: "0.67", dailyChangePercent: "1.39", country: "United States", countryCode: "us", rank: 54, logoUrl: "https://logo.clearbit.com/wellsfargo.com" },
-  { name: "Eli Lilly and Company", symbol: "LLY", marketCap: "654320000000", price: "678.90", dailyChange: "12.34", dailyChangePercent: "1.85", country: "United States", countryCode: "us", rank: 55, logoUrl: "https://logo.clearbit.com/lilly.com" },
+  { name: "Intel Corporation", symbol: "INTC", marketCap: "62000000000", price: "48.45", dailyChange: "1.23", dailyChangePercent: "2.61", country: "United States", countryCode: "us", rank: 51, logoUrl: "https://logo.clearbit.com/intel.com" },
+  { name: "Walmart Inc.", symbol: "WMT", marketCap: "58000000000", price: "165.78", dailyChange: "2.34", dailyChangePercent: "1.43", country: "United States", countryCode: "us", rank: 52, logoUrl: "https://logo.clearbit.com/walmart.com" },
+  { name: "Exxon Mobil Corporation", symbol: "XOM", marketCap: "55000000000", price: "101.23", dailyChange: "3.45", dailyChangePercent: "3.53", country: "United States", countryCode: "us", rank: 53, logoUrl: "https://logo.clearbit.com/exxonmobil.com" },
+  { name: "Wells Fargo & Company", symbol: "WFC", marketCap: "52000000000", price: "48.90", dailyChange: "0.67", dailyChangePercent: "1.39", country: "United States", countryCode: "us", rank: 54, logoUrl: "https://logo.clearbit.com/wellsfargo.com" },
+  { name: "Eli Lilly and Company", symbol: "LLY", marketCap: "49000000000", price: "678.90", dailyChange: "12.34", dailyChangePercent: "1.85", country: "United States", countryCode: "us", rank: 55, logoUrl: "https://logo.clearbit.com/lilly.com" },
   
   // More international companies  
-  { name: "Kenvue Inc.", symbol: "KVUE", marketCap: "43210000000", price: "22.45", dailyChange: "0.34", dailyChangePercent: "1.54", country: "United States", countryCode: "us", rank: 56, logoUrl: "https://logo.clearbit.com/kenvue.com" },
-  { name: "Rio Tinto Group", symbol: "RIO", marketCap: "98760000000", price: "64.56", dailyChange: "1.23", dailyChangePercent: "1.94", country: "United Kingdom", countryCode: "gb", rank: 57, logoUrl: "https://logo.clearbit.com/riotinto.com" },
-  { name: "Shell plc", symbol: "SHEL", marketCap: "232100000000", price: "60.78", dailyChange: "0.89", dailyChangePercent: "1.49", country: "United Kingdom", countryCode: "gb", rank: 58, logoUrl: "https://logo.clearbit.com/shell.com" },
-  { name: "BP p.l.c.", symbol: "BP", marketCap: "87650000000", price: "29.45", dailyChange: "0.56", dailyChangePercent: "1.94", country: "United Kingdom", countryCode: "gb", rank: 59, logoUrl: "https://logo.clearbit.com/bp.com" },
-  { name: "Unilever PLC", symbol: "UL", marketCap: "132100000000", price: "51.23", dailyChange: "0.78", dailyChangePercent: "1.55", country: "United Kingdom", countryCode: "gb", rank: 60, logoUrl: "https://logo.clearbit.com/unilever.com" },
+  { name: "Kenvue Inc.", symbol: "KVUE", marketCap: "46000000000", price: "22.45", dailyChange: "0.34", dailyChangePercent: "1.54", country: "United States", countryCode: "us", rank: 56, logoUrl: "https://logo.clearbit.com/kenvue.com" },
+  { name: "Rio Tinto Group", symbol: "RIO", marketCap: "43000000000", price: "64.56", dailyChange: "1.23", dailyChangePercent: "1.94", country: "United Kingdom", countryCode: "gb", rank: 57, logoUrl: "https://logo.clearbit.com/riotinto.com" },
+  { name: "Shell plc", symbol: "SHEL", marketCap: "40000000000", price: "60.78", dailyChange: "0.89", dailyChangePercent: "1.49", country: "United Kingdom", countryCode: "gb", rank: 58, logoUrl: "https://logo.clearbit.com/shell.com" },
+  { name: "BP p.l.c.", symbol: "BP", marketCap: "37000000000", price: "29.45", dailyChange: "0.56", dailyChangePercent: "1.94", country: "United Kingdom", countryCode: "gb", rank: 59, logoUrl: "https://logo.clearbit.com/bp.com" },
+  { name: "Unilever PLC", symbol: "UL", marketCap: "34000000000", price: "51.23", dailyChange: "0.78", dailyChangePercent: "1.55", country: "United Kingdom", countryCode: "gb", rank: 60, logoUrl: "https://logo.clearbit.com/unilever.com" },
 
   // Generate remaining companies with realistic market caps following proper rankings
   ...Array.from({ length: 940 }, (_, i) => {
@@ -152,10 +152,11 @@ export const extendedSampleCompanies: InsertCompany[] = [
     const country = countries[i % countries.length];
     const symbol = i < realCompanies.length ? company.symbol : `${company.symbol}${Math.floor(i / realCompanies.length)}`;
     
-    // Realistic market cap calculation: Start from 150B and decline gradually
+    // Realistic market cap calculation: Exponential decline like real rankings
+    // Rank 50: ~$100B, Rank 100: ~$50B, Rank 500: ~$10B, Rank 1000: ~$1B
     const baseMarketCap = Math.max(
       1000000000, // Min 1B market cap
-      150000000000 - (rank * 150000000) // Start at 150B, decrease by 150M per rank
+      100000000000 * Math.exp(-rank / 200) // Exponential decay starting from 100B
     );
     
     // Realistic stock price between $10-500
