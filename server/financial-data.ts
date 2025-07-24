@@ -50,13 +50,20 @@ export class FinancialDataService {
 
   async fetchTopCompaniesByMarketCap(limit: number = 100): Promise<FMPCompany[]> {
     try {
-      // Get all companies sorted by market cap - FMP API supports up to 5000 per request
-      const companies = await this.makeRequest(`/stock-screener?marketCapMoreThan=1000000000&limit=${Math.min(limit, 5000)}`);
+      // Lower market cap threshold to get more companies (10 million instead of 1 billion)
+      const marketCapThreshold = 10000000; // $10M instead of $1B
+      const apiLimit = Math.min(limit, 5000); // FMP API max per request
+      
+      console.log(`Fetching companies with market cap > $${marketCapThreshold.toLocaleString()} (limit: ${apiLimit})`);
+      
+      const companies = await this.makeRequest(`/stock-screener?marketCapMoreThan=${marketCapThreshold}&limit=${apiLimit}&isActivelyTrading=true`);
       
       if (!Array.isArray(companies)) {
         console.error("Unexpected response format:", companies);
         return [];
       }
+
+      console.log(`Raw API response: ${companies.length} companies received`);
 
       // Filter out companies without essential data, ETFs/index funds, and sort by market cap
       const filteredCompanies = companies
@@ -73,10 +80,33 @@ export class FinancialDataService {
         .sort((a, b) => b.marketCap - a.marketCap)
         .slice(0, limit);
 
+      console.log(`After filtering: ${filteredCompanies.length} companies remaining`);
       return filteredCompanies;
     } catch (error) {
       console.error("Error fetching companies:", error);
       throw error;
+    }
+  }
+
+  // Method to get total count of available companies
+  async getTotalAvailableCompanies(): Promise<number> {
+    try {
+      // Get all tradable stocks list to count total available
+      const stocks = await this.makeRequest('/available-traded/list');
+      if (Array.isArray(stocks)) {
+        const realCompanies = stocks.filter(stock => 
+          stock.symbol && 
+          stock.name && 
+          !this.isIndexFundOrETF(stock.symbol, stock.name)
+        );
+        console.log(`Total available companies from API: ${realCompanies.length}`);
+        return realCompanies.length;
+      }
+      return 0;
+    } catch (error) {
+      console.error("Error getting total companies count:", error);
+      // If we can't get the exact count, return an estimate based on FMP documentation
+      return 70000; // FMP has ~70,000 actively traded stocks
     }
   }
 

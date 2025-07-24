@@ -77,6 +77,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get total available companies count
+  app.get("/api/companies/available-count", async (req, res) => {
+    try {
+      const totalCount = await financialDataService.getTotalAvailableCompanies();
+      res.json({ 
+        totalAvailable: totalCount,
+        source: "FMP API"
+      });
+    } catch (error) {
+      console.error("Error getting available companies count:", error);
+      res.status(500).json({ 
+        message: "Failed to get available companies count", 
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Fetch real financial data and update storage
   app.post("/api/companies/sync", async (req, res) => {
     try {
@@ -126,22 +143,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalMarketCap += company.marketCap;
         }
       } else {
-        // Full sync with company profiles (slower but complete)
-        const batchSize = 10;
-        const allProfiles: any[] = [];
-        
-        for (let i = 0; i < allCompanies.length; i += batchSize) {
-          const batch = allCompanies.slice(i, i + batchSize);
-          const symbols = batch.map(c => c.symbol);
-          const profiles = await financialDataService.fetchMultipleCompanyProfiles(symbols);
-          allProfiles.push(...profiles);
-        }
-
-        // Convert and store companies
+        // Full sync - skip profile fetching since API key doesn't support it
+        // Convert and store companies directly from screener data
         for (let i = 0; i < allCompanies.length; i++) {
           const company = allCompanies[i];
-          const profile = allProfiles.find(p => p?.symbol === company.symbol);
-          const convertedCompany = financialDataService.convertToCompanySchema(company, i + 1, profile);
+          const convertedCompany = financialDataService.convertToCompanySchema(company, i + 1);
           await storage.createCompany(convertedCompany);
           totalMarketCap += parseFloat(convertedCompany.marketCap);
           companiesProcessed++;
