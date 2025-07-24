@@ -1,0 +1,40 @@
+export function formatMarketCap(value: number | string): string {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  
+  if (num >= 1e12) {
+    return `$${(num / 1e12).toFixed(3)} T`;
+  } else if (num >= 1e9) {
+    return `$${(num / 1e9).toFixed(2)} B`;
+  } else if (num >= 1e6) {
+    return `$${(num / 1e6).toFixed(2)} M`;
+  } else {
+    return `$${num.toFixed(2)}`;
+  }
+}
+
+export function formatPrice(price: number | string): string {
+  const num = typeof price === 'string' ? parseFloat(price) : price;
+  return `$${num.toFixed(2)}`;
+}
+
+export function formatPercentage(percentage: number | string, showSign = true): string {
+  const num = typeof percentage === 'string' ? parseFloat(percentage) : percentage;
+  const sign = showSign && num > 0 ? '+' : '';
+  return `${sign}${num.toFixed(2)}%`;
+}
+
+export function formatCountry(country: string): string {
+  const countryMap: Record<string, string> = {
+    'us': 'USA',
+    'cn': 'China',
+    'sa': 'S. Arabia',
+    'tw': 'Taiwan',
+    'de': 'Germany',
+    'dk': 'Denmark',
+    'fr': 'France',
+    'nl': 'Netherlands',
+    'kr': 'S. Korea'
+  };
+  
+  return countryMap[country] || country;
+}
