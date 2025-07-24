@@ -1,4 +1,5 @@
 import { companies, favorites, users, type User, type InsertUser, type Company, type InsertCompany, type Favorite } from "@shared/schema";
+import { extendedSampleCompanies } from "./extended-sample-data";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -10,6 +11,7 @@ export interface IStorage {
   getCompanyCount(search?: string, country?: string): Promise<number>;
   getCompanyBySymbol(symbol: string): Promise<Company | undefined>;
   createCompany(company: InsertCompany): Promise<Company>;
+  clearAllCompanies(): Promise<void>;
   
   // Favorites methods
   getFavorites(userId: number): Promise<Company[]>;
@@ -38,157 +40,12 @@ export class MemStorage implements IStorage {
   }
 
   private initializeCompanies() {
-    const companiesData = [
-      {
-        name: "NVIDIA",
-        symbol: "NVDA",
-        marketCap: "4196000000000",
-        price: "172.08",
-        dailyChange: "1.30",
-        dailyChangePercent: "0.76",
-        country: "USA",
-        countryCode: "us",
-        rank: 1,
-        logoUrl: "https://images.unsplash.com/photo-1633114128174-2f8aa49759b0?ixlib=rb-4.0.3&auto=format&fit=crop&w=64&h=64"
-      },
-      {
-        name: "Microsoft",
-        symbol: "MSFT",
-        marketCap: "3778000000000",
-        price: "508.32",
-        dailyChange: "2.42",
-        dailyChangePercent: "0.48",
-        country: "USA",
-        countryCode: "us",
-        rank: 2,
-        logoUrl: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=64&h=64"
-      },
-      {
-        name: "Apple",
-        symbol: "AAPL",
-        marketCap: "3203000000000",
-        price: "214.48",
-        dailyChange: "0.32",
-        dailyChangePercent: "0.15",
-        country: "USA",
-        countryCode: "us",
-        rank: 3,
-        logoUrl: "https://images.unsplash.com/photo-1570913149827-d2ac84ab3f9a?ixlib=rb-4.0.3&auto=format&fit=crop&w=64&h=64"
-      },
-      {
-        name: "Amazon",
-        symbol: "AMZN",
-        marketCap: "2462000000000",
-        price: "231.91",
-        dailyChange: "3.61",
-        dailyChangePercent: "1.58",
-        country: "USA",
-        countryCode: "us",
-        rank: 4,
-        logoUrl: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?ixlib=rb-4.0.3&auto=format&fit=crop&w=64&h=64"
-      },
-      {
-        name: "Alphabet (Google)",
-        symbol: "GOOG",
-        marketCap: "2339000000000",
-        price: "193.47",
-        dailyChange: "1.95",
-        dailyChangePercent: "1.02",
-        country: "USA",
-        countryCode: "us",
-        rank: 5,
-        logoUrl: "https://images.unsplash.com/photo-1573804633927-bfcbcd909acd?ixlib=rb-4.0.3&auto=format&fit=crop&w=64&h=64"
-      },
-      {
-        name: "Meta Platforms (Facebook)",
-        symbol: "META",
-        marketCap: "1806000000000",
-        price: "718.62",
-        dailyChange: "5.05",
-        dailyChangePercent: "0.71",
-        country: "USA",
-        countryCode: "us",
-        rank: 6,
-        logoUrl: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?ixlib=rb-4.0.3&auto=format&fit=crop&w=64&h=64"
-      },
-      {
-        name: "Saudi Aramco",
-        symbol: "2222.SR",
-        marketCap: "1604000000000",
-        price: "6.41",
-        dailyChange: "0.05",
-        dailyChangePercent: "0.74",
-        country: "Saudi Arabia",
-        countryCode: "sa",
-        rank: 7,
-        logoUrl: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?ixlib=rb-4.0.3&auto=format&fit=crop&w=64&h=64"
-      },
-      {
-        name: "Broadcom",
-        symbol: "AVGO",
-        marketCap: "1337000000000",
-        price: "284.45",
-        dailyChange: "0.76",
-        dailyChangePercent: "0.27",
-        country: "USA",
-        countryCode: "us",
-        rank: 8,
-        logoUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&auto=format&fit=crop&w=64&h=64"
-      },
-      {
-        name: "TSMC",
-        symbol: "TSM",
-        marketCap: "1238000000000",
-        price: "238.86",
-        dailyChange: "1.44",
-        dailyChangePercent: "0.61",
-        country: "Taiwan",
-        countryCode: "tw",
-        rank: 9,
-        logoUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&auto=format&fit=crop&w=64&h=64"
-      },
-      {
-        name: "Berkshire Hathaway",
-        symbol: "BRK-B",
-        marketCap: "1043000000000",
-        price: "483.99",
-        dailyChange: "1.34",
-        dailyChangePercent: "0.28",
-        country: "USA",
-        countryCode: "us",
-        rank: 10,
-        logoUrl: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?ixlib=rb-4.0.3&auto=format&fit=crop&w=64&h=64"
-      },
-      {
-        name: "Tesla",
-        symbol: "TSLA",
-        marketCap: "981870000000",
-        price: "304.84",
-        dailyChange: "23.50",
-        dailyChangePercent: "8.34",
-        country: "USA",
-        countryCode: "us",
-        rank: 11,
-        logoUrl: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=64&h=64"
-      },
-      {
-        name: "Tencent",
-        symbol: "TCEHY",
-        marketCap: "640140000000",
-        price: "70.57",
-        dailyChange: "0.20",
-        dailyChangePercent: "0.28",
-        country: "China",
-        countryCode: "cn",
-        rank: 17,
-        logoUrl: "https://images.unsplash.com/photo-1580327344181-c1163234e5a0?ixlib=rb-4.0.3&auto=format&fit=crop&w=64&h=64"
-      }
-    ];
-
-    companiesData.forEach((companyData) => {
+    // Use extended sample data with 1000+ companies
+    extendedSampleCompanies.forEach((companyData) => {
       const company: Company = {
         id: this.currentCompanyId++,
-        ...companyData
+        ...companyData,
+        logoUrl: companyData.logoUrl || null
       };
       this.companies.set(company.id, company);
     });
@@ -314,6 +171,11 @@ export class MemStorage implements IStorage {
 
   async removeFavorite(userId: number, companyId: number): Promise<void> {
     this.favorites.delete(`${userId}-${companyId}`);
+  }
+
+  async clearAllCompanies(): Promise<void> {
+    this.companies.clear();
+    this.currentCompanyId = 1;
   }
 }
 

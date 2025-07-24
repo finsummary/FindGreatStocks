@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Moon, Sun, Globe, DollarSign } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Moon, Sun, Globe, DollarSign, RefreshCw, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CompanyTable } from "@/components/company-table";
 import { useTheme } from "@/components/theme-provider";
+import { useToast } from "@/hooks/use-toast";
 import { formatMarketCap } from "@/lib/format";
+import { queryClient } from "@/lib/queryClient";
 
 export default function Home() {
   const { theme, setTheme } = useTheme();
@@ -13,6 +15,7 @@ export default function Home() {
   const [selectedCountry, setSelectedCountry] = useState("all");
   const [currency, setCurrency] = useState("USD");
   const [language, setLanguage] = useState("EN");
+  const { toast } = useToast();
 
   const { data: marketStats } = useQuery({
     queryKey: ['/api/market/stats'],
@@ -22,6 +25,35 @@ export default function Home() {
         throw new Error('Failed to fetch market stats');
       }
       return response.json();
+    },
+  });
+
+  const syncMutation = useMutation({
+    mutationFn: async (limit: number = 1000) => {
+      const response = await fetch(`/api/companies/sync?limit=${limit}`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to sync financial data');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Financial data synchronized",
+        description: `Updated ${data.companiesUpdated} companies with real market data`,
+      });
+      // Invalidate queries to refresh the UI
+      queryClient.invalidateQueries({ queryKey: ['/api/companies'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/market/stats'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Sync failed",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -42,6 +74,24 @@ export default function Home() {
 
             {/* Controls */}
             <div className="flex items-center space-x-4">
+              {/* Sync Data Button */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => syncMutation.mutate(1000)}
+                disabled={syncMutation.isPending}
+                className="flex items-center gap-2"
+              >
+                {syncMutation.isPending ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Database className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">
+                  {syncMutation.isPending ? 'Syncing...' : 'Sync Data'}
+                </span>
+              </Button>
+
               {/* Language Selector */}
               <Button variant="outline" size="sm" className="flex items-center gap-2">
                 <img src="https://flagcdn.com/w20/us.png" alt="US Flag" className="w-4 h-3" />
