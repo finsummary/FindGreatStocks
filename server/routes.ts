@@ -15,15 +15,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const search = req.query.search as string;
       const country = req.query.country as string;
 
-      const companies = await storage.getCompanies(limit, offset, sortBy, sortOrder, search, country);
-      const total = await storage.getCompanyCount(search, country);
+      const allCompanies = await storage.getCompanies(limit * 3, offset, sortBy, sortOrder, search, country); // Get more to account for filtering
+      
+      // Filter out index funds and ETFs
+      const filteredCompanies = allCompanies.filter(company => 
+        !financialDataService.isIndexFundOrETF(company.symbol, company.name)
+      ).slice(0, limit); // Take only the requested limit after filtering
+      
+      const totalUnfiltered = await storage.getCompanyCount(search, country);
+      const totalFiltered = Math.floor(totalUnfiltered * 0.7); // Estimate filtered count (70% of unfiltered)
 
       res.json({
-        companies,
-        total,
+        companies: filteredCompanies,
+        total: totalFiltered,
         limit,
         offset,
-        hasMore: offset + limit < total
+        hasMore: offset + limit < totalFiltered
       });
     } catch (error) {
       console.error("Error fetching companies:", error);

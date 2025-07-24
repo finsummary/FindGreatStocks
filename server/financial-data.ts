@@ -58,7 +58,7 @@ export class FinancialDataService {
         return [];
       }
 
-      // Filter out companies without essential data and sort by market cap
+      // Filter out companies without essential data, ETFs/index funds, and sort by market cap
       const filteredCompanies = companies
         .filter(company => 
           company.marketCap && 
@@ -66,7 +66,9 @@ export class FinancialDataService {
           company.symbol && 
           company.companyName &&
           company.price &&
-          company.price > 0
+          company.price > 0 &&
+          // Filter out ETFs, index funds, and other non-company securities
+          !this.isIndexFundOrETF(company.symbol, company.companyName)
         )
         .sort((a, b) => b.marketCap - a.marketCap)
         .slice(0, limit);
@@ -266,6 +268,90 @@ export class FinancialDataService {
 
     // Fallback to domain-based mapping
     return `https://logo.clearbit.com/${this.getDomainFromCompanyName(companyName)}`;
+  }
+
+  isIndexFundOrETF(symbol: string, companyName: string): boolean {
+    // Common ETF and index fund patterns
+    const excludePatterns = [
+      // ETF patterns
+      /ETF$/i,
+      /^(SPY|QQQ|IWM|EFA|EEM|VTI|VOO|VEA|VWO|AGG|LQD|TLT|GLD|SLV|USO|XLF|XLE|XLI|XLK|XLV|XLY|XLP|XLB|XLU|XLRE|XBI|XME|XRT|IYR|SOXX|ARKK|ARKQ|ARKW|ARKG|ARKF|JETS|KWEB|ICLN|MOON|BOTZ|ESPO|HERO|UFO|CHAD|LRNZ|MEME)$/i,
+      // Vanguard funds - comprehensive patterns
+      /^V[A-Z]{2,6}X?$/i, // VTSAX, VTIAX, VBTLX, VOO, VTI, VEA, etc.
+      /^VSMPX$/i, // Vanguard Total Stock Mkt Idx Instl Pls
+      /^VITSX$/i, // Vanguard Total Stock Market Index Fund
+      /^VFIAX$/i, // Vanguard 500 Index Fund Admiral Shares
+      /^VTSAX$/i, // Vanguard Total Stock Market Index Fund Admiral Shares
+      /^VOO$/i,   // Vanguard S&P 500 ETF
+      /^VTI$/i,   // Vanguard Total Stock Market ETF
+      /^VEA$/i,   // Vanguard FTSE Developed Markets ETF
+      /Vanguard.*(?:Index|ETF|Fund|Total|S&P|Stock|Market|Admiral|Institutional)/i,
+      /Total.*(?:Stock|Market).*(?:Index|Fund)/i,
+      /S&P.*500.*(?:Index|ETF|Fund)/i,
+      // Fidelity funds
+      /^F[A-Z]{4,6}X?$/i, // FXNAX, FSKAX, etc.
+      /Fidelity.*(?:Index|Fund)/i,
+      // SPDR funds
+      /^SPY|SPDR/i,
+      // Other common patterns
+      /Index.*Fund/i,
+      /Target.*Date/i,
+      /Institutional.*Plus/i,
+      /Admiral.*Shares/i,
+      /Investor.*Shares/i,
+      /Fund.*Class/i,
+      /Trust.*Series/i,
+      // Mutual fund share classes
+      /Class [A-Z]$/i,
+      /Inst(?:itutional)?$/i,
+      /Adm(?:iral)?$/i,
+      /Inv(?:estor)?$/i,
+      // Currency and commodity ETFs
+      /Currency/i,
+      /Gold|Silver|Oil|Gas|Coal/i,
+      // Sector and strategy funds with generic names
+      /Select.*Sector/i,
+      /Global.*Fund/i,
+      /International.*Fund/i,
+      /Emerging.*Markets/i,
+      /Small.*Cap/i,
+      /Mid.*Cap/i,
+      /Large.*Cap/i,
+      /Growth.*Fund/i,
+      /Value.*Fund/i,
+      /Bond.*Fund/i,
+      /Fixed.*Income/i,
+      /Money.*Market/i,
+      // REITs that are funds
+      /REIT.*Fund/i,
+      /Real.*Estate.*Fund/i
+    ];
+
+    // Check symbol and company name against patterns
+    for (const pattern of excludePatterns) {
+      if (pattern.test(symbol) || pattern.test(companyName)) {
+        return true;
+      }
+    }
+
+    // Additional checks for specific fund families
+    const fundFamilyKeywords = [
+      'Vanguard', 'Fidelity', 'iShares', 'SPDR', 'Invesco', 'Schwab',
+      'ProShares', 'VanEck', 'First Trust', 'WisdomTree', 'PowerShares',
+      'American Funds', 'Franklin', 'T. Rowe Price', 'Janus Henderson',
+      'BlackRock', 'State Street', 'Northern Trust', 'Dimensional'
+    ];
+
+    // If company name contains fund family keywords and fund-like terms
+    const hasFundFamily = fundFamilyKeywords.some(family => 
+      companyName.toLowerCase().includes(family.toLowerCase())
+    );
+    
+    const hasFundTerms = [
+      'fund', 'etf', 'index', 'trust', 'portfolio', 'series', 'shares'
+    ].some(term => companyName.toLowerCase().includes(term));
+
+    return hasFundFamily && hasFundTerms;
   }
 
   private getDomainFromCompanyName(companyName: string): string {
