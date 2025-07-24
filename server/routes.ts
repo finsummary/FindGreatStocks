@@ -80,85 +80,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Fetch real financial data and update storage
   app.post("/api/companies/sync", async (req, res) => {
     try {
-      console.log("Starting financial data sync...");
-      const limit = parseInt(req.query.limit as string) || 1000;
+      const limit = parseInt(req.query.limit as string) || 5000; // Default to maximum
+      const updateOnly = req.query.updateOnly === 'true'; // For daily price updates
       
-      try {
-        // Try to fetch companies from FMP API first
-        const fmpCompanies = await financialDataService.fetchTopCompaniesByMarketCap(limit);
-        console.log(`Fetched ${fmpCompanies.length} companies from FMP`);
-        
-        if (fmpCompanies.length > 0) {
-          // Fetch company profiles in batches for logos
-          const batchSize = 10;
-          const updatedCompanies: any[] = [];
-          
-          for (let i = 0; i < fmpCompanies.length; i += batchSize) {
-            const batch = fmpCompanies.slice(i, i + batchSize);
-            const symbols = batch.map(c => c.symbol);
-            
-            try {
-              const profiles = await financialDataService.fetchMultipleCompanyProfiles(symbols);
-              const profileMap = new Map(profiles.map(p => [p.symbol, p]));
-              
-              batch.forEach((company, batchIndex) => {
-                const globalRank = i + batchIndex + 1;
-                const profile = profileMap.get(company.symbol);
-                const convertedCompany = financialDataService.convertToCompanySchema(company, globalRank, profile);
-                updatedCompanies.push(convertedCompany);
-              });
-              
-              if (i + batchSize < fmpCompanies.length) {
-                await new Promise(resolve => setTimeout(resolve, 200));
-              }
-            } catch (error) {
-              console.error(`Error processing batch ${i}-${i + batchSize}:`, error);
-              batch.forEach((company, batchIndex) => {
-                const globalRank = i + batchIndex + 1;
-                const convertedCompany = financialDataService.convertToCompanySchema(company, globalRank);
-                updatedCompanies.push(convertedCompany);
-              });
-            }
-          }
+      console.log(`Starting financial data sync... (limit: ${limit}, updateOnly: ${updateOnly})`);
+      
+      if (!updateOnly) {
+        // Clear existing data only for full sync
+        await storage.clearAllCompanies();
+        console.log("Cleared existing company data");
+      }
+      
+      // Fetch data from FMP API
+      const allCompanies = await financialDataService.fetchTopCompaniesByMarketCap(limit);
+      console.log(`Fetched ${allCompanies.length} companies from FMP`);
 
-          // Clear existing data and add new companies
-          await storage.clearAllCompanies();
-          
-          for (const companyData of updatedCompanies) {
-            await storage.createCompany(companyData);
-          }
-
-          console.log(`Successfully synced ${updatedCompanies.length} companies from API`);
-          
-          return res.json({
-            message: "Financial data synchronized successfully from FMP API",
-            companiesUpdated: updatedCompanies.length,
-            totalMarketCap: updatedCompanies.reduce((sum, c) => sum + parseFloat(c.marketCap), 0),
-            source: "FMP API"
-          });
-        }
-      } catch (apiError) {
-        console.log("FMP API failed, using enhanced sample data:", apiError);
+      if (allCompanies.length === 0) {
+        return res.status(500).json({ 
+          message: "No companies data received from API", 
+          source: "FMP API"
+        });
       }
 
-      // If API fails or returns no data, inform user about API key status
-      const hasApiKey = process.env.FMP_API_KEY ? "present" : "missing";
-      console.log(`API sync failed. API key status: ${hasApiKey}. The application now has 1000+ sample companies loaded.`);
+      let totalMarketCap = 0;
+      let companiesProcessed = 0;
+
+      if (updateOnly) {
+        // Update existing companies with new prices and market caps
+        for (let i = 0; i < allCompanies.length; i++) {
+          const company = allCompanies[i];
+          const existingCompany = await storage.getCompanyBySymbol(company.symbol);
+          
+          if (existingCompany) {
+            // Update only price, market cap, and changes
+            const updatedData = {
+              marketCap: company.marketCap.toString(),
+              price: company.price.toFixed(2),
+              dailyChange: (company.change || 0).toFixed(2),
+              dailyChangePercent: (company.changesPercentage || 0).toFixed(2)
+            };
+            
+            await storage.updateCompany(company.symbol, updatedData);
+            companiesProcessed++;
+          }
+          totalMarketCap += company.marketCap;
+        }
+      } else {
+        // Full sync with company profiles (slower but complete)
+        const batchSize = 10;
+        const allProfiles: any[] = [];
+        
+        for (let i = 0; i < allCompanies.length; i += batchSize) {
+          const batch = allCompanies.slice(i, i + batchSize);
+          const symbols = batch.map(c => c.symbol);
+          const profiles = await financialDataService.fetchMultipleCompanyProfiles(symbols);
+          allProfiles.push(...profiles);
+        }
+
+        // Convert and store companies
+        for (let i = 0; i < allCompanies.length; i++) {
+          const company = allCompanies[i];
+          const profile = allProfiles.find(p => p?.symbol === company.symbol);
+          const convertedCompany = financialDataService.convertToCompanySchema(company, i + 1, profile);
+          await storage.createCompany(convertedCompany);
+          totalMarketCap += parseFloat(convertedCompany.marketCap);
+          companiesProcessed++;
+        }
+      }
+
+      console.log(`Successfully ${updateOnly ? 'updated' : 'synced'} ${companiesProcessed} companies from API`);
       
-      res.json({
-        message: "API sync attempted but using comprehensive sample dataset",
-        companiesUpdated: 1000,
-        totalMarketCap: "50000000000000", // 50T estimated
-        source: "Enhanced sample data (1000+ companies)",
-        apiKeyStatus: hasApiKey,
-        note: "For real-time data, please verify your FMP API key at https://financialmodelingprep.com"
+      res.json({ 
+        message: `Financial data ${updateOnly ? 'updated' : 'synchronized'} successfully from FMP API`,
+        companiesUpdated: companiesProcessed,
+        totalMarketCap,
+        source: "FMP API",
+        updateOnly
       });
-      
     } catch (error) {
-      console.error("Error in sync endpoint:", error);
+      console.error("Error syncing financial data:", error);
       res.status(500).json({ 
         message: "Failed to sync financial data", 
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
+        source: "FMP API"
       });
     }
   });

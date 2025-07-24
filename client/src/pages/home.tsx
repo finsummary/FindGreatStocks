@@ -29,8 +29,12 @@ export default function Home() {
   });
 
   const syncMutation = useMutation({
-    mutationFn: async (limit: number = 1000) => {
-      const response = await fetch(`/api/companies/sync?limit=${limit}`, {
+    mutationFn: async ({ limit = 5000, updateOnly = false }: { limit?: number; updateOnly?: boolean }) => {
+      const params = new URLSearchParams();
+      params.append('limit', limit.toString());
+      if (updateOnly) params.append('updateOnly', 'true');
+      
+      const response = await fetch(`/api/companies/sync?${params}`, {
         method: 'POST',
       });
       if (!response.ok) {
@@ -40,9 +44,14 @@ export default function Home() {
       return response.json();
     },
     onSuccess: (data) => {
+      const title = data.updateOnly ? "Prices updated" : "Financial data synchronized";
+      const description = data.updateOnly 
+        ? `Updated prices for ${data.companiesUpdated} companies` 
+        : `Updated ${data.companiesUpdated} companies with real market data`;
+      
       toast({
-        title: "Financial data synchronized",
-        description: `Updated ${data.companiesUpdated} companies with real market data`,
+        title,
+        description,
       });
       // Invalidate queries to refresh the UI
       queryClient.invalidateQueries({ queryKey: ['/api/companies'] });
@@ -73,12 +82,30 @@ export default function Home() {
             </div>
 
             {/* Controls */}
-            <div className="flex items-center space-x-4">
-              {/* Sync Data Button */}
+            <div className="flex items-center space-x-2">
+              {/* Daily Price Update */}
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => syncMutation.mutate(1000)}
+                onClick={() => syncMutation.mutate({ limit: 5000, updateOnly: true })}
+                disabled={syncMutation.isPending}
+                className="flex items-center gap-2"
+              >
+                {syncMutation.isPending ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">
+                  {syncMutation.isPending ? 'Updating...' : 'Update Prices'}
+                </span>
+              </Button>
+
+              {/* Full Data Sync */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => syncMutation.mutate({ limit: 5000, updateOnly: false })}
                 disabled={syncMutation.isPending}
                 className="flex items-center gap-2"
               >
@@ -88,7 +115,7 @@ export default function Home() {
                   <Database className="h-4 w-4" />
                 )}
                 <span className="hidden sm:inline">
-                  {syncMutation.isPending ? 'Syncing...' : 'Sync Data'}
+                  {syncMutation.isPending ? 'Syncing...' : 'Full Sync'}
                 </span>
               </Button>
 

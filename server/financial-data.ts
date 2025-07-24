@@ -50,8 +50,8 @@ export class FinancialDataService {
 
   async fetchTopCompaniesByMarketCap(limit: number = 100): Promise<FMPCompany[]> {
     try {
-      // Get all companies sorted by market cap
-      const companies = await this.makeRequest("/stock-screener?marketCapMoreThan=1000000000&limit=1000");
+      // Get all companies sorted by market cap - FMP API supports up to 5000 per request
+      const companies = await this.makeRequest(`/stock-screener?marketCapMoreThan=1000000000&limit=${Math.min(limit, 5000)}`);
       
       if (!Array.isArray(companies)) {
         console.error("Unexpected response format:", companies);

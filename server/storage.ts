@@ -11,6 +11,7 @@ export interface IStorage {
   getCompanyCount(search?: string, country?: string): Promise<number>;
   getCompanyBySymbol(symbol: string): Promise<Company | undefined>;
   createCompany(company: InsertCompany): Promise<Company>;
+  updateCompany(symbol: string, updates: Partial<Company>): Promise<void>;
   clearAllCompanies(): Promise<void>;
   
   // Favorites methods
@@ -144,6 +145,14 @@ export class MemStorage implements IStorage {
     };
     this.companies.set(id, company);
     return company;
+  }
+
+  async updateCompany(symbol: string, updates: Partial<Company>): Promise<void> {
+    const company = await this.getCompanyBySymbol(symbol);
+    if (company) {
+      const updatedCompany = { ...company, ...updates };
+      this.companies.set(company.id, updatedCompany);
+    }
   }
 
   async getFavorites(userId: number): Promise<Company[]> {
