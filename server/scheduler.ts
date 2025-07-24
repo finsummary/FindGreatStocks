@@ -24,7 +24,10 @@ class DataScheduler {
     try {
       // Always perform full sync on startup to ensure latest data
       console.log('Performing startup data sync to ensure latest data...');
-      await this.performFullSync();
+      // Use setTimeout to avoid blocking server startup
+      setTimeout(async () => {
+        await this.performFullSync();
+      }, 2000); // Wait 2 seconds after server starts
     } catch (error) {
       console.error('Error during startup data sync:', error);
     }
