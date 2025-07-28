@@ -128,9 +128,26 @@ export class FinancialDataService {
             const profiles = await this.fetchMultipleCompanyProfiles(validQuotes.map(q => q.symbol));
             const profileMap = new Map(profiles.map(p => [p.symbol, p]));
             
+            // Get financial statements for revenue and profit data
+            console.log(`Fetching financial data for ${Math.min(validQuotes.length, 20)} top companies...`);
+            const financialPromises = validQuotes.slice(0, 20).map(quote => 
+              this.makeRequest(`/income-statement/${quote.symbol}?limit=1`).catch(err => {
+                console.log(`No financial data for ${quote.symbol}`);
+                return null;
+              })
+            );
+            const financialResults = await Promise.all(financialPromises);
+            const financialMap = new Map();
+            financialResults.forEach((financial, index) => {
+              if (financial && Array.isArray(financial) && financial.length > 0) {
+                financialMap.set(validQuotes[index].symbol, financial[0]);
+              }
+            });
+            
             // Convert to our company format with enhanced data
             const companies = validQuotes.map(quote => {
               const profile = profileMap.get(quote.symbol);
+              const financials = financialMap.get(quote.symbol);
               return {
                 symbol: quote.symbol,
                 companyName: quote.name,
@@ -152,7 +169,9 @@ export class FinancialDataService {
                 yearLow: quote.yearLow,
                 yearHigh: quote.yearHigh,
                 // Profile data
-                profile: profile
+                profile: profile,
+                // Financial statement data
+                financials: financials
               };
             });
             
@@ -371,14 +390,14 @@ export class FinancialDataService {
       yearLow: fmpCompany.yearLow ? parseDecimal(fmpCompany.yearLow) : null,
       yearHigh: fmpCompany.yearHigh ? parseDecimal(fmpCompany.yearHigh) : null,
       
-      // Financial statement data (will be null initially, populated later)
-      revenue: null,
-      grossProfit: null,
-      operatingIncome: null,
-      netIncome: null,
-      totalAssets: null,
-      totalDebt: null,
-      cashAndEquivalents: null,
+      // Financial statement data (from income statement)
+      revenue: fmpCompany.financials?.revenue ? parseInteger(fmpCompany.financials.revenue) : null,
+      grossProfit: fmpCompany.financials?.grossProfit ? parseInteger(fmpCompany.financials.grossProfit) : null,
+      operatingIncome: fmpCompany.financials?.operatingIncome ? parseInteger(fmpCompany.financials.operatingIncome) : null,
+      netIncome: fmpCompany.financials?.netIncome ? parseInteger(fmpCompany.financials.netIncome) : null,
+      totalAssets: fmpCompany.financials?.totalAssets ? parseInteger(fmpCompany.financials.totalAssets) : null,
+      totalDebt: fmpCompany.financials?.totalDebt ? parseInteger(fmpCompany.financials.totalDebt) : null,
+      cashAndEquivalents: fmpCompany.financials?.cashAndCashEquivalents ? parseInteger(fmpCompany.financials.cashAndCashEquivalents) : null,
     };
   }
 

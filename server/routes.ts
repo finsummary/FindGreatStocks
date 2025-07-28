@@ -94,6 +94,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add financial data for specific companies
+  app.post("/api/companies/enhance-financials", async (req, res) => {
+    try {
+      const symbols = req.body.symbols || ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA'];
+      console.log(`Enhancing financial data for: ${symbols.join(', ')}`);
+      
+      let enhanced = 0;
+      for (const symbol of symbols) {
+        try {
+          // Get financial statements
+          const financialData = await fetch(`https://financialmodelingprep.com/api/v3/income-statement/${symbol}?limit=1&apikey=${process.env.FMP_API_KEY}`);
+          const financials = await financialData.json();
+          
+          if (Array.isArray(financials) && financials.length > 0) {
+            const statement = financials[0];
+            
+            // Update the company with financial data
+            const updateData = {
+              revenue: statement.revenue || null,
+              grossProfit: statement.grossProfit || null,
+              operatingIncome: statement.operatingIncome || null,
+              netIncome: statement.netIncome || null,
+              totalAssets: statement.totalAssets || null,
+              totalDebt: statement.totalDebt || null,
+              cashAndEquivalents: statement.cashAndCashEquivalents || null
+            };
+            
+            await storage.updateCompany(symbol, updateData);
+            enhanced++;
+            console.log(`Enhanced ${symbol} with financial data: Revenue $${statement.revenue?.toLocaleString()}, Net Income $${statement.netIncome?.toLocaleString()}`);
+          }
+        } catch (error) {
+          console.error(`Error enhancing ${symbol}:`, error);
+        }
+        
+        // Rate limiting
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      res.json({ 
+        message: `Enhanced ${enhanced} companies with financial data`,
+        symbols: symbols,
+        enhanced: enhanced
+      });
+    } catch (error) {
+      console.error("Error enhancing financial data:", error);
+      res.status(500).json({ 
+        message: "Failed to enhance financial data", 
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Fetch real financial data and update storage
   app.post("/api/companies/sync", async (req, res) => {
     try {
