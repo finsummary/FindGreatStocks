@@ -50,148 +50,80 @@ export class FinancialDataService {
 
   async fetchTopCompaniesByMarketCap(limit: number = 100): Promise<FMPCompany[]> {
     try {
+      console.log("Fetching complete stock list from FMP...");
+      
+      // Step 1: Get all available stocks from the comprehensive stock list endpoint
+      const allStocks = await this.makeRequest('/stock/list');
+      
+      if (!Array.isArray(allStocks)) {
+        throw new Error("Failed to fetch stock list from FMP");
+      }
+      
+      console.log(`Retrieved ${allStocks.length} total stocks from FMP stock list`);
+      
+      // Step 2: Filter to get only real companies (remove ETFs, funds, etc.)
+      const realCompanySymbols = allStocks
+        .filter(stock => 
+          stock.symbol && 
+          stock.name && 
+          stock.type === 'stock' &&  // Only actual stocks, not ETFs
+          !this.isIndexFundOrETF(stock.symbol, stock.name)
+        )
+        .map(stock => stock.symbol);
+      
+      console.log(`Filtered to ${realCompanySymbols.length} real company symbols`);
+      
+      // Step 3: Get market data for these companies in batches
       const allCompanies: FMPCompany[] = [];
+      const batchSize = 100; // Process in smaller batches to avoid rate limits
       
-      // Strategy 1: Focus on US exchanges first for major companies
-      console.log("Fetching US companies from NYSE and NASDAQ first...");
-      
-      const usExchanges = ['NYSE', 'NASDAQ'];
-      for (const exchange of usExchanges) {
-        try {
-          const companies = await this.makeRequest(`/stock-screener?exchange=${exchange}&marketCapMoreThan=1000000000&limit=2000&isActivelyTrading=true`);
-          
-          if (Array.isArray(companies)) {
-            console.log(`Raw API response from ${exchange}: ${companies.length} companies`);
-            
-            const filteredBatch = companies
-              .filter(company => 
-                company.marketCap && 
-                company.marketCap > 0 && 
-                company.symbol && 
-                company.companyName &&
-                company.price &&
-                company.price > 0 &&
-                !this.isIndexFundOrETF(company.symbol, company.companyName) &&
-                !allCompanies.some(existing => existing.symbol === company.symbol)
-              );
-            
-            allCompanies.push(...filteredBatch);
-            console.log(`Added ${filteredBatch.length} US companies from ${exchange}. Total: ${allCompanies.length}`);
-          }
-        } catch (error) {
-          console.error(`Error fetching from ${exchange}:`, error);
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      
-      // Strategy 2: Multiple market cap thresholds for remaining companies
-      const thresholds = [
-        1000000000,   // $1B+ (large cap)
-        100000000,    // $100M+ (mid cap)
-        10000000,     // $10M+ (small cap)
-      ];
-      
-      for (const threshold of thresholds) {
-        if (allCompanies.length >= limit) break;
-        
-        console.log(`Fetching additional companies with market cap > $${threshold.toLocaleString()}`);
+      for (let i = 0; i < realCompanySymbols.length && allCompanies.length < limit; i += batchSize) {
+        const batch = realCompanySymbols.slice(i, i + batchSize);
+        const symbolsString = batch.join(',');
         
         try {
-          const companies = await this.makeRequest(`/stock-screener?marketCapMoreThan=${threshold}&limit=3000&isActivelyTrading=true`);
+          console.log(`Fetching market data for batch ${Math.floor(i/batchSize) + 1} (${batch.length} symbols)...`);
           
-          if (Array.isArray(companies)) {
-            console.log(`Raw API response for $${threshold.toLocaleString()}+: ${companies.length} companies`);
+          // Get real-time quotes for this batch
+          const quotes = await this.makeRequest(`/quote/${symbolsString}`);
+          
+          if (Array.isArray(quotes)) {
+            const validQuotes = quotes.filter(quote => 
+              quote.marketCap && 
+              quote.marketCap > 0 && 
+              quote.symbol && 
+              quote.name &&
+              quote.price &&
+              quote.price > 0 &&
+              !this.isIndexFundOrETF(quote.symbol, quote.name)
+            );
             
-            // Filter and add new companies
-            const filteredBatch = companies
-              .filter(company => 
-                company.marketCap && 
-                company.marketCap > 0 && 
-                company.symbol && 
-                company.companyName &&
-                company.price &&
-                company.price > 0 &&
-                !this.isIndexFundOrETF(company.symbol, company.companyName) &&
-                // Avoid duplicates
-                !allCompanies.some(existing => existing.symbol === company.symbol)
-              );
+            // Convert to our company format
+            const companies = validQuotes.map(quote => ({
+              symbol: quote.symbol,
+              companyName: quote.name,
+              name: quote.name, // Add missing 'name' property
+              marketCap: quote.marketCap,
+              price: quote.price,
+              change: quote.change || 0,
+              changesPercentage: quote.changesPercentage || 0,
+              country: this.getCountryFromExchange(quote.exchange),
+              exchangeShortName: quote.exchange,
+              exchange: quote.exchange // Add missing 'exchange' property
+            }));
             
-            allCompanies.push(...filteredBatch);
-            console.log(`Added ${filteredBatch.length} new companies. Total: ${allCompanies.length}`);
+            allCompanies.push(...companies);
+            console.log(`Added ${companies.length} companies from batch. Total: ${allCompanies.length}`);
           }
         } catch (error) {
-          console.error(`Error fetching companies for threshold $${threshold}:`, error);
+          console.error(`Error fetching batch starting at ${i}:`, error);
         }
         
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Rate limiting delay
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
       
-      // Strategy 3: International exchanges (but skip NYSE/NASDAQ since we got them first)
-      const internationalExchanges = ['TSX', 'LSE', 'ASX', 'HKEX'];
-      
-      for (const exchange of internationalExchanges) {
-        if (allCompanies.length >= limit) break;
-        
-        try {
-          console.log(`Fetching companies from ${exchange} exchange`);
-          const companies = await this.makeRequest(`/stock-screener?exchange=${exchange}&limit=1000&isActivelyTrading=true`);
-          
-          if (Array.isArray(companies)) {
-            const filteredBatch = companies
-              .filter(company => 
-                company.marketCap && 
-                company.marketCap > 0 && 
-                company.symbol && 
-                company.companyName &&
-                company.price &&
-                company.price > 0 &&
-                !this.isIndexFundOrETF(company.symbol, company.companyName) &&
-                !allCompanies.some(existing => existing.symbol === company.symbol)
-              );
-            
-            allCompanies.push(...filteredBatch);
-            console.log(`Added ${filteredBatch.length} companies from ${exchange}. Total: ${allCompanies.length}`);
-          }
-        } catch (error) {
-          console.error(`Error fetching from ${exchange}:`, error);
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      
-      // Strategy 3: Try sector-based filtering to get more diversity
-      const sectors = ['Technology', 'Healthcare', 'Financial Services', 'Consumer Cyclical', 'Industrials', 'Energy', 'Utilities', 'Consumer Defensive', 'Real Estate', 'Basic Materials', 'Communication Services'];
-      
-      for (const sector of sectors) {
-        if (allCompanies.length >= limit) break;
-        
-        try {
-          console.log(`Fetching companies from ${sector} sector`);
-          const companies = await this.makeRequest(`/stock-screener?sector=${encodeURIComponent(sector)}&limit=500&isActivelyTrading=true`);
-          
-          if (Array.isArray(companies)) {
-            const filteredBatch = companies
-              .filter(company => 
-                company.marketCap && 
-                company.marketCap > 0 && 
-                company.symbol && 
-                company.companyName &&
-                company.price &&
-                company.price > 0 &&
-                !this.isIndexFundOrETF(company.symbol, company.companyName) &&
-                !allCompanies.some(existing => existing.symbol === company.symbol)
-              );
-            
-            allCompanies.push(...filteredBatch);
-            console.log(`Added ${filteredBatch.length} companies from ${sector}. Total: ${allCompanies.length}`);
-          }
-        } catch (error) {
-          console.error(`Error fetching from ${sector} sector:`, error);
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
+
       
       // Prioritize US companies and sort by market cap
       const finalCompanies = allCompanies
@@ -427,6 +359,34 @@ export class FinancialDataService {
 
     // Fallback to domain-based mapping
     return `https://logo.clearbit.com/${this.getDomainFromCompanyName(companyName)}`;
+  }
+
+  private getCountryFromExchange(exchange: string): string {
+    const exchangeToCountry: Record<string, string> = {
+      'NASDAQ': 'US',
+      'NYSE': 'US', 
+      'AMEX': 'US',
+      'TSX': 'CA',
+      'LSE': 'GB',
+      'FRA': 'DE',
+      'EPA': 'FR',
+      'TYO': 'JP',
+      'SHE': 'CN',
+      'SHZ': 'CN',
+      'KRX': 'KR',
+      'BSE': 'IN',
+      'NSE': 'IN',
+      'ASX': 'AU',
+      'SIX': 'CH',
+      'AMS': 'NL',
+      'BRU': 'BE',
+      'HEL': 'FI',
+      'STO': 'SE',
+      'OSL': 'NO',
+      'CPH': 'DK'
+    };
+    
+    return exchangeToCountry[exchange] || 'US';
   }
 
   isIndexFundOrETF(symbol: string, companyName: string): boolean {
