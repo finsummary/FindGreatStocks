@@ -177,6 +177,24 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
               </TableHead>
               <TableHead 
                 className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
+                onClick={() => handleSort('revenue')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Revenue
+                  <SortIcon column="revenue" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
+                onClick={() => handleSort('netIncome')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Net Income
+                  <SortIcon column="netIncome" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
                 onClick={() => handleSort('dailyChangePercent')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -205,13 +223,14 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
                   </TableCell>
                   <TableCell className="text-right"><Skeleton className="h-6 w-20 ml-auto" /></TableCell>
                   <TableCell className="text-right"><Skeleton className="h-6 w-16 ml-auto" /></TableCell>
+                  <TableCell className="text-right"><Skeleton className="h-6 w-16 ml-auto" /></TableCell>
                   <TableCell className="text-right"><Skeleton className="h-6 w-12 ml-auto" /></TableCell>
                   <TableCell className="text-center"><Skeleton className="h-6 w-16 mx-auto" /></TableCell>
                 </TableRow>
               ))
             ) : data?.companies?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12">
+                <TableCell colSpan={9} className="text-center py-12">
                   <div className="text-muted-foreground">
                     {searchQuery || (selectedCountry && selectedCountry !== 'all') ? 
                       'No companies found matching your criteria.' : 
@@ -267,6 +286,14 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
                   </TableCell>
                   <TableCell className="text-right font-mono">
                     {formatPrice(company.price)}
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    {company.revenue ? formatMarketCap(company.revenue) : 
+                      <span className="text-muted-foreground">-</span>}
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    {company.netIncome ? formatMarketCap(company.netIncome) : 
+                      <span className="text-muted-foreground">-</span>}
                   </TableCell>
                   <TableCell className="text-right">
                     <Badge 

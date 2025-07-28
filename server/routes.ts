@@ -94,54 +94,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add financial data for specific companies
+  // Add comprehensive income statement data for companies
   app.post("/api/companies/enhance-financials", async (req, res) => {
     try {
-      const symbols = req.body.symbols || ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA'];
-      console.log(`Enhancing financial data for: ${symbols.join(', ')}`);
+      const { incomeStatementEnhancer } = await import('./income-statement-enhancer');
+      const symbols = req.body.symbols || [];
+      
+      if (symbols.length === 0) {
+        return res.status(400).json({ message: "No symbols provided" });
+      }
+      
+      console.log(`Enhancing income statement data for: ${symbols.join(', ')}`);
+      
+      // Get existing company data
+      const existingCompanies = new Map();
+      for (const symbol of symbols) {
+        const company = await storage.getCompanyBySymbol(symbol);
+        if (company) {
+          existingCompanies.set(symbol, company);
+        }
+      }
+      
+      // Enhance with income statement data
+      const enhancements = await incomeStatementEnhancer.batchEnhanceCompanies(symbols, existingCompanies);
       
       let enhanced = 0;
-      for (const symbol of symbols) {
-        try {
-          // Get financial statements
-          const financialData = await fetch(`https://financialmodelingprep.com/api/v3/income-statement/${symbol}?limit=1&apikey=${process.env.FMP_API_KEY}`);
-          const financials = await financialData.json();
-          
-          if (Array.isArray(financials) && financials.length > 0) {
-            const statement = financials[0];
-            
-            // Update the company with financial data
-            const updateData = {
-              revenue: statement.revenue || null,
-              grossProfit: statement.grossProfit || null,
-              operatingIncome: statement.operatingIncome || null,
-              netIncome: statement.netIncome || null,
-              totalAssets: statement.totalAssets || null,
-              totalDebt: statement.totalDebt || null,
-              cashAndEquivalents: statement.cashAndCashEquivalents || null
-            };
-            
-            await storage.updateCompany(symbol, updateData);
-            enhanced++;
-            console.log(`Enhanced ${symbol} with financial data: Revenue $${statement.revenue?.toLocaleString()}, Net Income $${statement.netIncome?.toLocaleString()}`);
-          }
-        } catch (error) {
-          console.error(`Error enhancing ${symbol}:`, error);
+      for (const [symbol, enhancement] of enhancements.entries()) {
+        if (Object.keys(enhancement).length > 0) {
+          await storage.updateCompany(symbol, enhancement);
+          enhanced++;
         }
-        
-        // Rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100));
       }
       
       res.json({ 
-        message: `Enhanced ${enhanced} companies with financial data`,
+        message: `Enhanced ${enhanced} companies with income statement data`,
         symbols: symbols,
-        enhanced: enhanced
+        enhanced: enhanced,
+        details: Array.from(enhancements.entries()).map(([symbol, data]) => ({
+          symbol,
+          hasRevenue: !!data.revenue,
+          revenue: data.revenue ? `$${(data.revenue / 1e9).toFixed(1)}B` : null,
+          netIncome: data.netIncome ? `$${(data.netIncome / 1e9).toFixed(1)}B` : null
+        }))
       });
     } catch (error) {
       console.error("Error enhancing financial data:", error);
       res.status(500).json({ 
         message: "Failed to enhance financial data", 
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Bulk enhance all top companies with income statement data
+  app.post("/api/companies/enhance-all-financials", async (req, res) => {
+    try {
+      const { incomeStatementEnhancer } = await import('./income-statement-enhancer');
+      const limit = parseInt(req.query.limit as string) || 50;
+      
+      console.log(`Starting bulk income statement enhancement for top ${limit} companies...`);
+      
+      // Get top companies by market cap
+      const topCompanies = await storage.getCompanies(limit, 0);
+      const symbols = topCompanies.map(c => c.symbol);
+      
+      const existingCompanies = new Map();
+      topCompanies.forEach(company => {
+        existingCompanies.set(company.symbol, company);
+      });
+      
+      // Enhance in batches
+      const batchSize = 10;
+      let totalEnhanced = 0;
+      
+      for (let i = 0; i < symbols.length; i += batchSize) {
+        const batch = symbols.slice(i, i + batchSize);
+        console.log(`Processing batch ${Math.floor(i/batchSize) + 1}: ${batch.join(', ')}`);
+        
+        const enhancements = await incomeStatementEnhancer.batchEnhanceCompanies(batch, existingCompanies);
+        
+        for (const [symbol, enhancement] of enhancements.entries()) {
+          if (Object.keys(enhancement).length > 0) {
+            await storage.updateCompany(symbol, enhancement);
+            totalEnhanced++;
+          }
+        }
+        
+        // Pause between batches
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+      res.json({ 
+        message: `Bulk enhanced ${totalEnhanced} companies with income statement data`,
+        totalProcessed: symbols.length,
+        enhanced: totalEnhanced,
+        batchSize: batchSize
+      });
+    } catch (error) {
+      console.error("Error in bulk financial enhancement:", error);
+      res.status(500).json({ 
+        message: "Failed to bulk enhance financial data", 
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
