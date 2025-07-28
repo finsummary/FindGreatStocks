@@ -1,4 +1,4 @@
-import { pgTable, text, serial, decimal, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, decimal, integer, boolean, bigint } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -14,6 +14,37 @@ export const companies = pgTable("companies", {
   countryCode: text("country_code").notNull(),
   rank: integer("rank").notNull(),
   logoUrl: text("logo_url"),
+  
+  // Enhanced financial data
+  industry: text("industry"),
+  sector: text("sector"),
+  website: text("website"),
+  description: text("description"),
+  ceo: text("ceo"),
+  employees: integer("employees"),
+  
+  // Key financial metrics
+  peRatio: decimal("pe_ratio", { precision: 8, scale: 2 }),
+  eps: decimal("eps", { precision: 8, scale: 2 }),
+  beta: decimal("beta", { precision: 5, scale: 3 }),
+  dividendYield: decimal("dividend_yield", { precision: 5, scale: 4 }),
+  
+  // Trading metrics
+  volume: bigint("volume", { mode: "number" }),
+  avgVolume: bigint("avg_volume", { mode: "number" }),
+  dayLow: decimal("day_low", { precision: 10, scale: 2 }),
+  dayHigh: decimal("day_high", { precision: 10, scale: 2 }),
+  yearLow: decimal("year_low", { precision: 10, scale: 2 }),
+  yearHigh: decimal("year_high", { precision: 10, scale: 2 }),
+  
+  // Financial statement data
+  revenue: decimal("revenue", { precision: 20, scale: 0 }),
+  grossProfit: decimal("gross_profit", { precision: 20, scale: 0 }),
+  operatingIncome: decimal("operating_income", { precision: 20, scale: 0 }),
+  netIncome: decimal("net_income", { precision: 20, scale: 0 }),
+  totalAssets: decimal("total_assets", { precision: 20, scale: 0 }),
+  totalDebt: decimal("total_debt", { precision: 20, scale: 0 }),
+  cashAndEquivalents: decimal("cash_and_equivalents", { precision: 20, scale: 0 }),
 });
 
 export const insertCompanySchema = createInsertSchema(companies).omit({

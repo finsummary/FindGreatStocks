@@ -32,7 +32,7 @@ export class FinancialDataService {
       throw new Error("FMP_API_KEY is not configured");
     }
 
-    const url = `${FMP_BASE_URL}${endpoint}&apikey=${FMP_API_KEY}`;
+    const url = `${FMP_BASE_URL}${endpoint}${endpoint.includes('?') ? '&' : '?'}apikey=${FMP_API_KEY}`;
     console.log(`Fetching: ${endpoint}`);
     console.log(`Full URL: ${url.replace(FMP_API_KEY, '[HIDDEN]')}`);
     
@@ -52,26 +52,51 @@ export class FinancialDataService {
     try {
       console.log("Fetching complete stock list from FMP...");
       
-      // Step 1: Get all available stocks from the comprehensive stock list endpoint
-      const allStocks = await this.makeRequest('/stock/list');
+      // Step 1: Use multiple strategies to get comprehensive company list
+      console.log("Using multi-strategy approach to build comprehensive stock universe...");
       
-      if (!Array.isArray(allStocks)) {
-        throw new Error("Failed to fetch stock list from FMP");
+      const allCompaniesSet = new Set<string>();
+      
+      // Strategy A: Major US exchanges 
+      const usExchanges = ['NYSE', 'NASDAQ'];
+      for (const exchange of usExchanges) {
+        try {
+          const companies = await this.makeRequest(`/stock-screener?exchange=${exchange}&marketCapMoreThan=1000000&limit=5000&isActivelyTrading=true`);
+          if (Array.isArray(companies)) {
+            companies.forEach(c => {
+              if (c.symbol && !this.isIndexFundOrETF(c.symbol, c.companyName || c.name)) {
+                allCompaniesSet.add(c.symbol);
+              }
+            });
+            console.log(`Added ${companies.length} symbols from ${exchange}, total unique: ${allCompaniesSet.size}`);
+          }
+        } catch (error) {
+          console.error(`Error fetching from ${exchange}:`, error);
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      console.log(`Retrieved ${allStocks.length} total stocks from FMP stock list`);
+      // Strategy B: Market cap ranges
+      const mcRanges = [1000000000, 100000000, 10000000];
+      for (const mcMin of mcRanges) {
+        try {
+          const companies = await this.makeRequest(`/stock-screener?marketCapMoreThan=${mcMin}&limit=3000&isActivelyTrading=true`);
+          if (Array.isArray(companies)) {
+            companies.forEach(c => {
+              if (c.symbol && !this.isIndexFundOrETF(c.symbol, c.companyName || c.name)) {
+                allCompaniesSet.add(c.symbol);
+              }
+            });
+            console.log(`Added from $${mcMin}+ market cap, total unique: ${allCompaniesSet.size}`);
+          }
+        } catch (error) {
+          console.error(`Error fetching $${mcMin}+ companies:`, error);
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
       
-      // Step 2: Filter to get only real companies (remove ETFs, funds, etc.)
-      const realCompanySymbols = allStocks
-        .filter(stock => 
-          stock.symbol && 
-          stock.name && 
-          stock.type === 'stock' &&  // Only actual stocks, not ETFs
-          !this.isIndexFundOrETF(stock.symbol, stock.name)
-        )
-        .map(stock => stock.symbol);
-      
-      console.log(`Filtered to ${realCompanySymbols.length} real company symbols`);
+      const realCompanySymbols = Array.from(allCompaniesSet);
+      console.log(`Built comprehensive universe: ${realCompanySymbols.length} unique company symbols`);
       
       // Step 3: Get market data for these companies in batches
       const allCompanies: FMPCompany[] = [];
@@ -98,22 +123,41 @@ export class FinancialDataService {
               !this.isIndexFundOrETF(quote.symbol, quote.name)
             );
             
-            // Convert to our company format
-            const companies = validQuotes.map(quote => ({
-              symbol: quote.symbol,
-              companyName: quote.name,
-              name: quote.name, // Add missing 'name' property
-              marketCap: quote.marketCap,
-              price: quote.price,
-              change: quote.change || 0,
-              changesPercentage: quote.changesPercentage || 0,
-              country: this.getCountryFromExchange(quote.exchange),
-              exchangeShortName: quote.exchange,
-              exchange: quote.exchange // Add missing 'exchange' property
-            }));
+            // Get company profiles for enhanced data
+            console.log(`Fetching profiles for ${validQuotes.length} companies...`);
+            const profiles = await this.fetchMultipleCompanyProfiles(validQuotes.map(q => q.symbol));
+            const profileMap = new Map(profiles.map(p => [p.symbol, p]));
+            
+            // Convert to our company format with enhanced data
+            const companies = validQuotes.map(quote => {
+              const profile = profileMap.get(quote.symbol);
+              return {
+                symbol: quote.symbol,
+                companyName: quote.name,
+                name: quote.name,
+                marketCap: quote.marketCap,
+                price: quote.price,
+                change: quote.change || 0,
+                changesPercentage: quote.changesPercentage || 0,
+                country: this.getCountryFromExchange(quote.exchange),
+                exchangeShortName: quote.exchange,
+                exchange: quote.exchange,
+                // Enhanced quote data
+                pe: quote.pe,
+                eps: quote.eps,
+                volume: quote.volume,
+                avgVolume: quote.avgVolume,
+                dayLow: quote.dayLow,
+                dayHigh: quote.dayHigh,
+                yearLow: quote.yearLow,
+                yearHigh: quote.yearHigh,
+                // Profile data
+                profile: profile
+              };
+            });
             
             allCompanies.push(...companies);
-            console.log(`Added ${companies.length} companies from batch. Total: ${allCompanies.length}`);
+            console.log(`Added ${companies.length} companies with profiles from batch. Total: ${allCompanies.length}`);
           }
         } catch (error) {
           console.error(`Error fetching batch starting at ${i}:`, error);
@@ -192,7 +236,7 @@ export class FinancialDataService {
     }
   }
 
-  convertToCompanySchema(fmpCompany: FMPCompany, rank: number, profile?: FMPCompanyProfile): InsertCompany {
+  convertToCompanySchema(fmpCompany: any, rank: number, profile?: FMPCompanyProfile): InsertCompany {
     // Map exchange to country code
     const getCountryCode = (country: string, exchange: string): string => {
       const countryMap: Record<string, string> = {
@@ -284,6 +328,15 @@ export class FinancialDataService {
       return countryNames[countryCode] || 'United States';
     };
 
+    // Parse numerical values safely
+    const parseDecimal = (value: any): string => {
+      return value ? parseFloat(value).toString() : "0";
+    };
+    
+    const parseInteger = (value: any): number => {
+      return value ? parseInt(value.toString().replace(/,/g, '')) : 0;
+    };
+
     return {
       name: profile?.companyName || fmpCompany.companyName || fmpCompany.name,
       symbol: fmpCompany.symbol,
@@ -294,7 +347,38 @@ export class FinancialDataService {
       country: getCountryName(countryCode),
       countryCode,
       rank,
-      logoUrl: profile?.image || this.getLogoUrl(fmpCompany.symbol, fmpCompany.companyName || fmpCompany.name)
+      logoUrl: profile?.image || this.getLogoUrl(fmpCompany.symbol, fmpCompany.companyName || fmpCompany.name),
+      
+      // Enhanced data from profile and quote
+      industry: (profile as any)?.industry || null,
+      sector: (profile as any)?.sector || null,
+      website: (profile as any)?.website || null,
+      description: (profile as any)?.description || null,
+      ceo: (profile as any)?.ceo || null,
+      employees: (profile as any)?.fullTimeEmployees ? parseInteger((profile as any).fullTimeEmployees) : null,
+      
+      // Key financial metrics (will be populated from quote data)
+      peRatio: fmpCompany.pe ? parseDecimal(fmpCompany.pe) : null,
+      eps: fmpCompany.eps ? parseDecimal(fmpCompany.eps) : null,
+      beta: (profile as any)?.beta ? parseDecimal((profile as any).beta) : null,
+      dividendYield: (profile as any)?.lastDiv ? parseDecimal((profile as any).lastDiv) : null,
+      
+      // Trading metrics (from quote data)
+      volume: fmpCompany.volume || null,
+      avgVolume: fmpCompany.avgVolume || null,
+      dayLow: fmpCompany.dayLow ? parseDecimal(fmpCompany.dayLow) : null,
+      dayHigh: fmpCompany.dayHigh ? parseDecimal(fmpCompany.dayHigh) : null,
+      yearLow: fmpCompany.yearLow ? parseDecimal(fmpCompany.yearLow) : null,
+      yearHigh: fmpCompany.yearHigh ? parseDecimal(fmpCompany.yearHigh) : null,
+      
+      // Financial statement data (will be null initially, populated later)
+      revenue: null,
+      grossProfit: null,
+      operatingIncome: null,
+      netIncome: null,
+      totalAssets: null,
+      totalDebt: null,
+      cashAndEquivalents: null,
     };
   }
 
