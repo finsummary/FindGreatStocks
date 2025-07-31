@@ -146,6 +146,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Manual daily price update endpoint
+  app.post("/api/companies/update-prices", async (req, res) => {
+    try {
+      console.log("🔄 Manual S&P 500 price update requested...");
+      const { dailyPriceUpdater } = await import('./daily-price-updater');
+      const result = await dailyPriceUpdater.updateAllPrices();
+      
+      res.json({
+        message: "S&P 500 prices updated successfully",
+        updated: result.updated,
+        errors: result.errors,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error updating S&P 500 prices:", error);
+      res.status(500).json({
+        message: "Failed to update S&P 500 prices",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Full S&P 500 import endpoint
+  app.post("/api/import/sp500-full", async (req, res) => {
+    try {
+      console.log("🚀 Full S&P 500 import requested...");
+      const { importAllSP500 } = await import('./full-sp500-import');
+      
+      // Run in background
+      importAllSP500().then(() => {
+        console.log("✅ Full S&P 500 import completed in background");
+      }).catch(error => {
+        console.error("❌ Full S&P 500 import failed:", error);
+      });
+      
+      res.json({
+        message: "Full S&P 500 import started in background",
+        status: "running",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error starting full S&P 500 import:", error);
+      res.status(500).json({
+        message: "Failed to start full S&P 500 import",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // S&P 500 Scanner Routes
   app.post("/api/scan/sp500", async (req, res) => {
     try {

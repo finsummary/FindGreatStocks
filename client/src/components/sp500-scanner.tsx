@@ -237,6 +237,43 @@ export function SP500Scanner() {
               <Download className="h-4 w-4" />
               Full Scan (All 500)
             </Button>
+            <Button
+              onClick={() => {
+                fetch('/api/import/sp500-full', { method: 'POST' })
+                  .then(res => res.json())
+                  .then(data => {
+                    toast({
+                      title: "Full Import Started",
+                      description: "All S&P 500 companies are being imported in background",
+                    });
+                  });
+              }}
+              disabled={isScanning}
+              variant="secondary"
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Full Background Import
+            </Button>
+            <Button
+              onClick={() => {
+                fetch('/api/companies/update-prices', { method: 'POST' })
+                  .then(res => res.json())
+                  .then(data => {
+                    toast({
+                      title: "Price Update Complete",
+                      description: `Updated ${data.updated} companies (${data.errors} errors)`,
+                    });
+                    queryClient.invalidateQueries({ queryKey: ['/api/companies'] });
+                  });
+              }}
+              disabled={isScanning}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Update All Prices
+            </Button>
           </div>
 
           {/* Sectors */}

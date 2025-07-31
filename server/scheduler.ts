@@ -89,33 +89,15 @@ class DataScheduler {
     }
 
     this.isUpdating = true;
-    console.log('Starting daily price update...');
+    console.log('Starting daily S&P 500 price update...');
 
     try {
-      // Fetch latest prices
-      const companies = await financialDataService.fetchTopCompaniesByMarketCap(5000);
-      console.log(`Fetched ${companies.length} companies for price update`);
-
-      let updatedCount = 0;
-      for (const company of companies) {
-        const existingCompany = await storage.getCompanyBySymbol(company.symbol);
-        
-        if (existingCompany) {
-          const updatedData = {
-            marketCap: company.marketCap.toString(),
-            price: company.price.toFixed(2),
-            dailyChange: (company.change || 0).toFixed(2),
-            dailyChangePercent: (company.changesPercentage || 0).toFixed(2)
-          };
-          
-          await storage.updateCompany(company.symbol, updatedData);
-          updatedCount++;
-        }
-      }
-
-      console.log(`Successfully updated prices for ${updatedCount} companies`);
+      // Use the daily price updater for S&P 500 companies
+      const { dailyPriceUpdater } = await import('./daily-price-updater');
+      const result = await dailyPriceUpdater.updateAllPrices();
+      console.log(`Successfully updated prices for ${result.updated} S&P 500 companies (${result.errors} errors)`);
     } catch (error) {
-      console.error('Error during daily update:', error);
+      console.error('Error during daily S&P 500 update:', error);
     } finally {
       this.isUpdating = false;
     }
