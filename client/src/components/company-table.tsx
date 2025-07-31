@@ -135,12 +135,13 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
 
       {/* Table */}
       <Card className="overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="w-12"></TableHead>
+        <div className="w-full">
+          <Table className="w-full table-fixed">
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+              <TableHead className="w-[40px]"></TableHead>
               <TableHead 
-                className="cursor-pointer hover:bg-muted/80 transition-colors"
+                className="cursor-pointer hover:bg-muted/80 transition-colors w-[60px]"
                 onClick={() => handleSort('rank')}
               >
                 <div className="flex items-center gap-1">
@@ -149,7 +150,7 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
                 </div>
               </TableHead>
               <TableHead 
-                className="cursor-pointer hover:bg-muted/80 transition-colors w-[280px]"
+                className="cursor-pointer hover:bg-muted/80 transition-colors w-[240px]"
                 onClick={() => handleSort('name')}
               >
                 <div className="flex items-center gap-1">
@@ -158,16 +159,16 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[100px]"
                 onClick={() => handleSort('marketCap')}
               >
                 <div className="flex items-center justify-end gap-1">
-                  Market Cap
+                  <span className="truncate">Mkt Cap</span>
                   <SortIcon column="marketCap" />
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[80px]"
                 onClick={() => handleSort('price')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -176,7 +177,7 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[90px]"
                 onClick={() => handleSort('revenue')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -185,7 +186,7 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[90px]"
                 onClick={() => handleSort('netIncome')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -194,61 +195,61 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[60px]"
                 onClick={() => handleSort('peRatio')}
               >
                 <div className="flex items-center justify-end gap-1">
-                  P/E Ratio
+                  P/E
                   <SortIcon column="peRatio" />
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[70px]"
                 onClick={() => handleSort('return3Year')}
               >
                 <div className="flex items-center justify-end gap-1">
-                  3Y Return
+                  3Y
                   <SortIcon column="return3Year" />
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[70px]"
                 onClick={() => handleSort('return5Year')}
               >
                 <div className="flex items-center justify-end gap-1">
-                  5Y Return
+                  5Y
                   <SortIcon column="return5Year" />
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[70px]"
                 onClick={() => handleSort('return10Year')}
               >
                 <div className="flex items-center justify-end gap-1">
-                  10Y Return
+                  10Y
                   <SortIcon column="return10Year" />
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[90px]"
                 onClick={() => handleSort('maxDrawdown10Year')}
               >
                 <div className="flex items-center justify-end gap-1">
-                  Max Drawdown
+                  <span className="truncate">Max DD</span>
                   <SortIcon column="maxDrawdown10Year" />
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[90px]"
                 onClick={() => handleSort('returnDrawdownRatio10Year')}
               >
                 <div className="flex items-center justify-end gap-1">
-                  AR/MDD Ratio
+                  <span className="truncate">AR/MDD</span>
                   <SortIcon column="returnDrawdownRatio10Year" />
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[70px]"
                 onClick={() => handleSort('dailyChangePercent')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -321,21 +322,21 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
                   </TableCell>
                   <TableCell className="font-medium">{company.rank}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <img 
                         src={company.logoUrl || `https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&auto=format&fit=crop&w=64&h=64`}
-                        alt={`${company.name} logo`}
-                        className="h-10 w-10 rounded object-contain bg-white/80 border border-gray-100 dark:border-gray-800 dark:bg-gray-900/80 p-1"
+                        alt={`${company.symbol} logo`}
+                        className="h-6 w-6 rounded object-contain bg-white/80 border border-gray-100 dark:border-gray-800 dark:bg-gray-900/80 p-0.5 flex-shrink-0"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&auto=format&fit=crop&w=64&h=64';
                         }}
                       />
-                      <div>
-                        <div className="font-medium group-hover:text-primary transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium group-hover:text-primary transition-colors truncate text-sm">
                           {company.name}
                         </div>
-                        <div className="text-sm text-muted-foreground font-mono">
+                        <div className="text-xs text-muted-foreground font-mono">
                           {company.symbol}
                         </div>
                       </div>
@@ -456,7 +457,8 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
               ))
             )}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
       </Card>
 
       {/* Pagination */}
