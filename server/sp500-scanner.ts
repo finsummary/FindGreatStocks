@@ -185,8 +185,8 @@ export class SP500Scanner {
           const companyData: InsertCompany = {
             name: profile.companyName || constituent.name,
             symbol: constituent.symbol,
-            marketCap: profile.mktCap?.toString() || "0",
-            price: profile.price?.toString() || "0",
+            marketCap: Math.round(profile.mktCap || 0).toString(),
+            price: profile.price?.toFixed(2) || "0",
             dailyChange: profile.changes?.toString() || "0",
             dailyChangePercent: dailyChangePercent.toString(),
             country: profile.country || "United States",
@@ -311,8 +311,8 @@ export class SP500Scanner {
         const companyData: InsertCompany = {
           name: profile.companyName || constituent.name,
           symbol: constituent.symbol,
-          marketCap: profile.mktCap?.toString() || "0",
-          price: profile.price?.toString() || "0",
+          marketCap: Math.round(profile.mktCap || 0).toString(),
+          price: profile.price?.toFixed(2) || "0",
           dailyChange: profile.changes?.toString() || "0",
           dailyChangePercent: profile.changes?.toString() || "0",
           country: "United States",
