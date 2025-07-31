@@ -231,6 +231,15 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
               </TableHead>
               <TableHead 
                 className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
+                onClick={() => handleSort('maxDrawdown10Year')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Max Drawdown
+                  <SortIcon column="maxDrawdown10Year" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
                 onClick={() => handleSort('dailyChangePercent')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -264,13 +273,14 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
                   <TableCell className="text-right"><Skeleton className="h-6 w-16 ml-auto" /></TableCell>
                   <TableCell className="text-right"><Skeleton className="h-6 w-16 ml-auto" /></TableCell>
                   <TableCell className="text-right"><Skeleton className="h-6 w-16 ml-auto" /></TableCell>
+                  <TableCell className="text-right"><Skeleton className="h-6 w-16 ml-auto" /></TableCell>
                   <TableCell className="text-right"><Skeleton className="h-6 w-12 ml-auto" /></TableCell>
                   <TableCell className="text-center"><Skeleton className="h-6 w-16 mx-auto" /></TableCell>
                 </TableRow>
               ))
             ) : data?.companies?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={13} className="text-center py-12">
+                <TableCell colSpan={14} className="text-center py-12">
                   <div className="text-muted-foreground">
                     {searchQuery || (selectedCountry && selectedCountry !== 'all') ? 
                       'No companies found matching your criteria.' : 
@@ -379,6 +389,16 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
                         }`}
                       >
                         {parseFloat(company.return10Year) >= 0 ? '+' : ''}{parseFloat(company.return10Year).toFixed(1)}%
+                      </Badge>
+                      : <span className="text-muted-foreground">-</span>}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {company.maxDrawdown10Year && parseFloat(company.maxDrawdown10Year) > 0 ? 
+                      <Badge 
+                        variant="outline" 
+                        className="font-mono text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950"
+                      >
+                        -{parseFloat(company.maxDrawdown10Year).toFixed(1)}%
                       </Badge>
                       : <span className="text-muted-foreground">-</span>}
                   </TableCell>

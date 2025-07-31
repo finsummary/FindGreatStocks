@@ -220,6 +220,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhance drawdown data endpoint
+  app.post("/api/companies/enhance-drawdown", async (req, res) => {
+    try {
+      console.log("📉 Drawdown enhancement requested...");
+      const { drawdownEnhancer } = await import('./drawdown-enhancer');
+      
+      // Run in background
+      drawdownEnhancer.enhanceAllCompaniesDrawdown().then((result) => {
+        console.log(`✅ Drawdown enhancement completed: ${result.updated} updated, ${result.errors} errors`);
+      }).catch(error => {
+        console.error("❌ Drawdown enhancement failed:", error);
+      });
+      
+      res.json({
+        message: "Maximum drawdown enhancement started in background",
+        status: "running",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error starting drawdown enhancement:", error);
+      res.status(500).json({
+        message: "Failed to start drawdown enhancement",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Complete S&P 500 import endpoint (ALL companies)
   app.post("/api/import/sp500-complete", async (req, res) => {
     try {

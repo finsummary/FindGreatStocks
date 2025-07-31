@@ -50,6 +50,9 @@ export const companies = pgTable("companies", {
   return3Year: decimal("return_3_year", { precision: 8, scale: 2 }),
   return5Year: decimal("return_5_year", { precision: 8, scale: 2 }),
   return10Year: decimal("return_10_year", { precision: 8, scale: 2 }),
+  
+  // Risk metrics
+  maxDrawdown10Year: decimal("max_drawdown_10_year", { precision: 8, scale: 2 }),
 });
 
 export const insertCompanySchema = createInsertSchema(companies).omit({

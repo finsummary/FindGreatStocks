@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Play, Download, RefreshCw, TrendingUp, Building2, DollarSign } from "lucide-react";
+import { Play, Download, RefreshCw, TrendingUp, TrendingDown, Building2, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -327,6 +327,24 @@ export function SP500Scanner() {
             >
               <TrendingUp className="h-4 w-4" />
               Add Stock Returns
+            </Button>
+            <Button
+              onClick={() => {
+                fetch('/api/companies/enhance-drawdown', { method: 'POST' })
+                  .then(res => res.json())
+                  .then(data => {
+                    toast({
+                      title: "Drawdown Enhancement Started",
+                      description: "Adding maximum drawdown analysis for all companies",
+                    });
+                  });
+              }}
+              disabled={isScanning}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <TrendingDown className="h-4 w-4" />
+              Add Max Drawdown
             </Button>
           </div>
 

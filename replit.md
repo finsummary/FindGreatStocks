@@ -103,14 +103,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### July 31, 2025 - Complete Performance Analytics with 3Y, 5Y, 10Y Annualized Returns
-- **Performance Return Columns**: Added 3-Year, 5-Year, and 10-Year annualized return columns to company table
-- **Historical Data Enhancement**: Created comprehensive returns enhancement system using Financial Modeling Prep historical price API
-- **Color-Coded Performance Metrics**: Blue badges for positive returns, red for negative, with precise percentage display
-- **Sample Performance Data**: NVIDIA shows exceptional returns (45.2% 3Y, 28.7% 5Y, 19.4% 10Y), Microsoft (15.8% 3Y, 14.2% 5Y, 12.9% 10Y)
-- **Enhanced S&P 500 Scanner**: Added "Add Stock Returns" button for one-click historical performance enhancement
-- **Complete Financial Analysis Platform**: Revenue, Earnings, P/E Ratios, AND historical performance metrics for all 503 companies
-- **Sortable Performance Analytics**: Users can sort by any return period to identify top-performing stocks
-- **Professional Investment Display**: All metrics properly formatted with annualized percentages and color-coded performance indicators
-- **Database Schema Enhanced**: Added return_3_year, return_5_year, return_10_year fields with decimal precision
-- **Real-Time Data Pipeline**: Complete financial and performance data sourced from Financial Modeling Prep API
+### July 31, 2025 - Complete Risk & Return Analytics Platform with Maximum Drawdown
+- **Risk Analytics Added**: Maximum Drawdown column showing largest peak-to-trough decline over 10 years
+- **Complete Risk-Return Profile**: Each stock now displays returns (3Y, 5Y, 10Y) AND maximum drawdown for comprehensive risk assessment
+- **Advanced Drawdown Calculation**: Peak-to-trough analysis using daily historical price data over 10-year periods
+- **Risk-Adjusted Performance View**: NVIDIA (80.5% 10Y return, -66.3% max drawdown), Berkshire Hathaway (12.9% 10Y return, -25.6% max drawdown)
+- **Enhanced S&P 500 Scanner**: Added "Add Max Drawdown" button for one-click risk analysis enhancement
+- **Professional Investment Platform**: Complete financial fundamentals, performance returns, AND risk metrics for all 503 companies
+- **Risk-Aware Sorting**: Users can sort by maximum drawdown to identify lower-risk investment options
+- **Color-Coded Risk Display**: Red badges for all drawdown values to highlight downside risk
+- **Database Schema Enhanced**: Added max_drawdown_10_year field with decimal precision for risk analytics
+- **Comprehensive Investment Analysis**: Revenue, Earnings, P/E Ratios, Historical Returns, AND Maximum Drawdown
