@@ -150,20 +150,20 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
                 </div>
               </TableHead>
               <TableHead 
-                className="cursor-pointer hover:bg-muted/80 transition-colors w-[240px]"
+                className="cursor-pointer hover:bg-muted/80 transition-colors w-[220px]"
                 onClick={() => handleSort('name')}
               >
                 <div className="flex items-center gap-1">
-                  Name
+                  Company Name
                   <SortIcon column="name" />
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[100px]"
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[110px]"
                 onClick={() => handleSort('marketCap')}
               >
                 <div className="flex items-center justify-end gap-1">
-                  <span className="truncate">Mkt Cap</span>
+                  Market Cap
                   <SortIcon column="marketCap" />
                 </div>
               </TableHead>
@@ -195,56 +195,56 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[60px]"
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[75px]"
                 onClick={() => handleSort('peRatio')}
               >
                 <div className="flex items-center justify-end gap-1">
-                  P/E
+                  P/E Ratio
                   <SortIcon column="peRatio" />
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[70px]"
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[85px]"
                 onClick={() => handleSort('return3Year')}
               >
                 <div className="flex items-center justify-end gap-1">
-                  3Y
+                  3Y Return
                   <SortIcon column="return3Year" />
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[70px]"
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[85px]"
                 onClick={() => handleSort('return5Year')}
               >
                 <div className="flex items-center justify-end gap-1">
-                  5Y
+                  5Y Return
                   <SortIcon column="return5Year" />
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[70px]"
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[85px]"
                 onClick={() => handleSort('return10Year')}
               >
                 <div className="flex items-center justify-end gap-1">
-                  10Y
+                  10Y Return
                   <SortIcon column="return10Year" />
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[90px]"
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[100px]"
                 onClick={() => handleSort('maxDrawdown10Year')}
               >
                 <div className="flex items-center justify-end gap-1">
-                  <span className="truncate">Max DD</span>
+                  Max Drawdown
                   <SortIcon column="maxDrawdown10Year" />
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[90px]"
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[100px]"
                 onClick={() => handleSort('returnDrawdownRatio10Year')}
               >
                 <div className="flex items-center justify-end gap-1">
-                  <span className="truncate">AR/MDD</span>
+                  AR/MDD Ratio
                   <SortIcon column="returnDrawdownRatio10Year" />
                 </div>
               </TableHead>
