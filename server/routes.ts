@@ -17,13 +17,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const allCompanies = await storage.getCompanies(limit * 3, offset, sortBy, sortOrder, search, country); // Get more to account for filtering
       
-      // Filter out index funds and ETFs
-      const filteredCompanies = allCompanies.filter(company => 
-        !financialDataService.isIndexFundOrETF(company.symbol, company.name)
-      ).slice(0, limit); // Take only the requested limit after filtering
+      // For S&P 500 companies, don't filter out any companies - show all 503
+      const filteredCompanies = allCompanies.slice(0, limit);
       
       const totalUnfiltered = await storage.getCompanyCount(search, country);
-      const totalFiltered = Math.floor(totalUnfiltered * 0.7); // Estimate filtered count (70% of unfiltered)
+      const totalFiltered = totalUnfiltered; // Show actual count for S&P 500
 
       res.json({
         companies: filteredCompanies,
