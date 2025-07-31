@@ -274,6 +274,24 @@ export function SP500Scanner() {
               <RefreshCw className="h-4 w-4" />
               Update All Prices
             </Button>
+            <Button
+              onClick={() => {
+                fetch('/api/import/sp500-complete', { method: 'POST' })
+                  .then(res => res.json())
+                  .then(data => {
+                    toast({
+                      title: "Complete Import Started",
+                      description: "Importing ALL 503 S&P 500 companies with latest data",
+                    });
+                  });
+              }}
+              disabled={isScanning}
+              variant="destructive"
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Import ALL 503 Companies
+            </Button>
           </div>
 
           {/* Sectors */}

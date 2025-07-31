@@ -168,6 +168,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Complete S&P 500 import endpoint (ALL companies)
+  app.post("/api/import/sp500-complete", async (req, res) => {
+    try {
+      console.log("🚀 Complete S&P 500 import requested (ALL companies)...");
+      const { completeSP500Importer } = await import('./complete-sp500-import');
+      
+      // Run in background
+      completeSP500Importer.importAllSP500Companies().then((result) => {
+        console.log(`✅ Complete S&P 500 import finished: ${result.success}/${result.total} companies`);
+      }).catch(error => {
+        console.error("❌ Complete S&P 500 import failed:", error);
+      });
+      
+      res.json({
+        message: "Complete S&P 500 import started in background (importing ALL companies)",
+        status: "running",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error starting complete S&P 500 import:", error);
+      res.status(500).json({
+        message: "Failed to start complete S&P 500 import",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Full S&P 500 import endpoint
   app.post("/api/import/sp500-full", async (req, res) => {
     try {
