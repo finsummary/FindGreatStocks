@@ -166,6 +166,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhance financial data endpoint
+  app.post("/api/companies/enhance-financial-data", async (req, res) => {
+    try {
+      console.log("🏦 Financial data enhancement requested...");
+      const { financialDataEnhancer } = await import('./financial-data-enhancer');
+      
+      // Run in background
+      financialDataEnhancer.enhanceAllCompaniesFinancialData().then((result) => {
+        console.log(`✅ Financial data enhancement completed: ${result.updated} updated, ${result.errors} errors`);
+      }).catch(error => {
+        console.error("❌ Financial data enhancement failed:", error);
+      });
+      
+      res.json({
+        message: "Financial data enhancement started in background",
+        status: "running",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error starting financial data enhancement:", error);
+      res.status(500).json({
+        message: "Failed to start financial data enhancement",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Complete S&P 500 import endpoint (ALL companies)
   app.post("/api/import/sp500-complete", async (req, res) => {
     try {

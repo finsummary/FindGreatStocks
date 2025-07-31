@@ -292,6 +292,24 @@ export function SP500Scanner() {
               <Download className="h-4 w-4" />
               Import ALL 503 Companies
             </Button>
+            <Button
+              onClick={() => {
+                fetch('/api/companies/enhance-financial-data', { method: 'POST' })
+                  .then(res => res.json())
+                  .then(data => {
+                    toast({
+                      title: "Financial Enhancement Started",
+                      description: "Adding Revenue, Earnings, P/E ratios for all companies",
+                    });
+                  });
+              }}
+              disabled={isScanning}
+              variant="secondary"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Enhance Financial Data
+            </Button>
           </div>
 
           {/* Sectors */}
