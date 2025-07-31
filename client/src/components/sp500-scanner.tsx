@@ -310,6 +310,24 @@ export function SP500Scanner() {
               <RefreshCw className="h-4 w-4" />
               Enhance Financial Data
             </Button>
+            <Button
+              onClick={() => {
+                fetch('/api/companies/enhance-returns', { method: 'POST' })
+                  .then(res => res.json())
+                  .then(data => {
+                    toast({
+                      title: "Returns Enhancement Started",
+                      description: "Adding 3Y, 5Y, 10Y annualized returns for all companies",
+                    });
+                  });
+              }}
+              disabled={isScanning}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <TrendingUp className="h-4 w-4" />
+              Add Stock Returns
+            </Button>
           </div>
 
           {/* Sectors */}

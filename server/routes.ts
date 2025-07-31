@@ -193,6 +193,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhance returns data endpoint
+  app.post("/api/companies/enhance-returns", async (req, res) => {
+    try {
+      console.log("📈 Returns enhancement requested...");
+      const { returnsEnhancer } = await import('./returns-enhancer');
+      
+      // Run in background
+      returnsEnhancer.enhanceAllCompaniesReturns().then((result) => {
+        console.log(`✅ Returns enhancement completed: ${result.updated} updated, ${result.errors} errors`);
+      }).catch(error => {
+        console.error("❌ Returns enhancement failed:", error);
+      });
+      
+      res.json({
+        message: "Returns enhancement started in background",
+        status: "running",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error starting returns enhancement:", error);
+      res.status(500).json({
+        message: "Failed to start returns enhancement",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Complete S&P 500 import endpoint (ALL companies)
   app.post("/api/import/sp500-complete", async (req, res) => {
     try {

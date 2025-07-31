@@ -204,6 +204,33 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
               </TableHead>
               <TableHead 
                 className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
+                onClick={() => handleSort('return3Year')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  3Y Return
+                  <SortIcon column="return3Year" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
+                onClick={() => handleSort('return5Year')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  5Y Return
+                  <SortIcon column="return5Year" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
+                onClick={() => handleSort('return10Year')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  10Y Return
+                  <SortIcon column="return10Year" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
                 onClick={() => handleSort('dailyChangePercent')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -234,13 +261,16 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
                   <TableCell className="text-right"><Skeleton className="h-6 w-16 ml-auto" /></TableCell>
                   <TableCell className="text-right"><Skeleton className="h-6 w-16 ml-auto" /></TableCell>
                   <TableCell className="text-right"><Skeleton className="h-6 w-12 ml-auto" /></TableCell>
+                  <TableCell className="text-right"><Skeleton className="h-6 w-16 ml-auto" /></TableCell>
+                  <TableCell className="text-right"><Skeleton className="h-6 w-16 ml-auto" /></TableCell>
+                  <TableCell className="text-right"><Skeleton className="h-6 w-16 ml-auto" /></TableCell>
                   <TableCell className="text-right"><Skeleton className="h-6 w-12 ml-auto" /></TableCell>
                   <TableCell className="text-center"><Skeleton className="h-6 w-16 mx-auto" /></TableCell>
                 </TableRow>
               ))
             ) : data?.companies?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-12">
+                <TableCell colSpan={13} className="text-center py-12">
                   <div className="text-muted-foreground">
                     {searchQuery || (selectedCountry && selectedCountry !== 'all') ? 
                       'No companies found matching your criteria.' : 
@@ -309,6 +339,48 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
                     {company.peRatio && parseFloat(company.peRatio) > 0 ? 
                       parseFloat(company.peRatio).toFixed(1) : 
                       <span className="text-muted-foreground">-</span>}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {company.return3Year && parseFloat(company.return3Year) !== 0 ? 
+                      <Badge 
+                        variant="outline" 
+                        className={`font-mono ${
+                          parseFloat(company.return3Year) >= 0 
+                            ? 'text-blue-600 border-blue-200 bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:bg-blue-950' 
+                            : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'
+                        }`}
+                      >
+                        {parseFloat(company.return3Year) >= 0 ? '+' : ''}{parseFloat(company.return3Year).toFixed(1)}%
+                      </Badge>
+                      : <span className="text-muted-foreground">-</span>}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {company.return5Year && parseFloat(company.return5Year) !== 0 ? 
+                      <Badge 
+                        variant="outline" 
+                        className={`font-mono ${
+                          parseFloat(company.return5Year) >= 0 
+                            ? 'text-blue-600 border-blue-200 bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:bg-blue-950' 
+                            : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'
+                        }`}
+                      >
+                        {parseFloat(company.return5Year) >= 0 ? '+' : ''}{parseFloat(company.return5Year).toFixed(1)}%
+                      </Badge>
+                      : <span className="text-muted-foreground">-</span>}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {company.return10Year && parseFloat(company.return10Year) !== 0 ? 
+                      <Badge 
+                        variant="outline" 
+                        className={`font-mono ${
+                          parseFloat(company.return10Year) >= 0 
+                            ? 'text-blue-600 border-blue-200 bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:bg-blue-950' 
+                            : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'
+                        }`}
+                      >
+                        {parseFloat(company.return10Year) >= 0 ? '+' : ''}{parseFloat(company.return10Year).toFixed(1)}%
+                      </Badge>
+                      : <span className="text-muted-foreground">-</span>}
                   </TableCell>
                   <TableCell className="text-right">
                     <Badge 

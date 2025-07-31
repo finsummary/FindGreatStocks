@@ -45,6 +45,11 @@ export const companies = pgTable("companies", {
   totalAssets: decimal("total_assets", { precision: 20, scale: 0 }),
   totalDebt: decimal("total_debt", { precision: 20, scale: 0 }),
   cashAndEquivalents: decimal("cash_and_equivalents", { precision: 20, scale: 0 }),
+  
+  // Performance metrics (annualized returns as percentages)
+  return3Year: decimal("return_3_year", { precision: 8, scale: 2 }),
+  return5Year: decimal("return_5_year", { precision: 8, scale: 2 }),
+  return10Year: decimal("return_10_year", { precision: 8, scale: 2 }),
 });
 
 export const insertCompanySchema = createInsertSchema(companies).omit({
