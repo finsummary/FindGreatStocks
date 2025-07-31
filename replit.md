@@ -103,14 +103,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### July 31, 2025 - Complete Risk & Return Analytics Platform with Maximum Drawdown
-- **Risk Analytics Added**: Maximum Drawdown column showing largest peak-to-trough decline over 10 years
-- **Complete Risk-Return Profile**: Each stock now displays returns (3Y, 5Y, 10Y) AND maximum drawdown for comprehensive risk assessment
-- **Advanced Drawdown Calculation**: Peak-to-trough analysis using daily historical price data over 10-year periods
-- **Risk-Adjusted Performance View**: NVIDIA (80.5% 10Y return, -66.3% max drawdown), Berkshire Hathaway (12.9% 10Y return, -25.6% max drawdown)
-- **Enhanced S&P 500 Scanner**: Added "Add Max Drawdown" button for one-click risk analysis enhancement
-- **Professional Investment Platform**: Complete financial fundamentals, performance returns, AND risk metrics for all 503 companies
-- **Risk-Aware Sorting**: Users can sort by maximum drawdown to identify lower-risk investment options
-- **Color-Coded Risk Display**: Red badges for all drawdown values to highlight downside risk
-- **Database Schema Enhanced**: Added max_drawdown_10_year field with decimal precision for risk analytics
-- **Comprehensive Investment Analysis**: Revenue, Earnings, P/E Ratios, Historical Returns, AND Maximum Drawdown
+### July 31, 2025 - Complete Risk-Adjusted Analytics with AR/MDD Ratio
+- **AR/MDD Ratio Column**: Added Annualized Return to Maximum Drawdown ratio for superior risk-adjusted performance analysis
+- **Enhanced Column Layout**: Expanded company name column width (280px) for better readability of full company names
+- **Risk-Adjusted Performance Ranking**: NVIDIA (1.21 AR/MDD), Eli Lilly (1.09 AR/MDD), Broadcom (0.85 AR/MDD) show best risk-adjusted returns
+- **Color-Coded AR/MDD Ratios**: Green (≥0.5), Yellow (≥0.2), Red (<0.2) for intuitive risk-adjusted performance assessment
+- **Professional Investment Table**: 15 columns including Market Cap, Price, Revenue, Earnings, P/E, 3Y/5Y/10Y Returns, Max Drawdown, AR/MDD Ratio, Today's Change
+- **Complete Risk Analytics**: Maximum Drawdown analysis combined with return ratios for comprehensive downside risk evaluation
+- **Enhanced S&P 500 Scanner**: "Add Max Drawdown" button for one-click risk analysis enhancement across all companies
+- **Optimized UI Layout**: Better column spacing and truncated company names with improved visual hierarchy
+- **Database Schema Enhanced**: Added return_drawdown_ratio_10_year field with automatic calculation from existing return and drawdown data
+- **Investment-Grade Analysis Platform**: Complete fundamental, technical, and risk-adjusted metrics for professional stock analysis

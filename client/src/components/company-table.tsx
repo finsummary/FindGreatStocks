@@ -149,7 +149,7 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
                 </div>
               </TableHead>
               <TableHead 
-                className="cursor-pointer hover:bg-muted/80 transition-colors"
+                className="cursor-pointer hover:bg-muted/80 transition-colors w-[280px]"
                 onClick={() => handleSort('name')}
               >
                 <div className="flex items-center gap-1">
@@ -240,6 +240,15 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
               </TableHead>
               <TableHead 
                 className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
+                onClick={() => handleSort('returnDrawdownRatio10Year')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  AR/MDD Ratio
+                  <SortIcon column="returnDrawdownRatio10Year" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="text-right cursor-pointer hover:bg-muted/80 transition-colors"
                 onClick={() => handleSort('dailyChangePercent')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -274,13 +283,14 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
                   <TableCell className="text-right"><Skeleton className="h-6 w-16 ml-auto" /></TableCell>
                   <TableCell className="text-right"><Skeleton className="h-6 w-16 ml-auto" /></TableCell>
                   <TableCell className="text-right"><Skeleton className="h-6 w-16 ml-auto" /></TableCell>
+                  <TableCell className="text-right"><Skeleton className="h-6 w-16 ml-auto" /></TableCell>
                   <TableCell className="text-right"><Skeleton className="h-6 w-12 ml-auto" /></TableCell>
                   <TableCell className="text-center"><Skeleton className="h-6 w-16 mx-auto" /></TableCell>
                 </TableRow>
               ))
             ) : data?.companies?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={14} className="text-center py-12">
+                <TableCell colSpan={15} className="text-center py-12">
                   <div className="text-muted-foreground">
                     {searchQuery || (selectedCountry && selectedCountry !== 'all') ? 
                       'No companies found matching your criteria.' : 
@@ -399,6 +409,22 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
                         className="font-mono text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950"
                       >
                         -{parseFloat(company.maxDrawdown10Year).toFixed(1)}%
+                      </Badge>
+                      : <span className="text-muted-foreground">-</span>}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {company.return10Year && company.maxDrawdown10Year && parseFloat(company.return10Year) !== 0 && parseFloat(company.maxDrawdown10Year) > 0 ? 
+                      <Badge 
+                        variant="outline" 
+                        className={`font-mono ${
+                          (parseFloat(company.return10Year) / parseFloat(company.maxDrawdown10Year)) >= 0.5
+                            ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950'
+                            : (parseFloat(company.return10Year) / parseFloat(company.maxDrawdown10Year)) >= 0.2
+                            ? 'text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950'
+                            : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'
+                        }`}
+                      >
+                        {(parseFloat(company.return10Year) / parseFloat(company.maxDrawdown10Year)).toFixed(2)}
                       </Badge>
                       : <span className="text-muted-foreground">-</span>}
                   </TableCell>

@@ -53,6 +53,9 @@ export const companies = pgTable("companies", {
   
   // Risk metrics
   maxDrawdown10Year: decimal("max_drawdown_10_year", { precision: 8, scale: 2 }),
+  
+  // Risk-adjusted performance metrics
+  returnDrawdownRatio10Year: decimal("return_drawdown_ratio_10_year", { precision: 8, scale: 2 }),
 });
 
 export const insertCompanySchema = createInsertSchema(companies).omit({
