@@ -43,13 +43,14 @@ export class DatabaseStorage implements IStorage {
   async getCompanies(limit = 50, offset = 0, sortBy = 'rank', sortOrder: 'asc' | 'desc' = 'asc', search?: string, country?: string): Promise<Company[]> {
     let query = db.select().from(companies);
     
-    // Apply sorting - default to rank ascending
-    if (sortBy === 'rank') {
-      query = query.orderBy(sortOrder === 'desc' ? desc(companies.rank) : asc(companies.rank));
-    } else if (sortBy === 'marketCap') {
-      query = query.orderBy(sortOrder === 'desc' ? desc(sql`CAST(${companies.marketCap} AS BIGINT)`) : asc(sql`CAST(${companies.marketCap} AS BIGINT)`));
+    // Apply sorting - default to market cap descending for S&P 500 ranking
+    if (sortBy === 'rank' || sortBy === 'marketCap') {
+      // For S&P 500 data, rank by market cap (descending = highest first)
+      query = query.orderBy(desc(sql`CASE WHEN ${companies.marketCap} IS NULL OR ${companies.marketCap} = '0' THEN 0 ELSE CAST(${companies.marketCap} AS BIGINT) END`));
     } else if (sortBy === 'name') {
       query = query.orderBy(sortOrder === 'desc' ? desc(companies.name) : asc(companies.name));
+    } else if (sortBy === 'price') {
+      query = query.orderBy(sortOrder === 'desc' ? desc(sql`CAST(${companies.price} AS NUMERIC)`) : asc(sql`CAST(${companies.price} AS NUMERIC)`));
     }
     
     // Apply pagination

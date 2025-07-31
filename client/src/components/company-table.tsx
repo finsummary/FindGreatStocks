@@ -19,8 +19,8 @@ interface CompanyTableProps {
 }
 
 export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, setSelectedCountry }: CompanyTableProps) {
-  const [sortBy, setSortBy] = useState<string>('rank');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sortBy, setSortBy] = useState<string>('marketCap');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(0);
   const [limit] = useState(50);
 
