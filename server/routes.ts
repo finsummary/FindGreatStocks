@@ -146,6 +146,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // S&P 500 Scanner Routes
+  app.post("/api/scan/sp500", async (req, res) => {
+    try {
+      const { sp500Scanner } = await import('./sp500-scanner');
+      const limit = parseInt(req.query.limit as string) || 500;
+      
+      console.log(`Starting S&P 500 scan for ${limit === 500 ? 'all' : limit} companies...`);
+      
+      const result = limit === 500 ? 
+        await sp500Scanner.scanAndImportSP500() :
+        await sp500Scanner.quickScan(limit);
+      
+      res.json({
+        message: `S&P 500 scan complete`,
+        ...result,
+        details: {
+          successRate: `${((result.success / result.total) * 100).toFixed(1)}%`,
+          source: "S&P 500 constituents from Financial Modeling Prep",
+          dataIncluded: ["Market Cap", "Stock Price", "Revenue", "Net Income", "Company Profiles"]
+        }
+      });
+    } catch (error) {
+      console.error("Error in S&P 500 scan:", error);
+      res.status(500).json({ 
+        message: "Failed to scan S&P 500", 
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/scan/sp500/preview", async (req, res) => {
+    try {
+      const { sp500Scanner } = await import('./sp500-scanner');
+      const constituents = await sp500Scanner.getSP500Constituents();
+      
+      res.json({
+        message: `Found ${constituents.length} S&P 500 companies`,
+        total: constituents.length,
+        preview: constituents.slice(0, 10).map(c => ({ 
+          symbol: c.symbol, 
+          name: c.name, 
+          sector: c.sector 
+        })),
+        sectors: [...new Set(constituents.map(c => c.sector))].sort()
+      });
+    } catch (error) {
+      console.error("Error previewing S&P 500:", error);
+      res.status(500).json({ 
+        message: "Failed to preview S&P 500", 
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Bulk enhance all top companies with income statement data
   app.post("/api/companies/enhance-all-financials", async (req, res) => {
     try {
