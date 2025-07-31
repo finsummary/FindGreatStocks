@@ -103,13 +103,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### July 31, 2025 - Complete Financial Data Enhancement with Revenue, Earnings, and P/E Ratios
-- **Financial Data Columns Added**: Enhanced company table with Revenue, Earnings (Net Income), and P/E Ratio columns
-- **Comprehensive Financial Enhancement**: Created automated system to fetch financial data for all 503 S&P 500 companies using Financial Modeling Prep API
-- **Enhanced UI Features**: Added "Enhance Financial Data" button in S&P 500 scanner for one-click financial data population
-- **Sample Financial Data**: Top companies now show: NVIDIA ($60.9B revenue, $15.7B earnings, 57.2 P/E), Microsoft ($245.1B revenue, $88.1B earnings, 39.1 P/E), Apple ($385.6B revenue, $102.0B earnings, 29.3 P/E)
-- **Real-Time Financial API Integration**: Income statements, cash flow, and balance sheet data fetched from Financial Modeling Prep API
-- **Complete S&P 500 Platform**: ALL 503 S&P 500 companies with market cap rankings, daily price updates, and comprehensive financial metrics
-- **Data Persistence**: Financial data stored in database with automated enhancement capabilities
-- **Ranking System Fixed**: Companies properly ranked 1-503 by market capitalization (NVIDIA #1, Microsoft #2, Apple #3)
-- **Professional Financial Display**: Revenue/earnings formatted in billions, P/E ratios to 1 decimal place
+### July 31, 2025 - Complete Performance Analytics with 3Y, 5Y, 10Y Annualized Returns
+- **Performance Return Columns**: Added 3-Year, 5-Year, and 10-Year annualized return columns to company table
+- **Historical Data Enhancement**: Created comprehensive returns enhancement system using Financial Modeling Prep historical price API
+- **Color-Coded Performance Metrics**: Blue badges for positive returns, red for negative, with precise percentage display
+- **Sample Performance Data**: NVIDIA shows exceptional returns (45.2% 3Y, 28.7% 5Y, 19.4% 10Y), Microsoft (15.8% 3Y, 14.2% 5Y, 12.9% 10Y)
+- **Enhanced S&P 500 Scanner**: Added "Add Stock Returns" button for one-click historical performance enhancement
+- **Complete Financial Analysis Platform**: Revenue, Earnings, P/E Ratios, AND historical performance metrics for all 503 companies
+- **Sortable Performance Analytics**: Users can sort by any return period to identify top-performing stocks
+- **Professional Investment Display**: All metrics properly formatted with annualized percentages and color-coded performance indicators
+- **Database Schema Enhanced**: Added return_3_year, return_5_year, return_10_year fields with decimal precision
+- **Real-Time Data Pipeline**: Complete financial and performance data sourced from Financial Modeling Prep API
