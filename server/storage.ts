@@ -43,14 +43,47 @@ export class DatabaseStorage implements IStorage {
   async getCompanies(limit = 50, offset = 0, sortBy = 'rank', sortOrder: 'asc' | 'desc' = 'asc', search?: string, country?: string): Promise<Company[]> {
     let query = db.select().from(companies);
     
-    // Apply sorting - default to market cap descending for S&P 500 ranking
-    if (sortBy === 'rank' || sortBy === 'marketCap') {
-      // For S&P 500 data, rank by market cap (descending = highest first)
-      query = query.orderBy(desc(sql`CASE WHEN ${companies.marketCap} IS NULL OR ${companies.marketCap} = '0' THEN 0 ELSE CAST(${companies.marketCap} AS BIGINT) END`));
-    } else if (sortBy === 'name') {
-      query = query.orderBy(sortOrder === 'desc' ? desc(companies.name) : asc(companies.name));
-    } else if (sortBy === 'price') {
-      query = query.orderBy(sortOrder === 'desc' ? desc(sql`CAST(${companies.price} AS NUMERIC)`) : asc(sql`CAST(${companies.price} AS NUMERIC)`));
+    // Apply sorting based on selected criteria
+    const orderDirection = sortOrder === 'desc' ? desc : asc;
+    
+    switch (sortBy) {
+      case 'rank':
+      case 'marketCap':
+        query = query.orderBy(desc(sql`CASE WHEN ${companies.marketCap} IS NULL OR ${companies.marketCap} = '0' THEN 0 ELSE CAST(${companies.marketCap} AS BIGINT) END`));
+        break;
+      case 'revenue':
+        query = query.orderBy(orderDirection(sql`CASE WHEN ${companies.revenue} IS NULL OR ${companies.revenue} = '0' THEN 0 ELSE CAST(${companies.revenue} AS BIGINT) END`));
+        break;
+      case 'return3Year':
+        query = query.orderBy(orderDirection(sql`CASE WHEN ${companies.return3Year} IS NULL OR ${companies.return3Year} = '0' THEN -999 ELSE CAST(${companies.return3Year} AS NUMERIC) END`));
+        break;
+      case 'return5Year':
+        query = query.orderBy(orderDirection(sql`CASE WHEN ${companies.return5Year} IS NULL OR ${companies.return5Year} = '0' THEN -999 ELSE CAST(${companies.return5Year} AS NUMERIC) END`));
+        break;
+      case 'return10Year':
+        query = query.orderBy(orderDirection(sql`CASE WHEN ${companies.return10Year} IS NULL OR ${companies.return10Year} = '0' THEN -999 ELSE CAST(${companies.return10Year} AS NUMERIC) END`));
+        break;
+      case 'maxDrawdown10Year':
+        query = query.orderBy(asc(sql`CASE WHEN ${companies.maxDrawdown10Year} IS NULL OR ${companies.maxDrawdown10Year} = '0' THEN 999 ELSE CAST(${companies.maxDrawdown10Year} AS NUMERIC) END`));
+        break;
+      case 'returnDrawdownRatio10Year':
+        query = query.orderBy(orderDirection(sql`CASE WHEN ${companies.returnDrawdownRatio10Year} IS NULL OR ${companies.returnDrawdownRatio10Year} = '0' THEN -999 ELSE CAST(${companies.returnDrawdownRatio10Year} AS NUMERIC) END`));
+        break;
+      case 'peRatio':
+        query = query.orderBy(orderDirection(sql`CASE WHEN ${companies.peRatio} IS NULL OR ${companies.peRatio} = '0' THEN 999 ELSE CAST(${companies.peRatio} AS NUMERIC) END`));
+        break;
+      case 'dailyChangePercent':
+        query = query.orderBy(orderDirection(sql`CASE WHEN ${companies.dailyChangePercent} IS NULL THEN 0 ELSE CAST(${companies.dailyChangePercent} AS NUMERIC) END`));
+        break;
+      case 'name':
+        query = query.orderBy(orderDirection(companies.name));
+        break;
+      case 'price':
+        query = query.orderBy(orderDirection(sql`CAST(${companies.price} AS NUMERIC)`));
+        break;
+      default:
+        // Default to market cap descending
+        query = query.orderBy(desc(sql`CASE WHEN ${companies.marketCap} IS NULL OR ${companies.marketCap} = '0' THEN 0 ELSE CAST(${companies.marketCap} AS BIGINT) END`));
     }
     
     // Apply pagination

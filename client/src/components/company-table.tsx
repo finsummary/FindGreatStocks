@@ -98,7 +98,11 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
             />
           </div>
           
-          <Select value={sortBy} onValueChange={(value) => setSortBy(value)}>
+          <Select value={sortBy} onValueChange={(value) => {
+            setSortBy(value);
+            setSortOrder('desc'); // Default to descending for most metrics
+            setPage(0); // Reset to first page when sorting changes
+          }}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Rank by..." />
             </SelectTrigger>
