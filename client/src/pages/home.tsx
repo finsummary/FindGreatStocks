@@ -36,7 +36,7 @@ export default function Home() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center">
-              <h1 className="text-xl font-bold text-primary">CompaniesMarketCap</h1>
+              <h1 className="text-xl font-bold text-primary">FindGreatStocks</h1>
             </div>
 
             {/* Controls */}
@@ -76,7 +76,7 @@ export default function Home() {
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
             <div>
-              <h1 className="text-4xl font-bold mb-2">Largest Companies by Market Cap</h1>
+              <h1 className="text-4xl font-bold mb-2">S&P 500 Companies</h1>
               <p className="text-muted-foreground text-lg">
                 Companies: <span className="font-semibold">{marketStats?.totalCompanies?.toLocaleString() || '10,582'}</span> • 
                 Total market cap: <span className="font-semibold text-primary">
@@ -95,8 +95,6 @@ export default function Home() {
           <CompanyTable 
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
-            selectedCountry=""
-            setSelectedCountry={() => {}}
           />
         </div>
       </main>

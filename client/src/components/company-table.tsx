@@ -14,8 +14,6 @@ import type { Company } from "@shared/schema";
 interface CompanyTableProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  selectedCountry: string;
-  setSelectedCountry: (country: string) => void;
 }
 
 export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps) {
@@ -289,8 +287,8 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
               <TableRow>
                 <TableCell colSpan={15} className="text-center py-12">
                   <div className="text-muted-foreground">
-                    {searchQuery || (selectedCountry && selectedCountry !== 'all') ? 
-                      'No companies found matching your criteria.' : 
+                    {searchQuery ? 
+                      'No companies found matching your search.' : 
                       'No companies available.'
                     }
                   </div>
