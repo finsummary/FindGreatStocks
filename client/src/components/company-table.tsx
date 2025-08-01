@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronUp, ChevronDown, Star, Download, History, Edit2, Search } from "lucide-react";
+import { ChevronUp, ChevronDown, Star, Download, Search } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ interface CompanyTableProps {
   setSelectedCountry: (country: string) => void;
 }
 
-export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, setSelectedCountry }: CompanyTableProps) {
+export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps) {
   const [sortBy, setSortBy] = useState<string>('marketCap');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(0);
@@ -30,8 +30,7 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
       offset: page * limit, 
       sortBy, 
       sortOrder, 
-      search: searchQuery || undefined,
-      country: selectedCountry && selectedCountry !== 'all' ? selectedCountry : undefined
+      search: searchQuery || undefined
     }],
     queryFn: async ({ queryKey }) => {
       const [url, params] = queryKey as [string, any];
@@ -119,34 +118,10 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
             </SelectContent>
           </Select>
           
-          <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="All Countries" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Countries</SelectItem>
-              <SelectItem value="us">🇺🇸 USA</SelectItem>
-              <SelectItem value="cn">🇨🇳 China</SelectItem>
-              <SelectItem value="sa">🇸🇦 Saudi Arabia</SelectItem>
-              <SelectItem value="tw">🇹🇼 Taiwan</SelectItem>
-              <SelectItem value="de">🇩🇪 Germany</SelectItem>
-              <SelectItem value="dk">🇩🇰 Denmark</SelectItem>
-              <SelectItem value="fr">🇫🇷 France</SelectItem>
-              <SelectItem value="nl">🇳🇱 Netherlands</SelectItem>
-              <SelectItem value="kr">🇰🇷 South Korea</SelectItem>
-            </SelectContent>
-          </Select>
+
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => {}}>
-            <History className="h-4 w-4 mr-2" />
-            Time Machine
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => {}}>
-            <Edit2 className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
           <Button variant="outline" size="sm" onClick={handleExportCSV}>
             <Download className="h-4 w-4 mr-2" />
             Export CSV

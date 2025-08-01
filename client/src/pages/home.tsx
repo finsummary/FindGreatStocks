@@ -2,16 +2,14 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Moon, Sun, Globe, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CompanyTable } from "@/components/company-table";
-import { SP500Scanner } from "@/components/sp500-scanner";
 import { useTheme } from "@/components/theme-provider";
 import { formatMarketCap } from "@/lib/format";
 
 export default function Home() {
   const { theme, setTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCountry, setSelectedCountry] = useState("all");
+
   const [currency, setCurrency] = useState("USD");
   const [language, setLanguage] = useState("EN");
 
@@ -93,52 +91,13 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Ranking Tabs */}
-          <Tabs defaultValue="marketcap" className="w-full">
-            <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:grid-cols-none lg:flex">
-              <TabsTrigger value="marketcap">Market Cap</TabsTrigger>
-              <TabsTrigger value="revenue">Revenue</TabsTrigger>
-              <TabsTrigger value="earnings">Earnings</TabsTrigger>
-              <TabsTrigger value="sp500">S&P 500</TabsTrigger>
-              <TabsTrigger value="employees">Employees</TabsTrigger>
-              <TabsTrigger value="pe-ratio">P/E ratio</TabsTrigger>
-              <TabsTrigger value="more">More +</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="marketcap" className="mt-6">
-              <CompanyTable 
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                selectedCountry={selectedCountry}
-                setSelectedCountry={setSelectedCountry}
-              />
-            </TabsContent>
-
-            <TabsContent value="revenue" className="mt-6">
-              <CompanyTable 
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                selectedCountry={selectedCountry}
-                setSelectedCountry={setSelectedCountry}
-              />
-            </TabsContent>
-
-            <TabsContent value="sp500" className="mt-6">
-              <SP500Scanner />
-            </TabsContent>
-
-            {/* Placeholder content for other tabs */}
-            {['earnings', 'employees', 'pe-ratio', 'more'].map((tab) => (
-              <TabsContent key={tab} value={tab} className="mt-6">
-                <div className="text-center py-12 text-muted-foreground">
-                  {tab === 'more' ? 
-                    'Additional ranking options coming soon.' :
-                    `Rankings by ${tab} coming soon.`
-                  }
-                </div>
-              </TabsContent>
-            ))}
-          </Tabs>
+          {/* Company Table */}
+          <CompanyTable 
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            selectedCountry=""
+            setSelectedCountry={() => {}}
+          />
         </div>
       </main>
 
