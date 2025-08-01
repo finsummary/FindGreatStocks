@@ -98,6 +98,23 @@ export function CompanyTable({ searchQuery, setSearchQuery, selectedCountry, set
             />
           </div>
           
+          <Select value={sortBy} onValueChange={(value) => setSortBy(value)}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Rank by..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="marketCap">Market Cap</SelectItem>
+              <SelectItem value="revenue">Revenue</SelectItem>
+              <SelectItem value="return3Year">3Y Returns</SelectItem>
+              <SelectItem value="return5Year">5Y Returns</SelectItem>
+              <SelectItem value="return10Year">10Y Returns</SelectItem>
+              <SelectItem value="maxDrawdown10Year">Max Drawdown</SelectItem>
+              <SelectItem value="returnDrawdownRatio10Year">AR/MDD Ratio</SelectItem>
+              <SelectItem value="peRatio">P/E Ratio</SelectItem>
+              <SelectItem value="dailyChangePercent">Today's Change</SelectItem>
+            </SelectContent>
+          </Select>
+          
           <Select value={selectedCountry} onValueChange={setSelectedCountry}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="All Countries" />
