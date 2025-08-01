@@ -1,0 +1,367 @@
+Rank
+Company Name
+Market Cap
+Price
+Revenue
+Earnings
+P/E Ratio
+3Y Return
+5Y Return
+10Y Return
+Max Drawdown
+AR/MDD Ratio
+Today
+Country
+	101	
+DASH logo
+DoorDash, Inc.
+DASH
+$106.09 B	$250.25	$0.00	$0.00	-	+53.1%	+5.7%	+2.8%	-82.5%	0.03	+0.91%	
+United States
+US
+	102	
+CB logo
+Chubb Limited
+CB
+$106.07 B	$266.04	$0.00	$0.00	-	+12.1%	+15.9%	+9.4%	-43.0%	0.22	-0.18%	
+United States
+US
+	103	
+ICE logo
+Intercontinental Exchange, Inc.
+ICE
+$106.02 B	$184.83	$0.00	$0.00	-	+21.9%	+13.8%	+15.0%	-35.1%	0.43	-0.49%	
+United States
+US
+	104	
+MO logo
+Altria Group, Inc.
+MO
+$104.33 B	$61.94	$0.00	$0.00	-	+12.2%	+8.5%	+1.3%	-59.6%	0.02	+0.72%	
+United States
+US
+	105	
+SO logo
+The Southern Company
+SO
+$103.84 B	$94.48	$0.00	$0.00	-	+7.1%	+11.6%	+7.8%	-39.0%	0.20	-0.44%	
+United States
+US
+	106	
+SBUX logo
+Starbucks Corporation
+SBUX
+$101.37 B	$89.18	$0.00	$0.00	-	+1.7%	+3.1%	+4.4%	-44.5%	0.10	-3.86%	
+United States
+US
+	107	
+CME logo
+CME Group Inc.
+CME
+$100.29 B	$278.28	$0.00	$0.00	-	+11.7%	+10.9%	+11.2%	-37.6%	0.30	+0.19%	
+United States
+US
+	108	
+CDNS logo
+Cadence Design Systems, Inc.
+CDNS
+$99.54 B	$364.57	$0.00	$0.00	-	+25.1%	+27.3%	+33.0%	-32.1%	1.03	-1.74%	
+United States
+US
+	109	
+PLD logo
+Prologis, Inc.
+PLD
+$99.08 B	$106.78	$0.00	$0.00	-	-7.0%	+0.3%	+10.2%	-48.1%	0.21	-1.58%	
+United States
+US
+	110	
+LMT logo
+Lockheed Martin Corporation
+LMT
+$98.28 B	$420.98	$0.00	$0.00	-	+0.6%	+2.1%	+7.3%	-37.1%	0.20	+0.55%	
+United States
+US
+	111	
+MMC logo
+Marsh & McLennan Companies, Inc.
+MMC
+$97.93 B	$199.20	$24.46 B	$4.06 B	23.9	+6.7%	+11.3%	+13.1%	-35.8%	0.37	-0.68%	
+United States
+US
+	112	
+TT logo
+Trane Technologies plc
+TT
+$97.70 B	$438.08	$19.84 B	$2.57 B	34.5	+43.9%	+31.4%	+24.8%	-41.4%	0.60	+1.54%	
+United States
+US
+	113	
+AMT logo
+American Tower Corporation
+AMT
+$97.58 B	$208.39	$10.13 B	$2.25 B	39.0	-8.4%	-4.4%	+8.2%	-48.1%	0.17	-0.17%	
+United States
+US
+	114	
+COIN logo
+Coinbase Global, Inc.
+COIN
+$96.14 B	$377.76	$6.56 B	$2.58 B	71.0	+81.7%	+2.9%	+1.4%	-90.9%	0.02	+0.07%	
+United States
+US
+	115	
+DUK logo
+Duke Energy Corporation
+DUK
+$94.55 B	$121.64	$30.36 B	$4.52 B	20.2	+3.4%	+7.5%	+5.1%	-37.4%	0.14	+0.96%	
+United States
+US
+	116	
+PH logo
+Parker-Hannifin Corporation
+PH
+$93.52 B	$731.90	$19.93 B	$2.84 B	28.1	+36.3%	+32.5%	+20.6%	-54.7%	0.38	-0.02%	
+United States
+US
+	117	
+MCO logo
+Moody's Corporation
+MCO
+$92.52 B	$515.73	$7.09 B	$2.06 B	43.9	+18.5%	+12.9%	+16.7%	-42.1%	0.40	+0.61%	
+United States
+US
+	118	
+WM logo
+Waste Management, Inc.
+WM
+$92.22 B	$229.16	$22.06 B	$2.75 B	34.0	+11.7%	+15.9%	+16.2%	-30.4%	0.53	-1.44%	
+United States
+US
+	119	
+TDG logo
+TransDigm Group Incorporated
+TDG
+$90.34 B	$1608.46	$7.94 B	$1.71 B	54.1	+37.2%	+30.1%	+21.7%	-62.6%	0.35	-0.76%	
+United States
+US
+	120	
+DELL logo
+Dell Technologies Inc.
+DELL
+$90.09 B	$132.69	$95.57 B	$4.59 B	20.8	+43.3%	+34.4%	+27.1%	-60.0%	0.45	-0.64%	
+United States
+US
+	121	
+CTAS logo
+Cintas Corporation
+CTAS
+$89.68 B	$222.55	$10.34 B	$1.81 B	50.5	+27.9%	+24.1%	+26.4%	-48.4%	0.55	-0.26%	
+United States
+US
+	122	
+BMY logo
+Bristol-Myers Squibb Company
+BMY
+$88.14 B	$43.31	$48.30 B	$-8948000000.00	16.2	-16.3%	-5.9%	-4.1%	-51.1%	-0.08	-5.81%	
+United States
+US
+	123	
+INTC logo
+Intel Corporation
+INTC
+$86.66 B	$19.80	$53.10 B	$-18756000000.00	-	-18.3%	-16.1%	-3.7%	-73.5%	-0.05	-2.65%	
+United States
+US
+	124	
+MCK logo
+McKesson Corporation
+MCK
+$86.63 B	$693.54	$359.05 B	$3.29 B	26.9	+26.6%	+35.8%	+12.1%	-55.4%	0.22	-2.99%	
+United States
+US
+	125	
+RCL logo
+Royal Caribbean Cruises Ltd.
+RCL
+$86.34 B	$317.87	$16.48 B	$2.88 B	23.6	+101.8%	+45.5%	+13.5%	-83.5%	0.16	-4.01%	
+United States
+US
+	126	
+HCA logo
+HCA Healthcare, Inc.
+HCA
+$85.16 B	$353.99	$70.60 B	$5.76 B	14.9	+18.6%	+22.8%	+14.3%	-54.9%	0.26	-0.30%	
+United States
+US
+	127	
+ORLY logo
+O'Reilly Automotive, Inc.
+ORLY
+$84.05 B	$98.32	$16.71 B	$2.39 B	35.2	+28.0%	+25.3%	+19.9%	-42.0%	0.47	-1.07%	
+United States
+US
+	128	
+GD logo
+General Dynamics Corporation
+GD
+$83.82 B	$311.61	$47.72 B	$3.78 B	20.9	+11.2%	+16.3%	+7.7%	-53.6%	0.14	-0.18%	
+United States
+US
+	129	
+MDLZ logo
+Mondelez International, Inc.
+MDLZ
+$83.71 B	$64.69	$36.44 B	$4.61 B	23.7	+0.3%	+3.1%	+3.7%	-29.7%	0.12	-0.63%	
+United States
+US
+	130	
+APO logo
+Apollo Global Management, Inc.
+APO
+$83.05 B	$145.32	$26.11 B	$4.58 B	25.3	+36.5%	+24.2%	+21.6%	-65.2%	0.33	-0.10%	
+United States
+US
+	131	
+ABNB logo
+Airbnb, Inc.
+ABNB
+$82.97 B	$132.41	$11.10 B	$2.65 B	33.6	+6.1%	-1.8%	-0.9%	-62.0%	-0.01	-1.74%	
+United States
+US
+	132	
+NOC logo
+Northrop Grumman Corporation
+NOC
+$82.56 B	$576.61	$41.03 B	$4.17 B	21.3	+6.4%	+12.2%	+12.8%	-37.2%	0.34	+0.66%	
+United States
+US
+	133	
+SHW logo
+The Sherwin-Williams Company
+SHW
+$82.50 B	$330.88	$23.10 B	$2.68 B	32.8	+11.0%	+8.9%	+13.6%	-42.9%	0.32	-0.33%	
+United States
+US
+	134	
+EMR logo
+Emerson Electric Co.
+EMR
+$81.85 B	$145.51	$17.49 B	$1.97 B	42.2	+17.3%	+18.6%	+10.9%	-51.5%	0.21	-0.38%	
+United States
+US
+	135	
+MMM logo
+3M Company
+MMM
+$79.48 B	$149.22	$24.57 B	$4.17 B	20.8	+7.6%	+3.5%	+1.7%	-66.9%	0.02	+1.77%	
+United States
+US
+	136	
+CVS logo
+CVS Health Corporation
+CVS
+$78.56 B	$62.10	$372.81 B	$4.61 B	14.8	-13.4%	-0.3%	-5.8%	-61.4%	-0.09	-0.32%	
+United States
+US
+	137	
+EQIX logo
+Equinix, Inc.
+EQIX
+$76.80 B	$785.17	$8.75 B	$815.00 M	82.1	+3.7%	-0.0%	+10.9%	-42.8%	0.25	-1.49%	
+United States
+US
+	138	
+AON logo
+Aon plc
+AON
+$76.70 B	$355.71	$15.70 B	$2.65 B	30.0	+6.9%	+11.6%	+13.4%	-38.7%	0.35	+0.10%	
+United States
+US
+	139	
+FTNT logo
+Fortinet, Inc.
+FTNT
+$76.47 B	$99.90	$5.96 B	$1.75 B	41.1	+18.8%	+29.3%	+26.5%	-51.2%	0.52	-1.78%	
+United States
+US
+	140	
+FI logo
+Fiserv, Inc.
+FI
+$75.53 B	$138.94	$20.46 B	$3.13 B	23.2	+9.6%	+6.8%	+12.3%	-41.6%	0.30	-1.36%	
+United States
+US
+	141	
+PNC logo
+The PNC Financial Services Group, Inc.
+PNC
+$75.26 B	$190.27	$33.69 B	$5.89 B	13.0	+4.7%	+12.3%	+6.8%	-51.5%	0.13	-1.18%	
+United States
+US
+	142	
+ITW logo
+Illinois Tool Works Inc.
+ITW
+$75.00 B	$255.97	$15.90 B	$3.49 B	22.5	+7.2%	+6.7%	+11.1%	-37.9%	0.29	+0.91%	
+United States
+US
+	143	
+ECL logo
+Ecolab Inc.
+ECL
+$74.21 B	$261.76	$15.74 B	$2.11 B	35.0	+16.6%	+7.0%	+8.5%	-44.3%	0.19	-0.52%	
+United States
+US
+	144	
+AJG logo
+Arthur J. Gallagher & Co.
+AJG
+$73.56 B	$287.25	$11.55 B	$1.46 B	44.3	+17.1%	+21.7%	+19.7%	-37.5%	0.53	+0.49%	
+United States
+US
+	145	
+MSI logo
+Motorola Solutions, Inc.
+MSI
+$73.27 B	$438.98	$10.82 B	$1.58 B	36.6	+22.5%	+25.7%	+22.0%	-33.1%	0.66	+0.67%	
+United States
+US
+	146	
+WMB logo
+The Williams Companies, Inc.
+WMB
+$73.20 B	$59.95	$10.50 B	$2.23 B	32.2	+20.7%	+25.7%	+1.3%	-84.8%	0.02	+1.20%	
+United States
+US
+	147	
+UPS logo
+United Parcel Service, Inc.
+UPS
+$72.96 B	$86.16	$91.07 B	$5.78 B	12.8	-23.8%	-9.6%	-1.7%	-62.9%	-0.03	-1.17%	
+United States
+US
+	148	
+HWM logo
+Howmet Aerospace Inc.
+HWM
+$72.57 B	$179.77	$7.43 B	$1.16 B	58.8	+69.2%	+64.8%	+23.9%	-71.7%	0.33	-6.44%	
+United States
+US
+	149	
+MAR logo
+Marriott International, Inc.
+MAR
+$72.26 B	$263.83	$25.10 B	$2.38 B	30.0	+18.4%	+25.8%	+13.8%	-61.4%	0.22	-2.30%	
+United States
+US
+	150	
+RSG logo
+Republic Services, Inc.
+RSG
+$72.08 B	$230.65	$16.03 B	$2.04 B	34.1	+18.5%	+21.5%	+18.4%	-34.0%	0.54	-0.45%	
+United States
+US
+Showing 101 to 150 of 503 companies
+Previous
+Next

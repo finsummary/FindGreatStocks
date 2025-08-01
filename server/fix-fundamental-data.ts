@@ -98,14 +98,17 @@ async function updateCompanyFundamentals(metrics: CompanyMetrics): Promise<boole
 async function main() {
   console.log('🔧 Fixing missing fundamental data...');
   
-  // Get companies missing fundamental data
+  // Get companies missing fundamental data (including those with 0 values)
   const companiesNeedingFix = await db.select()
     .from(companies)
     .where(
       or(
         isNull(companies.revenue),
         isNull(companies.netIncome),
-        isNull(companies.peRatio)
+        isNull(companies.peRatio),
+        eq(companies.revenue, '0'),
+        eq(companies.netIncome, '0'),
+        eq(companies.peRatio, '0.00')
       )
     )
     .orderBy(companies.rank);
