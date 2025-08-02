@@ -6,12 +6,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatMarketCap, formatPrice, formatPercentage } from "@/lib/format";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { isUnauthorizedError } from "@/lib/authUtils";
 import type { Company, Watchlist } from "@shared/schema";
 import { useLocation } from "wouter";
+import { useEffect } from "react";
 
 export function WatchlistPage() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { toast } = useToast();
+
+  // Redirect to home if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      toast({
+        title: "Unauthorized",
+        description: "You need to sign in to access your watchlist. Redirecting...",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+      return;
+    }
+  }, [isAuthenticated, authLoading, toast]);
 
   // Fetch watchlist items
   const { data: watchlistData, isLoading: watchlistLoading } = useQuery({
@@ -50,6 +71,24 @@ export function WatchlistPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
     },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to remove stock from watchlist",
+        variant: "destructive",
+      });
+    },
   });
 
   const handleRemoveFromWatchlist = (symbol: string) => {
@@ -61,7 +100,7 @@ export function WatchlistPage() {
     
     const csvContent = [
       ['Company', 'Symbol', 'Market Cap', 'Price', 'Revenue', 'Earnings', 'P/E Ratio', '3Y Return', '5Y Return', '10Y Return', 'Today Change'].join(','),
-      ...watchlistCompanies.map(company => [
+      ...watchlistCompanies.map((company: Company) => [
         `"${company.name}"`,
         company.symbol,
         company.marketCap || '',
@@ -92,7 +131,7 @@ export function WatchlistPage() {
     watchlistData?.some((item: Watchlist) => item.companySymbol === company.symbol)
   ) || [];
 
-  const isLoading = watchlistLoading || companiesLoading;
+  const isDataLoading = watchlistLoading || companiesLoading;
 
   return (
     <div className="space-y-6">
@@ -124,7 +163,7 @@ export function WatchlistPage() {
       </div>
 
       {/* Watchlist Content */}
-      {isLoading ? (
+      {isDataLoading ? (
         <Card>
           <CardContent className="p-8 text-center">
             <p>Loading your watchlist...</p>

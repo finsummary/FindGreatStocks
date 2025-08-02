@@ -1,11 +1,12 @@
-import { companies, watchlist, users, type User, type InsertUser, type Company, type InsertCompany, type Watchlist, type InsertWatchlist } from "@shared/schema";
+import { companies, watchlist, users, type User, type UpsertUser, type Company, type InsertCompany, type Watchlist, type InsertWatchlist } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, asc, and } from "drizzle-orm";
 
 export interface IStorage {
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // User operations
+  // (IMPORTANT) these user operations are mandatory for Replit Auth.
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
   
   // Company methods
   getCompanies(limit?: number, offset?: number, sortBy?: string, sortOrder?: 'asc' | 'desc', search?: string, country?: string): Promise<Company[]>;
@@ -16,27 +17,32 @@ export interface IStorage {
   clearAllCompanies(): Promise<void>;
   
   // Watchlist methods
-  getWatchlist(userId?: string): Promise<Watchlist[]>;
-  addToWatchlist(companySymbol: string, userId?: string): Promise<Watchlist>;
-  removeFromWatchlist(companySymbol: string, userId?: string): Promise<void>;
-  isInWatchlist(companySymbol: string, userId?: string): Promise<boolean>;
+  getWatchlist(userId: string): Promise<Watchlist[]>;
+  addToWatchlist(companySymbol: string, userId: string): Promise<Watchlist>;
+  removeFromWatchlist(companySymbol: string, userId: string): Promise<void>;
+  isInWatchlist(companySymbol: string, userId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
-  async getUser(id: number): Promise<User | undefined> {
+  // User operations
+  // (IMPORTANT) these user operations are mandatory for Replit Auth.
+
+  async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
+    return user;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user || undefined;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values(insertUser)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
       .returning();
     return user;
   }
@@ -121,30 +127,29 @@ export class DatabaseStorage implements IStorage {
     await db.delete(companies);
   }
 
-  async getWatchlist(userId: string = "guest"): Promise<Watchlist[]> {
+  async getWatchlist(userId: string): Promise<Watchlist[]> {
     const result = await db.select().from(watchlist).where(eq(watchlist.userId, userId));
     return result;
   }
 
-  async addToWatchlist(companySymbol: string, userId: string = "guest"): Promise<Watchlist> {
+  async addToWatchlist(companySymbol: string, userId: string): Promise<Watchlist> {
     const [watchlistItem] = await db
       .insert(watchlist)
       .values({ 
         companySymbol, 
-        userId,
-        addedAt: new Date().toISOString()
+        userId
       })
       .returning();
     return watchlistItem;
   }
 
-  async removeFromWatchlist(companySymbol: string, userId: string = "guest"): Promise<void> {
+  async removeFromWatchlist(companySymbol: string, userId: string): Promise<void> {
     await db
       .delete(watchlist)
       .where(and(eq(watchlist.companySymbol, companySymbol), eq(watchlist.userId, userId)));
   }
 
-  async isInWatchlist(companySymbol: string, userId: string = "guest"): Promise<boolean> {
+  async isInWatchlist(companySymbol: string, userId: string): Promise<boolean> {
     const result = await db.select().from(watchlist)
       .where(and(eq(watchlist.companySymbol, companySymbol), eq(watchlist.userId, userId)));
     return result.length > 0;

@@ -1,17 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Moon, Sun, Globe, DollarSign, Star } from "lucide-react";
+import { Moon, Sun, Globe, DollarSign, Star, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CompanyTable } from "@/components/company-table";
 import { UpdateStatus } from "@/components/update-status";
 import { useTheme } from "@/components/theme-provider";
 import { formatMarketCap } from "@/lib/format";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const { theme, setTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  
+  // Type assertion for user data (from Replit Auth)
+  const userData = user as { firstName?: string; email?: string; profileImageUrl?: string } | undefined;
+  const { toast } = useToast();
 
   const [currency, setCurrency] = useState("USD");
   const [language, setLanguage] = useState("EN");
@@ -44,6 +51,22 @@ export default function Home() {
 
             {/* Controls */}
             <div className="flex items-center space-x-2">
+              {/* User Info */}
+              {isAuthenticated && userData && (
+                <div className="flex items-center space-x-3 mr-2">
+                  <div className="text-sm text-muted-foreground">
+                    Welcome, {userData.firstName || userData.email || 'User'}
+                  </div>
+                  {userData.profileImageUrl && (
+                    <img 
+                      src={userData.profileImageUrl} 
+                      alt="Profile" 
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
+                  )}
+                </div>
+              )}
+
               {/* Watchlist Button */}
               <Button 
                 variant="outline" 
@@ -54,6 +77,19 @@ export default function Home() {
                 <Star className="h-4 w-4" />
                 <span>Watchlist</span>
               </Button>
+
+              {/* Logout Button */}
+              {isAuthenticated && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => window.location.href = '/api/logout'}
+                  className="flex items-center gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Sign Out</span>
+                </Button>
+              )}
 
               {/* Theme Toggle */}
               <Button variant="outline" size="sm" onClick={toggleTheme}>

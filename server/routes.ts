@@ -2,9 +2,24 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { financialDataService } from "./financial-data";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Auth middleware
+  await setupAuth(app);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
   // Get companies with pagination, sorting, and filtering
   app.get("/api/companies", async (req, res) => {
     try {
@@ -578,10 +593,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Watchlist endpoints
-  app.get('/api/watchlist', async (req, res) => {
+  // Protected watchlist endpoints - require authentication
+  app.get('/api/watchlist', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = "guest"; // For now, default to guest user
+      const userId = req.user.claims.sub;
       const watchlistItems = await storage.getWatchlist(userId);
       res.json(watchlistItems);
     } catch (error) {
@@ -590,10 +605,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/watchlist', async (req, res) => {
+  app.post('/api/watchlist', isAuthenticated, async (req: any, res) => {
     try {
       const { companySymbol } = req.body;
-      const userId = "guest"; // For now, default to guest user
+      const userId = req.user.claims.sub;
       
       if (!companySymbol) {
         return res.status(400).json({ message: "Company symbol is required" });
@@ -607,10 +622,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/watchlist/:symbol', async (req, res) => {
+  app.delete('/api/watchlist/:symbol', isAuthenticated, async (req: any, res) => {
     try {
       const { symbol } = req.params;
-      const userId = "guest"; // For now, default to guest user
+      const userId = req.user.claims.sub;
       
       await storage.removeFromWatchlist(symbol, userId);
       res.json({ message: "Removed from watchlist" });
@@ -620,10 +635,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/watchlist/check/:symbol', async (req, res) => {
+  app.get('/api/watchlist/check/:symbol', isAuthenticated, async (req: any, res) => {
     try {
       const { symbol } = req.params;
-      const userId = "guest"; // For now, default to guest user
+      const userId = req.user.claims.sub;
       
       const isInWatchlist = await storage.isInWatchlist(symbol, userId);
       res.json({ isInWatchlist });
