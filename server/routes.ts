@@ -261,6 +261,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Manual Nasdaq 100 price update endpoint
+  app.post("/api/nasdaq100/update-prices", async (req, res) => {
+    try {
+      console.log("🔄 Manual Nasdaq 100 price update requested...");
+      const { updateNasdaq100Prices } = await import('./nasdaq100-daily-updater');
+      const result = await updateNasdaq100Prices();
+      
+      res.json({
+        message: "Nasdaq 100 prices updated successfully",
+        updated: result.updated,
+        failed: result.failed,
+        timestamp: new Date().toISOString(),
+        details: {
+          totalCompanies: result.updated + result.failed,
+          successRate: `${((result.updated / (result.updated + result.failed)) * 100).toFixed(1)}%`,
+          duration: `${result.duration}s`
+        }
+      });
+    } catch (error) {
+      console.error("Error updating Nasdaq 100 prices:", error);
+      res.status(500).json({
+        message: "Failed to update Nasdaq 100 prices",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
 
 
   // Enhance financial data endpoint

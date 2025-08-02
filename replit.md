@@ -113,12 +113,13 @@ Preferred communication style: Simple, everyday language.
 - **Authentication Flow**: Complete sign-in/sign-out functionality with automatic redirects and error handling
 - **Session Management**: Secure session storage using PostgreSQL with proper cleanup and expiration
 
-### August 2, 2025 - Complete Daily Update System and Watchlist Features
-- **Automated Daily Updates**: Enhanced scheduler system with market-aware timing (updates after 4 PM ET market close)
-- **Real-time Price Data**: Financial Modeling Prep API integration fetches authentic stock prices and market caps daily
+### August 2, 2025 - Complete Daily Update System and Dual-Index Support
+- **Dual-Index Automated Updates**: Enhanced scheduler system updates both S&P 500 and Nasdaq 100 after 4 PM ET market close
+- **Real-time Price Data**: Financial Modeling Prep API integration fetches authentic stock prices and market caps daily for both indices
 - **Update Status Display**: Added market status indicator showing next update countdown and schedule information
-- **Batch Processing**: Efficient API handling for 500+ S&P 500 companies with rate limiting and error handling
-- **Manual Update Trigger**: Admin endpoint for forcing immediate price updates with detailed success metrics
+- **Batch Processing**: Efficient API handling for 500+ S&P 500 and 100 Nasdaq companies with rate limiting and error handling
+- **Manual Update Triggers**: Separate admin endpoints for forcing immediate price updates on both S&P 500 and Nasdaq 100
+- **Nasdaq 100 Logo Integration**: Added Financial Modeling Prep logo URLs for consistent branding across both indices
 - **Column Highlighting**: Currently sorted column displays with blue background for improved visual feedback
 - **Watchlist System**: Complete personal stock tracking with star icons, dedicated watchlist page, and CSV export
 - **Database Persistence**: Watchlist data stored permanently with user preferences maintained across sessions
