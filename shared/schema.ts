@@ -123,6 +123,7 @@ export const nasdaq100Companies = pgTable("nasdaq100_companies", {
   description: text("description"),
   ceo: text("ceo"),
   employees: integer("employees"),
+  logoUrl: text("logo_url"),
   
   // Key financial metrics
   peRatio: decimal("pe_ratio", { precision: 8, scale: 2 }),
