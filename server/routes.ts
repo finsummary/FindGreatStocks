@@ -36,6 +36,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get update status and schedule info (must come before individual company route)
+  app.get("/api/companies/update-status", async (req, res) => {
+    try {
+      const now = new Date();
+      const utcHour = now.getUTCHours();
+      const isMarketOpen = utcHour >= 2 && utcHour < 21;
+      
+      // Calculate next update time (after 21:00 UTC)
+      const nextUpdate = new Date();
+      if (utcHour >= 21) {
+        nextUpdate.setUTCDate(nextUpdate.getUTCDate() + 1);
+      }
+      nextUpdate.setUTCHours(21, 0, 0, 0);
+
+      res.json({
+        currentTime: now.toISOString(),
+        marketStatus: isMarketOpen ? "open" : "closed",
+        nextScheduledUpdate: nextUpdate.toISOString(),
+        updateWindow: "Daily between 21:00-02:00 UTC (4:00-9:00 PM ET)",
+        timezone: "Updates occur after US market close (4:00 PM ET)"
+      });
+    } catch (error) {
+      console.error("Error getting update status:", error);
+      res.status(500).json({
+        message: "Failed to get update status",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Get company by symbol
   app.get("/api/companies/:symbol", async (req, res) => {
     try {
@@ -170,35 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get update status and schedule info
-  app.get("/api/companies/update-status", async (req, res) => {
-    try {
-      const now = new Date();
-      const utcHour = now.getUTCHours();
-      const isMarketOpen = utcHour >= 2 && utcHour < 21;
-      
-      // Calculate next update time (after 21:00 UTC)
-      const nextUpdate = new Date();
-      if (utcHour >= 21) {
-        nextUpdate.setUTCDate(nextUpdate.getUTCDate() + 1);
-      }
-      nextUpdate.setUTCHours(21, 0, 0, 0);
 
-      res.json({
-        currentTime: now.toISOString(),
-        marketStatus: isMarketOpen ? "open" : "closed",
-        nextScheduledUpdate: nextUpdate.toISOString(),
-        updateWindow: "Daily between 21:00-02:00 UTC (4:00-9:00 PM ET)",
-        timezone: "Updates occur after US market close (4:00 PM ET)"
-      });
-    } catch (error) {
-      console.error("Error getting update status:", error);
-      res.status(500).json({
-        message: "Failed to get update status",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
 
   // Enhance financial data endpoint
   app.post("/api/companies/enhance-financial-data", async (req, res) => {

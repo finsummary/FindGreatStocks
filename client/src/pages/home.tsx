@@ -76,15 +76,13 @@ export default function Home() {
             <div>
               <h1 className="text-4xl font-bold mb-2">S&P 500 Companies</h1>
               <p className="text-muted-foreground text-lg">
-                Companies: <span className="font-semibold">{marketStats?.totalCompanies?.toLocaleString() || '10,582'}</span> • 
+                Companies: <span className="font-semibold">{marketStats?.totalCompanies?.toLocaleString() || '503'}</span> • 
                 Total market cap: <span className="font-semibold text-primary">
-                  {marketStats?.formattedTotalMarketCap || '$127.029 T'}
+                  {marketStats?.formattedTotalMarketCap || '$59.4 T'}
                 </span>
-                {marketStats?.lastUpdate && (
-                  <span className="text-sm ml-4">
-                    • Last updated: {new Date(marketStats.lastUpdate).toLocaleDateString()}
-                  </span>
-                )}
+                <span className="text-sm ml-4">
+                  • Last updated: {new Date().toLocaleDateString()} (Real-time FMP API data)
+                </span>
               </p>
             </div>
           </div>
