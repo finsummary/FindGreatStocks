@@ -63,7 +63,19 @@ export default function Home() {
                 size="sm" 
                 onClick={() => {
                   trackEvent('watchlist_click', 'navigation', 'header');
-                  setLocation('/watchlist');
+                  if (isAuthenticated) {
+                    setLocation('/watchlist');
+                  } else {
+                    // Prompt user to sign in for watchlist access
+                    toast({
+                      title: "Sign In Required",
+                      description: "Please sign in to access your personal watchlist",
+                      variant: "default",
+                    });
+                    setTimeout(() => {
+                      window.location.href = '/api/login';
+                    }, 1500);
+                  }
                 }}
                 className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3"
               >
@@ -71,8 +83,8 @@ export default function Home() {
                 <span className="hidden sm:inline">Watchlist</span>
               </Button>
 
-              {/* Logout Button */}
-              {isAuthenticated && (
+              {/* Auth Button */}
+              {isAuthenticated ? (
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -84,6 +96,18 @@ export default function Home() {
                 >
                   <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">Sign Out</span>
+                </Button>
+              ) : (
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={() => {
+                    trackEvent('login_click', 'user', 'header');
+                    window.location.href = '/api/login';
+                  }}
+                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3"
+                >
+                  <span className="text-xs sm:text-sm">Sign In</span>
                 </Button>
               )}
 

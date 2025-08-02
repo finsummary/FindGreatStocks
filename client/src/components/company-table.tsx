@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatMarketCap, formatPrice, formatPercentage, formatCountry, formatEarnings } from "@/lib/format";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import type { Company, Nasdaq100Company, Ftse100Company } from "@shared/schema";
 
 
@@ -25,6 +27,8 @@ export function CompanyTable({ searchQuery, setSearchQuery, dataset }: CompanyTa
   const [page, setPage] = useState(0);
   const [limit] = useState(50);
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
 
   const apiEndpoint = dataset === 'nasdaq100' ? '/api/nasdaq100' : dataset === 'ftse100' ? '/api/ftse100' : '/api/companies';
   
@@ -55,7 +59,7 @@ export function CompanyTable({ searchQuery, setSearchQuery, dataset }: CompanyTa
     },
   });
 
-  // Watchlist mutations
+  // Watchlist mutations (only fetch if authenticated)
   const { data: watchlistData } = useQuery({
     queryKey: ['/api/watchlist'],
     queryFn: async () => {
@@ -63,6 +67,7 @@ export function CompanyTable({ searchQuery, setSearchQuery, dataset }: CompanyTa
       if (!response.ok) throw new Error('Failed to fetch watchlist');
       return response.json();
     },
+    enabled: isAuthenticated, // Only fetch watchlist if user is authenticated
   });
 
   const addToWatchlistMutation = useMutation({
@@ -92,6 +97,19 @@ export function CompanyTable({ searchQuery, setSearchQuery, dataset }: CompanyTa
 
 
   const handleWatchlistToggle = (symbol: string) => {
+    if (!isAuthenticated) {
+      // Prompt user to sign in for watchlist access
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to add stocks to your personal watchlist",
+        variant: "default",
+      });
+      setTimeout(() => {
+        window.location.href = '/api/login';
+      }, 1500);
+      return;
+    }
+
     if (isInWatchlist(symbol)) {
       removeFromWatchlistMutation.mutate(symbol);
     } else {

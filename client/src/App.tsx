@@ -4,7 +4,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
-import { useAuth } from "@/hooks/useAuth";
 import Home from "@/pages/home";
 import { WatchlistPage } from "@/pages/watchlist";
 import Landing from "@/pages/landing";
@@ -20,21 +19,20 @@ import { useAnalytics } from "./hooks/use-analytics";
 import { initGoogleAds } from "./components/google-ads-banner";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
-  
   // Track page views when routes change
   useAnalytics();
 
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
-        <>
-          <Route path="/" component={Home} />
-          <Route path="/watchlist" component={WatchlistPage} />
-        </>
-      )}
+      {/* Public stock scanner available to all users */}
+      <Route path="/" component={Home} />
+      
+      {/* Protected watchlist page */}
+      <Route path="/watchlist" component={WatchlistPage} />
+      
+      {/* Landing page now optional/marketing page */}
+      <Route path="/welcome" component={Landing} />
+      
       {/* Public pages available to all users */}
       <Route path="/about" component={About} />
       <Route path="/terms" component={Terms} />
