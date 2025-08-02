@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatMarketCap, formatPrice, formatPercentage } from "@/lib/format";
+import { formatMarketCap, formatPrice, formatPercentage, formatEarnings } from "@/lib/format";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -103,15 +103,15 @@ export function WatchlistPage() {
       ...watchlistCompanies.map((company: Company) => [
         `"${company.name}"`,
         company.symbol,
-        company.marketCap || '',
-        company.price || '',
-        company.revenue || '',
-        company.netIncome || '',
+        company.marketCap ? formatMarketCap(company.marketCap) : '',
+        company.price ? formatPrice(company.price) : '',
+        company.revenue ? formatMarketCap(company.revenue) : '',
+        company.netIncome ? formatEarnings(company.netIncome) : '',
         company.peRatio || '',
-        company.return3Year || '',
-        company.return5Year || '',
-        company.return10Year || '',
-        company.dailyChangePercent || ''
+        company.return3Year ? `${company.return3Year}%` : '',
+        company.return5Year ? `${company.return5Year}%` : '',
+        company.return10Year ? `${company.return10Year}%` : '',
+        company.dailyChangePercent ? `${company.dailyChangePercent}%` : ''
       ].join(','))
     ].join('\n');
 
@@ -259,7 +259,7 @@ export function WatchlistPage() {
                           <span className="text-muted-foreground">-</span>}
                       </TableCell>
                       <TableCell className="text-right font-mono">
-                        {company.netIncome ? formatMarketCap(company.netIncome) : 
+                        {company.netIncome ? formatEarnings(company.netIncome) : 
                           <span className="text-muted-foreground">-</span>}
                       </TableCell>
                       <TableCell className="text-right font-mono">

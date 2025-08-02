@@ -23,6 +23,27 @@ export function formatPercentage(percentage: number | string, showSign = true): 
   return `${sign}${num.toFixed(2)}%`;
 }
 
+export function formatEarnings(value: number | string): string {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  
+  // Return empty string for invalid numbers
+  if (isNaN(num) || num === 0) {
+    return '-';
+  }
+  
+  // Convert to billions
+  const billions = num / 1e9;
+  
+  // Format with appropriate decimal places
+  if (Math.abs(billions) >= 10) {
+    return `$${billions.toFixed(1)} B`;
+  } else if (Math.abs(billions) >= 1) {
+    return `$${billions.toFixed(2)} B`;
+  } else {
+    return `$${billions.toFixed(3)} B`;
+  }
+}
+
 export function formatCountry(country: string): string {
   const countryMap: Record<string, string> = {
     'us': 'USA',

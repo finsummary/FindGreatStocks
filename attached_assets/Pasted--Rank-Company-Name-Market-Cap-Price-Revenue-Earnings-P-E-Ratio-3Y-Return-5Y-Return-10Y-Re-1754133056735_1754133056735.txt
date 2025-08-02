@@ -1,0 +1,365 @@
+	
+Rank
+Company Name
+Market Cap
+Price
+Revenue
+Earnings
+P/E Ratio
+3Y Return
+5Y Return
+10Y Return
+Max Drawdown
+AR/MDD Ratio
+Today
+Country
+	493	
+CRL logo
+Charles River Laboratories International, Inc.
+CRL
+$8.20 B	$166.91	$4.05 B	$10.30 M	-	-12.2%	-3.1%	+8.1%	-78.2%	0.10	-1.61%	
+United States
+US
+	341	
+DLTR logo
+Dollar Tree, Inc.
+DLTR
+$23.94 B	$114.72	$17.58 B	$-3030100000.00	-	-11.8%	+4.0%	+3.8%	-64.8%	0.06	+1.03%	
+United States
+US
+	297	
+STZ logo
+Constellation Brands, Inc.
+STZ
+$29.29 B	$166.18	$10.21 B	$-81400000.00	-	-12.1%	-1.3%	+3.4%	-54.9%	0.06	-0.51%	
+United States
+US
+	96	
+CRWD logo
+CrowdStrike Holdings, Inc.
+CRWD
+$111.33 B	$446.66	$3.95 B	$-19271000.00	-	+35.3%	+32.0%	+22.9%	-67.7%	0.34	-1.74%	
+United States
+US
+	473	
+VTRS logo
+Viatris Inc.
+VTRS
+$10.34 B	$8.81	$14.74 B	$-634200000.00	-	-3.4%	-11.5%	-16.9%	-90.5%	-0.19	+0.80%	
+United States
+US
+	282	
+KHC logo
+The Kraft Heinz Company
+KHC
+$32.44 B	$27.41	$25.85 B	$2.74 B	-	-9.3%	-4.4%	-10.1%	-79.2%	-0.13	-0.18%	
+United States
+US
+	331	
+IP logo
+International Paper Company
+IP
+$24.50 B	$46.41	$18.62 B	$557.00 M	-	+3.0%	+7.3%	+0.3%	-59.3%	0.01	-0.71%	
+United States
+US
+	254	
+MCHP logo
+Microchip Technology Incorporated
+MCHP
+$35.81 B	$66.36	$4.40 B	$-500000.00	-	-0.6%	+5.8%	+12.2%	-64.5%	0.19	-1.82%	
+United States
+US
+	281	
+WBD logo
+Warner Bros. Discovery, Inc.
+WBD
+$31.84 B	$12.87	$39.32 B	$-11311000000.00	-	-4.2%	-9.0%	-8.8%	-91.3%	-0.10	-2.28%	
+United States
+US
+	474	
+WBA logo
+Walgreens Boots Alliance, Inc.
+WBA
+$10.08 B	$11.64	$147.66 B	$-8636000000.00	-	-33.5%	-22.1%	-19.1%	-91.5%	-0.21	0.00%	
+United States
+US
+	239	
+TTWO logo
+Take-Two Interactive Software, Inc.
+TTWO
+$40.69 B	$220.58	$5.63 B	$-4478900000.00	-	+18.8%	+6.3%	+21.6%	-56.1%	0.38	-0.97%	
+United States
+US
+	468	
+HAS logo
+Hasbro, Inc.
+HAS
+$10.46 B	$74.63	$4.14 B	$385.60 M	-	-1.5%	+0.7%	-0.5%	-66.0%	-0.01	-0.71%	
+United States
+US
+	495	
+ALB logo
+Albemarle Corporation
+ALB
+$7.99 B	$67.90	$5.38 B	$-1179449000.00	-	-34.8%	-3.8%	+2.3%	-84.4%	0.03	+0.07%	
+United States
+US
+	295	
+DD logo
+DuPont de Nemours, Inc.
+DD
+$29.27 B	$69.94	$12.39 B	$703.00 M	-	+5.5%	+6.1%	+0.7%	-74.0%	0.01	-2.73%	
+United States
+US
+	272	
+EL logo
+The Estée Lauder Companies Inc.
+EL
+$32.75 B	$91.04	$15.61 B	$390.00 M	-	-30.1%	-13.9%	+0.5%	-86.5%	0.01	-2.46%	
+United States
+US
+	456	
+SJM logo
+The J. M. Smucker Company
+SJM
+$11.55 B	$108.25	$8.73 B	$-1230800000.00	-	-6.7%	-0.4%	-0.4%	-41.9%	-0.01	+0.85%	
+United States
+US
+	503	
+ENPH logo
+Enphase Energy, Inc.
+ENPH
+$4.11 B	$31.43	$0.00	$0.00	-	-51.5%	-11.7%	+18.5%	-96.0%	0.19	-2.86%	
+United States
+US
+	471	
+BXP logo
+Boston Properties, Inc.
+BXP
+$10.23 B	$64.62	$3.41 B	$14.27 M	-	-10.5%	-6.0%	-6.1%	-68.1%	-0.09	-1.24%	
+United States
+US
+	216	
+CCI logo
+Crown Castle Inc.
+CCI
+$46.49 B	$106.88	$6.57 B	$-3903000000.00	-	-16.5%	-8.8%	+2.5%	-59.6%	0.04	+1.70%	
+United States
+US
+	457	
+MRNA logo
+Moderna, Inc.
+MRNA
+$10.68 B	$27.61	$3.20 B	$-3561000000.00	-	-43.5%	-16.8%	+4.7%	-95.1%	0.05	-6.61%	
+United States
+US
+	502	
+CZR logo
+Caesars Entertainment, Inc.
+CZR
+$5.34 B	$25.68	$11.24 B	$-278000000.00	-	-16.4%	-3.0%	+17.7%	-80.6%	0.22	-3.75%	
+United States
+US
+	91	
+VRTX logo
+Vertex Pharmaceuticals Incorporated
+VRTX
+$118.67 B	$462.13	$11.02 B	$-535600000.00	-	+17.7%	+10.9%	+13.0%	-49.1%	0.26	+1.15%	
+United States
+US
+	220	
+AIG logo
+American International Group, Inc.
+AIG
+$44.38 B	$77.00	$27.27 B	$-1404000000.00	-	+14.5%	+19.3%	+1.9%	-72.0%	0.03	-0.81%	
+United States
+US
+	441	
+ARE logo
+Alexandria Real Estate Equities, Inc.
+ARE
+$13.15 B	$76.01	$3.05 B	$322.95 M	-	-22.8%	-15.5%	-1.9%	-69.7%	-0.03	-0.55%	
+United States
+US
+	22	
+PLTR logo
+Palantir Technologies Inc.
+PLTR
+$349.10 B	$154.27	$2.87 B	$462.19 M	688.5	+148.3%	+75.5%	+32.5%	-84.6%	0.38	-2.58%	
+United States
+US
+	290	
+VTR logo
+Ventas, Inc.
+VTR
+$30.47 B	$67.50	$4.92 B	$81.15 M	396.1	+7.7%	+11.9%	+1.4%	-77.8%	0.02	+0.48%	
+United States
+US
+	240	
+CSGP logo
+CoStar Group, Inc.
+CSGP
+$40.08 B	$94.60	$2.74 B	$138.70 M	380.9	+9.5%	+2.3%	+16.8%	-46.6%	0.36	-0.62%	
+United States
+US
+	461	
+BAX logo
+Baxter International Inc.
+BAX
+$11.27 B	$21.96	$10.64 B	$-649000000.00	375.5	-28.1%	-24.1%	-5.9%	-76.9%	-0.08	+0.92%	
+United States
+US
+	483	
+DAY logo
+Dayforce Inc
+DAY
+$8.84 B	$55.27	$1.76 B	$18.10 M	340.2	+1.7%	-5.9%	+6.3%	-66.2%	0.10	-4.16%	
+United States
+US
+	101	
+DASH logo
+DoorDash, Inc.
+DASH
+$105.24 B	$248.35	$10.72 B	$123.00 M	308.9	+53.1%	+5.7%	+2.8%	-82.5%	0.03	-0.76%	
+United States
+US
+	210	
+DDOG logo
+Datadog, Inc.
+DDOG
+$46.83 B	$135.60	$2.68 B	$183.75 M	280.7	+11.1%	+8.3%	+14.1%	-68.1%	0.21	-3.13%	
+United States
+US
+	288	
+WTW logo
+Willis Towers Watson Public Limited Company
+WTW
+$31.21 B	$314.77	$9.93 B	$-98000000.00	229.8	+15.1%	+8.5%	+9.9%	-33.0%	0.30	-0.33%	
+United States
+US
+	301	
+IRM logo
+Iron Mountain Incorporated
+IRM
+$27.77 B	$94.13	$6.15 B	$180.16 M	227.1	+26.2%	+28.1%	+12.5%	-48.1%	0.26	-3.32%	
+United States
+US
+	10	
+TSLA logo
+Tesla, Inc.
+TSLA
+$976.12 B	$302.63	$97.69 B	$7.13 B	182.3	+1.2%	+26.4%	+33.0%	-73.6%	0.45	-1.83%	
+United States
+US
+	175	
+AXON logo
+Axon Enterprise, Inc.
+AXON
+$57.80 B	$742.47	$2.08 B	$377.03 M	182.1	+90.0%	+55.5%	+39.4%	-58.6%	0.67	-1.72%	
+United States
+US
+	54	
+GEV logo
+GE Vernova Inc.
+GEV
+$178.72 B	$656.50	$34.94 B	$1.55 B	159.9	+71.3%	+38.1%	+17.5%	-38.3%	0.46	-0.57%	
+United States
+US
+	29	
+AMD logo
+Advanced Micro Devices, Inc.
+AMD
+$278.39 B	$171.70	$25.79 B	$1.64 B	128.7	+23.1%	+17.9%	+57.1%	-65.5%	0.87	-2.61%	
+United States
+US
+	169	
+WDAY logo
+Workday, Inc.
+WDAY
+$59.33 B	$222.22	$8.45 B	$526.00 M	126.7	+13.9%	+4.9%	+10.5%	-57.6%	0.18	-3.12%	
+United States
+US
+	48	
+NOW logo
+ServiceNow, Inc.
+NOW
+$190.19 B	$914.37	$10.98 B	$1.43 B	119.1	+28.3%	+16.5%	+27.9%	-51.3%	0.54	-3.05%	
+United States
+US
+	8	
+AVGO logo
+Broadcom Inc.
+AVGO
+$1.358 T	$288.64	$51.57 B	$5.89 B	107.2	+76.3%	+56.1%	+37.1%	-48.8%	0.76	-1.72%	
+United States
+US
+	444	
+UDR logo
+UDR, Inc.
+UDR
+$12.81 B	$38.67	$1.67 B	$89.58 M	104.6	-6.7%	+1.6%	+1.5%	-48.3%	0.03	-1.58%	
+United States
+US
+	100	
+WELL logo
+Welltower Inc.
+WELL
+$111.04 B	$166.24	$7.85 B	$951.68 M	96.8	+24.1%	+25.3%	+9.1%	-64.1%	0.14	+0.71%	
+United States
+US
+	108	
+CDNS logo
+Cadence Design Systems, Inc.
+CDNS
+$97.47 B	$356.97	$4.64 B	$1.06 B	95.8	+25.1%	+27.3%	+33.0%	-32.1%	1.03	-2.08%	
+United States
+US
+	94	
+PANW logo
+Palo Alto Networks, Inc.
+PANW
+$115.28 B	$172.88	$8.03 B	$2.58 B	92.9	+27.8%	+32.4%	+18.8%	-48.0%	0.39	-0.41%	
+United States
+US
+	137	
+EQIX logo
+Equinix, Inc.
+EQIX
+$75.53 B	$771.75	$8.75 B	$815.00 M	82.1	+3.7%	-0.0%	+10.9%	-42.8%	0.25	-1.71%	
+United States
+US
+	25	
+ABBV logo
+AbbVie Inc.
+ABBV
+$344.84 B	$195.22	$56.33 B	$4.28 B	81.1	+9.6%	+14.8%	+10.4%	-48.9%	0.21	+3.28%	
+United States
+US
+	326	
+TYL logo
+Tyler Technologies, Inc.
+TYL
+$25.16 B	$581.65	$2.14 B	$263.03 M	81.1	+13.6%	+10.3%	+15.4%	-47.9%	0.32	-0.50%	
+United States
+US
+	437	
+TKO logo
+TKO Group Holdings, Inc.
+TKO
+$13.54 B	$165.61	$2.80 B	$9.41 M	78.7	+34.3%	+29.2%	+24.0%	-69.3%	0.35	-1.43%	
+United States
+US
+	452	
+CPT logo
+Camden Property Trust
+CPT
+$11.43 B	$106.95	$1.54 B	$163.29 M	74.5	-8.2%	+3.8%	+3.2%	-53.0%	0.06	-2.06%	
+United States
+US
+	80	
+COF logo
+Capital One Financial Corporation
+COF
+$132.81 B	$207.47	$53.94 B	$4.75 B	73.2	+25.1%	+27.5%	+10.2%	-60.4%	0.17	-3.50%	
+United States
+US

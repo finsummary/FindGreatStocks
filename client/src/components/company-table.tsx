@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatMarketCap, formatPrice, formatPercentage, formatCountry } from "@/lib/format";
+import { formatMarketCap, formatPrice, formatPercentage, formatCountry, formatEarnings } from "@/lib/format";
 import { apiRequest } from "@/lib/queryClient";
 import type { Company } from "@shared/schema";
 
@@ -420,7 +420,7 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                       <span className="text-muted-foreground">-</span>}
                   </TableCell>
                   <TableCell className="text-right font-mono">
-                    {company.netIncome ? formatMarketCap(company.netIncome) : 
+                    {company.netIncome ? formatEarnings(company.netIncome) : 
                       <span className="text-muted-foreground">-</span>}
                   </TableCell>
                   <TableCell className="text-right font-mono">
