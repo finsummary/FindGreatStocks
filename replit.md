@@ -103,6 +103,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### August 2, 2025 - UX Enhancement: Stock Scanner as Default Home Page
+- **Immediate Access**: Stock scanner now serves as the default home page for all users (authenticated and non-authenticated)
+- **Authentication Flow**: Users only prompted to sign in when attempting to add stocks to watchlist, not for viewing data
+- **Smart Routing**: Landing page moved to /welcome as optional marketing page, stock scanner accessible immediately
+- **Data Formatting Fix**: Fixed critical bug where 3Y/5Y/10Y returns and Max Drawdown displayed 100x larger values
+- **Google Ads Error Handling**: Temporarily disabled Google Ads initialization until proper AdSense publisher ID configured
+- **Enhanced User Experience**: Sign In button appears in header for non-authenticated users with clear prompts for watchlist access
+
 ### August 2, 2025 - Production Deployment and GitHub Preparation
 - **Website Rebranding**: Complete rebrand from "MarketCapClone" to "FindGreatStocks.com" across all interfaces
 - **GitHub Repository Setup**: Created comprehensive README.md, LICENSE, .gitignore, and DEPLOYMENT.md for open source distribution

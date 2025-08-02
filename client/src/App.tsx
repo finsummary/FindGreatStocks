@@ -45,7 +45,7 @@ function Router() {
 }
 
 function App() {
-  // Initialize Google Analytics and Google Ads when app loads
+  // Initialize Google Analytics when app loads
   useEffect(() => {
     // Verify required environment variable is present
     if (!import.meta.env.VITE_GA_MEASUREMENT_ID) {
@@ -54,8 +54,10 @@ function App() {
       initGA();
     }
     
-    // Initialize Google Ads
-    initGoogleAds();
+    // Initialize Google Ads only if AdSense publisher ID is available
+    if (import.meta.env.VITE_ADSENSE_PUBLISHER_ID) {
+      initGoogleAds();
+    }
   }, []);
 
   return (
