@@ -32,26 +32,26 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+        <div className="container mx-auto px-2 sm:px-4 lg:px-8">
+          <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Logo */}
             <div className="flex items-center">
-              <h1 className="text-xl font-bold text-primary">FindGreatStocks.com</h1>
+              <h1 className="text-sm sm:text-xl font-bold text-primary">FindGreatStocks.com</h1>
             </div>
 
             {/* Controls */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 sm:space-x-2">
               {/* User Info */}
               {isAuthenticated && userData && (
-                <div className="flex items-center space-x-3 mr-2">
-                  <div className="text-sm text-muted-foreground">
-                    Welcome, {userData.firstName || userData.email || 'User'}
+                <div className="flex items-center space-x-2 mr-1 sm:mr-2">
+                  <div className="text-xs sm:text-sm text-muted-foreground hidden md:block">
+                    Welcome, {userData.firstName || userData.email?.split('@')[0] || 'User'}
                   </div>
                   {userData.profileImageUrl && (
                     <img 
                       src={userData.profileImageUrl} 
                       alt="Profile" 
-                      className="h-8 w-8 rounded-full object-cover"
+                      className="h-6 w-6 sm:h-8 sm:w-8 rounded-full object-cover"
                     />
                   )}
                 </div>
@@ -65,10 +65,10 @@ export default function Home() {
                   trackEvent('watchlist_click', 'navigation', 'header');
                   setLocation('/watchlist');
                 }}
-                className="flex items-center gap-2"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3"
               >
-                <Star className="h-4 w-4" />
-                <span>Watchlist</span>
+                <Star className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Watchlist</span>
               </Button>
 
               {/* Logout Button */}
@@ -80,19 +80,19 @@ export default function Home() {
                     trackEvent('logout_click', 'user', 'header');
                     window.location.href = '/api/logout';
                   }}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3"
                 >
-                  <LogOut className="h-4 w-4" />
-                  <span>Sign Out</span>
+                  <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Sign Out</span>
                 </Button>
               )}
 
               {/* Theme Toggle */}
-              <Button variant="outline" size="sm" onClick={toggleTheme}>
+              <Button variant="outline" size="sm" onClick={toggleTheme} className="px-2 sm:px-3">
                 {theme === "light" ? (
-                  <Moon className="h-4 w-4" />
+                  <Moon className="h-3 w-3 sm:h-4 sm:w-4" />
                 ) : (
-                  <Sun className="h-4 w-4" />
+                  <Sun className="h-3 w-3 sm:h-4 sm:w-4" />
                 )}
               </Button>
             </div>
@@ -108,7 +108,7 @@ export default function Home() {
       />
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="container mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
         {/* Company Table */}
         <div className="mb-8">
           <Tabs 
@@ -116,10 +116,10 @@ export default function Home() {
             className="w-full"
             onValueChange={(value) => trackEvent('tab_change', 'navigation', value)}
           >
-            <TabsList className="grid w-full grid-cols-3 max-w-[600px] mb-6">
-              <TabsTrigger value="sp500">S&P 500 (503)</TabsTrigger>
-              <TabsTrigger value="nasdaq100">Nasdaq 100 (100)</TabsTrigger>
-              <TabsTrigger value="ftse100">FTSE 100 (95)</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 max-w-[600px] mb-4 sm:mb-6">
+              <TabsTrigger value="sp500" className="text-xs sm:text-sm">S&P 500 (503)</TabsTrigger>
+              <TabsTrigger value="nasdaq100" className="text-xs sm:text-sm">Nasdaq 100 (100)</TabsTrigger>
+              <TabsTrigger value="ftse100" className="text-xs sm:text-sm">FTSE 100 (95)</TabsTrigger>
             </TabsList>
             
             <TabsContent value="sp500" className="mt-6">

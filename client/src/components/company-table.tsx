@@ -134,24 +134,24 @@ export function CompanyTable({ searchQuery, setSearchQuery, dataset }: CompanyTa
   return (
     <div className="space-y-6">
       {/* Controls */}
-      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-        <div className="flex flex-col md:flex-row gap-4 flex-1">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Search companies..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          
+      <div className="flex flex-col gap-3 sm:gap-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Search companies..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 text-sm sm:text-base"
+          />
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-stretch sm:items-center">
           <Select value={sortBy} onValueChange={(value) => {
             setSortBy(value);
             setSortOrder('desc'); // Default to descending for most metrics
             setPage(0); // Reset to first page when sorting changes
           }}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48 text-sm">
               <SelectValue placeholder="Rank by..." />
             </SelectTrigger>
             <SelectContent>
@@ -166,12 +166,8 @@ export function CompanyTable({ searchQuery, setSearchQuery, dataset }: CompanyTa
             </SelectContent>
           </Select>
           
-
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportCSV}>
-            <Download className="h-4 w-4 mr-2" />
+          <Button variant="outline" size="sm" onClick={handleExportCSV} className="text-sm">
+            <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
             Export CSV
           </Button>
         </div>
@@ -179,8 +175,8 @@ export function CompanyTable({ searchQuery, setSearchQuery, dataset }: CompanyTa
 
       {/* Table */}
       <Card className="overflow-hidden">
-        <div className="w-full">
-          <Table className="w-full table-fixed">
+        <div className="w-full overflow-x-auto">
+          <Table className="w-full table-fixed min-w-[800px]">
             <TableHeader>
               <TableRow className="bg-muted/50">
               <TableHead className="w-[40px]"></TableHead>
