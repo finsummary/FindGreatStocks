@@ -72,10 +72,11 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
 });
 
-export const favorites = pgTable("favorites", {
+export const watchlist = pgTable("watchlist", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  companyId: integer("company_id").notNull(),
+  companySymbol: text("company_symbol").notNull(),
+  userId: text("user_id").default("guest").notNull(), // For now, use "guest" as default
+  addedAt: text("added_at").notNull().default("NOW()"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -85,4 +86,10 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
-export type Favorite = typeof favorites.$inferSelect;
+export type Watchlist = typeof watchlist.$inferSelect;
+
+export const insertWatchlistSchema = createInsertSchema(watchlist).omit({
+  id: true,
+  addedAt: true,
+});
+export type InsertWatchlist = z.infer<typeof insertWatchlistSchema>;

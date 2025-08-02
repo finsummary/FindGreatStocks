@@ -542,6 +542,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Watchlist endpoints
+  app.get('/api/watchlist', async (req, res) => {
+    try {
+      const userId = "guest"; // For now, default to guest user
+      const watchlistItems = await storage.getWatchlist(userId);
+      res.json(watchlistItems);
+    } catch (error) {
+      console.error("Error fetching watchlist:", error);
+      res.status(500).json({ message: "Failed to fetch watchlist" });
+    }
+  });
+
+  app.post('/api/watchlist', async (req, res) => {
+    try {
+      const { companySymbol } = req.body;
+      const userId = "guest"; // For now, default to guest user
+      
+      if (!companySymbol) {
+        return res.status(400).json({ message: "Company symbol is required" });
+      }
+
+      const watchlistItem = await storage.addToWatchlist(companySymbol, userId);
+      res.json(watchlistItem);
+    } catch (error) {
+      console.error("Error adding to watchlist:", error);
+      res.status(500).json({ message: "Failed to add to watchlist" });
+    }
+  });
+
+  app.delete('/api/watchlist/:symbol', async (req, res) => {
+    try {
+      const { symbol } = req.params;
+      const userId = "guest"; // For now, default to guest user
+      
+      await storage.removeFromWatchlist(symbol, userId);
+      res.json({ message: "Removed from watchlist" });
+    } catch (error) {
+      console.error("Error removing from watchlist:", error);
+      res.status(500).json({ message: "Failed to remove from watchlist" });
+    }
+  });
+
+  app.get('/api/watchlist/check/:symbol', async (req, res) => {
+    try {
+      const { symbol } = req.params;
+      const userId = "guest"; // For now, default to guest user
+      
+      const isInWatchlist = await storage.isInWatchlist(symbol, userId);
+      res.json({ isInWatchlist });
+    } catch (error) {
+      console.error("Error checking watchlist:", error);
+      res.status(500).json({ message: "Failed to check watchlist" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

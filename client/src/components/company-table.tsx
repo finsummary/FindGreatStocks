@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronUp, ChevronDown, Star, Download, Search } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatMarketCap, formatPrice, formatPercentage, formatCountry } from "@/lib/format";
+import { apiRequest } from "@/lib/queryClient";
 import type { Company } from "@shared/schema";
 
 interface CompanyTableProps {
@@ -21,6 +22,7 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(0);
   const [limit] = useState(50);
+  const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['/api/companies', { 
@@ -47,6 +49,52 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
       return response.json();
     },
   });
+
+  // Watchlist mutations
+  const { data: watchlistData } = useQuery({
+    queryKey: ['/api/watchlist'],
+    queryFn: async () => {
+      const response = await fetch('/api/watchlist');
+      if (!response.ok) throw new Error('Failed to fetch watchlist');
+      return response.json();
+    },
+  });
+
+  const addToWatchlistMutation = useMutation({
+    mutationFn: async (companySymbol: string) => {
+      return await apiRequest('/api/watchlist', {
+        method: 'POST',
+        body: JSON.stringify({ companySymbol }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
+    },
+  });
+
+  const removeFromWatchlistMutation = useMutation({
+    mutationFn: async (companySymbol: string) => {
+      return await apiRequest(`/api/watchlist/${companySymbol}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
+    },
+  });
+
+  const isInWatchlist = (symbol: string): boolean => {
+    return watchlistData?.some((item: any) => item.companySymbol === symbol) || false;
+  };
+
+  const handleWatchlistToggle = (symbol: string) => {
+    if (isInWatchlist(symbol)) {
+      removeFromWatchlistMutation.mutate(symbol);
+    } else {
+      addToWatchlistMutation.mutate(symbol);
+    }
+  };
 
   const handleSort = (column: string) => {
     if (sortBy === column) {
@@ -135,7 +183,9 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
               <TableRow className="bg-muted/50">
               <TableHead className="w-[40px]"></TableHead>
               <TableHead 
-                className="cursor-pointer hover:bg-muted/80 transition-colors w-[60px]"
+                className={`cursor-pointer hover:bg-muted/80 transition-colors w-[60px] ${
+                  sortBy === 'rank' ? 'bg-primary/10 text-primary' : ''
+                }`}
                 onClick={() => handleSort('rank')}
               >
                 <div className="flex items-center gap-1">
@@ -144,7 +194,9 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                 </div>
               </TableHead>
               <TableHead 
-                className="cursor-pointer hover:bg-muted/80 transition-colors w-[220px]"
+                className={`cursor-pointer hover:bg-muted/80 transition-colors w-[220px] ${
+                  sortBy === 'name' ? 'bg-primary/10 text-primary' : ''
+                }`}
                 onClick={() => handleSort('name')}
               >
                 <div className="flex items-center gap-1">
@@ -153,7 +205,9 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[110px]"
+                className={`text-right cursor-pointer hover:bg-muted/80 transition-colors w-[110px] ${
+                  sortBy === 'marketCap' ? 'bg-primary/10 text-primary' : ''
+                }`}
                 onClick={() => handleSort('marketCap')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -162,7 +216,9 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[80px]"
+                className={`text-right cursor-pointer hover:bg-muted/80 transition-colors w-[80px] ${
+                  sortBy === 'price' ? 'bg-primary/10 text-primary' : ''
+                }`}
                 onClick={() => handleSort('price')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -171,7 +227,9 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[90px]"
+                className={`text-right cursor-pointer hover:bg-muted/80 transition-colors w-[90px] ${
+                  sortBy === 'revenue' ? 'bg-primary/10 text-primary' : ''
+                }`}
                 onClick={() => handleSort('revenue')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -180,7 +238,9 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[90px]"
+                className={`text-right cursor-pointer hover:bg-muted/80 transition-colors w-[90px] ${
+                  sortBy === 'netIncome' ? 'bg-primary/10 text-primary' : ''
+                }`}
                 onClick={() => handleSort('netIncome')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -189,7 +249,9 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[75px]"
+                className={`text-right cursor-pointer hover:bg-muted/80 transition-colors w-[75px] ${
+                  sortBy === 'peRatio' ? 'bg-primary/10 text-primary' : ''
+                }`}
                 onClick={() => handleSort('peRatio')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -198,7 +260,9 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[85px]"
+                className={`text-right cursor-pointer hover:bg-muted/80 transition-colors w-[85px] ${
+                  sortBy === 'return3Year' ? 'bg-primary/10 text-primary' : ''
+                }`}
                 onClick={() => handleSort('return3Year')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -207,7 +271,9 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[85px]"
+                className={`text-right cursor-pointer hover:bg-muted/80 transition-colors w-[85px] ${
+                  sortBy === 'return5Year' ? 'bg-primary/10 text-primary' : ''
+                }`}
                 onClick={() => handleSort('return5Year')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -216,7 +282,9 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[85px]"
+                className={`text-right cursor-pointer hover:bg-muted/80 transition-colors w-[85px] ${
+                  sortBy === 'return10Year' ? 'bg-primary/10 text-primary' : ''
+                }`}
                 onClick={() => handleSort('return10Year')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -225,7 +293,9 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[100px]"
+                className={`text-right cursor-pointer hover:bg-muted/80 transition-colors w-[100px] ${
+                  sortBy === 'maxDrawdown10Year' ? 'bg-primary/10 text-primary' : ''
+                }`}
                 onClick={() => handleSort('maxDrawdown10Year')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -234,7 +304,9 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[100px]"
+                className={`text-right cursor-pointer hover:bg-muted/80 transition-colors w-[100px] ${
+                  sortBy === 'returnDrawdownRatio10Year' ? 'bg-primary/10 text-primary' : ''
+                }`}
                 onClick={() => handleSort('returnDrawdownRatio10Year')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -243,7 +315,9 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:bg-muted/80 transition-colors w-[70px]"
+                className={`text-right cursor-pointer hover:bg-muted/80 transition-colors w-[70px] ${
+                  sortBy === 'dailyChangePercent' ? 'bg-primary/10 text-primary' : ''
+                }`}
                 onClick={() => handleSort('dailyChangePercent')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -305,13 +379,18 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="p-1 h-auto text-muted-foreground hover:text-yellow-500"
+                      className={`p-1 h-auto transition-colors ${
+                        isInWatchlist(company.symbol) 
+                          ? 'text-yellow-500 hover:text-yellow-600' 
+                          : 'text-muted-foreground hover:text-yellow-500'
+                      }`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        // TODO: Implement favorites functionality
+                        handleWatchlistToggle(company.symbol);
                       }}
+                      disabled={addToWatchlistMutation.isPending || removeFromWatchlistMutation.isPending}
                     >
-                      <Star className="h-4 w-4" />
+                      <Star className={`h-4 w-4 ${isInWatchlist(company.symbol) ? 'fill-current' : ''}`} />
                     </Button>
                   </TableCell>
                   <TableCell className="font-medium">{company.rank}</TableCell>

@@ -1,4 +1,4 @@
-import { companies, favorites, users, type User, type InsertUser, type Company, type InsertCompany, type Favorite } from "@shared/schema";
+import { companies, watchlist, users, type User, type InsertUser, type Company, type InsertCompany, type Watchlist, type InsertWatchlist } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, asc } from "drizzle-orm";
 
@@ -15,10 +15,11 @@ export interface IStorage {
   updateCompany(symbol: string, updates: Partial<Company>): Promise<void>;
   clearAllCompanies(): Promise<void>;
   
-  // Favorites methods
-  getFavorites(userId: number): Promise<Company[]>;
-  addFavorite(userId: number, companyId: number): Promise<Favorite>;
-  removeFavorite(userId: number, companyId: number): Promise<void>;
+  // Watchlist methods
+  getWatchlist(userId?: string): Promise<Watchlist[]>;
+  addToWatchlist(companySymbol: string, userId?: string): Promise<Watchlist>;
+  removeFromWatchlist(companySymbol: string, userId?: string): Promise<void>;
+  isInWatchlist(companySymbol: string, userId?: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -120,58 +121,51 @@ export class DatabaseStorage implements IStorage {
     await db.delete(companies);
   }
 
-  async getFavorites(userId: number): Promise<Company[]> {
-    const result = await db
-      .select({
-        id: companies.id,
-        rank: companies.rank,
-        name: companies.name,
-        symbol: companies.symbol,
-        marketCap: companies.marketCap,
-        price: companies.price,
-        dailyChange: companies.dailyChange,
-        dailyChangePercent: companies.dailyChangePercent,
-        country: companies.country,
-        countryCode: companies.countryCode,
-        logoUrl: companies.logoUrl,
-      })
-      .from(favorites)
-      .innerJoin(companies, eq(favorites.companyId, companies.id))
-      .where(eq(favorites.userId, userId));
-    
+  async getWatchlist(userId: string = "guest"): Promise<Watchlist[]> {
+    const result = await db.select().from(watchlist).where(eq(watchlist.userId, userId));
     return result;
   }
 
-  async addFavorite(userId: number, companyId: number): Promise<Favorite> {
-    const [favorite] = await db
-      .insert(favorites)
-      .values({ userId, companyId })
+  async addToWatchlist(companySymbol: string, userId: string = "guest"): Promise<Watchlist> {
+    const [watchlistItem] = await db
+      .insert(watchlist)
+      .values({ 
+        companySymbol, 
+        userId,
+        addedAt: new Date().toISOString()
+      })
       .returning();
-    return favorite;
+    return watchlistItem;
   }
 
-  async removeFavorite(userId: number, companyId: number): Promise<void> {
+  async removeFromWatchlist(companySymbol: string, userId: string = "guest"): Promise<void> {
     await db
-      .delete(favorites)
-      .where(eq(favorites.userId, userId));
+      .delete(watchlist)
+      .where(sql`${watchlist.companySymbol} = ${companySymbol} AND ${watchlist.userId} = ${userId}`);
+  }
+
+  async isInWatchlist(companySymbol: string, userId: string = "guest"): Promise<boolean> {
+    const result = await db.select().from(watchlist)
+      .where(sql`${watchlist.companySymbol} = ${companySymbol} AND ${watchlist.userId} = ${userId}`);
+    return result.length > 0;
   }
 }
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private companies: Map<number, Company>;
-  private favorites: Map<string, Favorite>;
+  private watchlist: Watchlist[];
   private currentUserId: number;
   private currentCompanyId: number;
-  private currentFavoriteId: number;
+  private currentWatchlistId: number;
 
   constructor() {
     this.users = new Map();
     this.companies = new Map();
-    this.favorites = new Map();
+    this.watchlist = [];
     this.currentUserId = 1;
     this.currentCompanyId = 1;
-    this.currentFavoriteId = 1;
+    this.currentWatchlistId = 1;
     
     // Storage starts empty - scheduler will load data from API
     console.log('MemStorage initialized - waiting for scheduler to load data');
@@ -280,31 +274,27 @@ export class MemStorage implements IStorage {
     }
   }
 
-  async getFavorites(userId: number): Promise<Company[]> {
-    const userFavorites = Array.from(this.favorites.values()).filter(
-      (favorite) => favorite.userId === userId,
-    );
-    const favoriteCompanies: Company[] = [];
-    
-    for (const favorite of userFavorites) {
-      const company = this.companies.get(favorite.companyId);
-      if (company) {
-        favoriteCompanies.push(company);
-      }
-    }
-    
-    return favoriteCompanies;
+  async getWatchlist(userId: string = "guest"): Promise<Watchlist[]> {
+    return this.watchlist.filter(w => w.userId === userId);
   }
 
-  async addFavorite(userId: number, companyId: number): Promise<Favorite> {
-    const id = this.currentFavoriteId++;
-    const favorite: Favorite = { id, userId, companyId };
-    this.favorites.set(`${userId}-${companyId}`, favorite);
-    return favorite;
+  async addToWatchlist(companySymbol: string, userId: string = "guest"): Promise<Watchlist> {
+    const watchlistItem: Watchlist = { 
+      id: this.currentWatchlistId++,
+      companySymbol, 
+      userId,
+      addedAt: new Date().toISOString()
+    };
+    this.watchlist.push(watchlistItem);
+    return watchlistItem;
   }
 
-  async removeFavorite(userId: number, companyId: number): Promise<void> {
-    this.favorites.delete(`${userId}-${companyId}`);
+  async removeFromWatchlist(companySymbol: string, userId: string = "guest"): Promise<void> {
+    this.watchlist = this.watchlist.filter(w => !(w.userId === userId && w.companySymbol === companySymbol));
+  }
+
+  async isInWatchlist(companySymbol: string, userId: string = "guest"): Promise<boolean> {
+    return this.watchlist.some(w => w.userId === userId && w.companySymbol === companySymbol);
   }
 
   async clearAllCompanies(): Promise<void> {
