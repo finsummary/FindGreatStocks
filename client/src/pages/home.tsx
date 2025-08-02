@@ -3,13 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Moon, Sun, Globe, DollarSign, Star, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CompanyTable } from "@/components/company-table";
-import { UpdateStatus } from "@/components/update-status";
+import { GoogleAdsBanner } from "@/components/google-ads-banner";
 import { useTheme } from "@/components/theme-provider";
 import { formatMarketCap } from "@/lib/format";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { trackEvent } from "@/lib/analytics";
 
 export default function Home() {
   const { theme, setTheme } = useTheme();
@@ -21,19 +22,7 @@ export default function Home() {
   const userData = user as { firstName?: string; email?: string; profileImageUrl?: string } | undefined;
   const { toast } = useToast();
 
-  const [currency, setCurrency] = useState("USD");
-  const [language, setLanguage] = useState("EN");
 
-  const { data: marketStats } = useQuery({
-    queryKey: ['/api/market/stats'],
-    queryFn: async ({ queryKey }) => {
-      const response = await fetch(queryKey[0] as string);
-      if (!response.ok) {
-        throw new Error('Failed to fetch market stats');
-      }
-      return response.json();
-    },
-  });
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
@@ -72,7 +61,10 @@ export default function Home() {
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => setLocation('/watchlist')}
+                onClick={() => {
+                  trackEvent('watchlist_click', 'navigation', 'header');
+                  setLocation('/watchlist');
+                }}
                 className="flex items-center gap-2"
               >
                 <Star className="h-4 w-4" />
@@ -84,7 +76,10 @@ export default function Home() {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => window.location.href = '/api/logout'}
+                  onClick={() => {
+                    trackEvent('logout_click', 'user', 'header');
+                    window.location.href = '/api/logout';
+                  }}
                   className="flex items-center gap-2"
                 >
                   <LogOut className="h-4 w-4" />
@@ -105,34 +100,26 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Top Google Ads Banner */}
+      <GoogleAdsBanner 
+        adSlot="1234567890" 
+        adFormat="horizontal"
+        className="border-b"
+      />
+
       {/* Main Content */}
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Header */}
+        {/* Company Table */}
         <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-            <div>
-              <h1 className="text-4xl font-bold mb-2">S&P 500 Companies</h1>
-              <p className="text-muted-foreground text-lg">
-                Companies: <span className="font-semibold">{marketStats?.totalCompanies?.toLocaleString() || '503'}</span> • 
-                Total market cap: <span className="font-semibold text-primary">
-                  {marketStats?.formattedTotalMarketCap || '$59.4 T'}
-                </span>
-                <span className="text-sm ml-4">
-                  • Last updated: {new Date().toLocaleDateString()} (Real-time FMP API data)
-                </span>
-              </p>
-            </div>
-          </div>
-
-          {/* Update Status */}
-          <UpdateStatus />
-
-          {/* Company Table */}
-          <Tabs defaultValue="sp500" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 max-w-[600px]">
+          <Tabs 
+            defaultValue="sp500" 
+            className="w-full"
+            onValueChange={(value) => trackEvent('tab_change', 'navigation', value)}
+          >
+            <TabsList className="grid w-full grid-cols-3 max-w-[600px] mb-6">
               <TabsTrigger value="sp500">S&P 500 (503)</TabsTrigger>
               <TabsTrigger value="nasdaq100">Nasdaq 100 (100)</TabsTrigger>
-              <TabsTrigger value="ftse100">FTSE 100 (100)</TabsTrigger>
+              <TabsTrigger value="ftse100">FTSE 100 (95)</TabsTrigger>
             </TabsList>
             
             <TabsContent value="sp500" className="mt-6">
@@ -161,6 +148,13 @@ export default function Home() {
           </Tabs>
         </div>
       </main>
+      
+      {/* Bottom Google Ads Banner */}
+      <GoogleAdsBanner 
+        adSlot="0987654321" 
+        adFormat="rectangle"
+        className="border-t"
+      />
 
       {/* Footer */}
       <footer className="border-t bg-muted/50 mt-16">

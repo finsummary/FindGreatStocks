@@ -9,9 +9,16 @@ import Home from "@/pages/home";
 import { WatchlistPage } from "@/pages/watchlist";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
+import { useEffect } from "react";
+import { initGA } from "./lib/analytics";
+import { useAnalytics } from "./hooks/use-analytics";
+import { initGoogleAds } from "./components/google-ads-banner";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
+  
+  // Track page views when routes change
+  useAnalytics();
 
   return (
     <Switch>
@@ -29,6 +36,19 @@ function Router() {
 }
 
 function App() {
+  // Initialize Google Analytics and Google Ads when app loads
+  useEffect(() => {
+    // Verify required environment variable is present
+    if (!import.meta.env.VITE_GA_MEASUREMENT_ID) {
+      console.warn('Missing required Google Analytics key: VITE_GA_MEASUREMENT_ID');
+    } else {
+      initGA();
+    }
+    
+    // Initialize Google Ads
+    initGoogleAds();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light">
