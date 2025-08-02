@@ -25,10 +25,9 @@ export function formatPercentage(percentage: number | string, showSign = true): 
     return '-';
   }
   
-  // Convert decimal to percentage (0.0772 becomes 7.72%)
-  const percentValue = num * 100;
-  const sign = showSign && percentValue > 0 ? '+' : '';
-  return `${sign}${percentValue.toFixed(2)}%`;
+  // Database already stores percentage values (e.g., 23.86 for 23.86%), so no conversion needed
+  const sign = showSign && num > 0 ? '+' : '';
+  return `${sign}${num.toFixed(2)}%`;
 }
 
 export function formatEarnings(value: number | string): string {
