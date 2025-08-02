@@ -1,4 +1,4 @@
-import { companies, nasdaq100Companies, watchlist, users, type User, type UpsertUser, type Company, type Nasdaq100Company, type InsertCompany, type InsertNasdaq100Company, type Watchlist, type InsertWatchlist } from "@shared/schema";
+import { companies, nasdaq100Companies, ftse100Companies, watchlist, users, type User, type UpsertUser, type Company, type Nasdaq100Company, type Ftse100Company, type InsertCompany, type InsertNasdaq100Company, type InsertFtse100Company, type Watchlist, type InsertWatchlist } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, asc, and, or, ilike } from "drizzle-orm";
 
@@ -20,6 +20,11 @@ export interface IStorage {
   getNasdaq100Companies(limit?: number, offset?: number, sortBy?: string, sortOrder?: 'asc' | 'desc', search?: string): Promise<Nasdaq100Company[]>;
   getNasdaq100CompanyCount(search?: string): Promise<number>;
   getNasdaq100CompanyBySymbol(symbol: string): Promise<Nasdaq100Company | undefined>;
+  
+  // FTSE 100 methods
+  getFtse100Companies(limit?: number, offset?: number, sortBy?: string, sortOrder?: 'asc' | 'desc', search?: string): Promise<Ftse100Company[]>;
+  getFtse100CompanyCount(search?: string): Promise<number>;
+  getFtse100CompanyBySymbol(symbol: string): Promise<Ftse100Company | undefined>;
   
   // Watchlist methods
   getWatchlist(userId: string): Promise<Watchlist[]>;

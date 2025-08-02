@@ -152,6 +152,54 @@ export const nasdaq100Companies = pgTable("nasdaq100_companies", {
 
 export type InsertNasdaq100Company = typeof nasdaq100Companies.$inferInsert;
 export type Nasdaq100Company = typeof nasdaq100Companies.$inferSelect;
+
+// FTSE 100 Companies Table
+export const ftse100Companies = pgTable("ftse100_companies", {
+  id: serial("id").primaryKey(),
+  rank: integer("rank").notNull(),
+  symbol: varchar("symbol", { length: 10 }).notNull().unique(),
+  name: varchar("name", { length: 200 }).notNull(),
+  
+  // Financial metrics
+  marketCap: decimal("market_cap", { precision: 20, scale: 2 }),
+  price: decimal("price", { precision: 10, scale: 2 }),
+  revenue: decimal("revenue", { precision: 20, scale: 2 }),
+  netIncome: decimal("net_income", { precision: 20, scale: 2 }),
+  eps: decimal("eps", { precision: 10, scale: 2 }),
+  peRatio: decimal("pe_ratio", { precision: 8, scale: 2 }),
+  
+  // Return metrics
+  return3Year: decimal("return_3_year", { precision: 8, scale: 4 }),
+  return5Year: decimal("return_5_year", { precision: 8, scale: 4 }),
+  return10Year: decimal("return_10_year", { precision: 8, scale: 4 }),
+  
+  // Risk metrics
+  maxDrawdown3Year: decimal("max_drawdown_3_year", { precision: 8, scale: 4 }),
+  maxDrawdown5Year: decimal("max_drawdown_5_year", { precision: 8, scale: 4 }),
+  maxDrawdown10Year: decimal("max_drawdown_10_year", { precision: 8, scale: 4 }),
+  returnDrawdownRatio10Year: decimal("return_drawdown_ratio_10_year", { precision: 8, scale: 4 }),
+  
+  // Daily changes
+  dailyChange: decimal("daily_change", { precision: 10, scale: 2 }),
+  dailyChangePercent: decimal("daily_change_percent", { precision: 8, scale: 4 }),
+  
+  // Company details
+  sector: varchar("sector", { length: 100 }),
+  industry: varchar("industry", { length: 100 }),
+  country: varchar("country", { length: 2 }),
+  website: text("website"),
+  description: text("description"),
+  ceo: text("ceo"),
+  employees: integer("employees"),
+  logoUrl: text("logo_url"),
+  
+  // Timestamps
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type InsertFtse100Company = typeof ftse100Companies.$inferInsert;
+export type Ftse100Company = typeof ftse100Companies.$inferSelect;
 export type Watchlist = typeof watchlist.$inferSelect;
 
 export const insertWatchlistSchema = createInsertSchema(watchlist).omit({

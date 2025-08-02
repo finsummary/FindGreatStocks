@@ -1,6 +1,7 @@
 import { storage } from './storage';
 import { financialDataService } from './financial-data';
 import { updateNasdaq100Prices } from './nasdaq100-daily-updater';
+import { updateFTSE100Prices } from './ftse100-daily-updater';
 
 class DataScheduler {
   private updateInterval: NodeJS.Timeout | null = null;
@@ -104,6 +105,11 @@ class DataScheduler {
       const nasdaq100Result = await updateNasdaq100Prices();
       console.log(`✅ Nasdaq 100 update completed: ${nasdaq100Result.updated} companies updated (${nasdaq100Result.failed} errors)`);
       
+      // Update FTSE 100 companies
+      console.log('📊 Updating FTSE 100 companies...');
+      const ftse100Result = await updateFTSE100Prices();
+      console.log(`✅ FTSE 100 update completed: ${ftse100Result.updated} companies updated (${ftse100Result.failed} errors)`);
+      
       console.log(`📊 Daily market update completed. Next update scheduled for tomorrow after market close (21:00 UTC)`);
     } catch (error) {
       console.error('❌ Error during daily market update:', error);
@@ -131,6 +137,27 @@ class DataScheduler {
       return result;
     } catch (error) {
       console.error('❌ Error during forced Nasdaq 100 update:', error);
+      throw error;
+    } finally {
+      this.isUpdating = false;
+    }
+  }
+
+  public async forceFTSE100Update() {
+    if (this.isUpdating) {
+      console.log('Update already in progress, skipping...');
+      return;
+    }
+
+    this.isUpdating = true;
+    console.log('🚀 Starting forced FTSE 100 price update...');
+
+    try {
+      const result = await updateFTSE100Prices();
+      console.log(`✅ Forced FTSE 100 update completed: ${result.updated} companies updated (${result.failed} errors)`);
+      return result;
+    } catch (error) {
+      console.error('❌ Error during forced FTSE 100 update:', error);
       throw error;
     } finally {
       this.isUpdating = false;

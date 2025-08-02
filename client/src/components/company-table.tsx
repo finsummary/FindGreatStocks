@@ -10,13 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatMarketCap, formatPrice, formatPercentage, formatCountry, formatEarnings } from "@/lib/format";
 import { apiRequest } from "@/lib/queryClient";
-import type { Company, Nasdaq100Company } from "@shared/schema";
+import type { Company, Nasdaq100Company, Ftse100Company } from "@shared/schema";
 
 
 interface CompanyTableProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  dataset: 'sp500' | 'nasdaq100';
+  dataset: 'sp500' | 'nasdaq100' | 'ftse100';
 }
 
 export function CompanyTable({ searchQuery, setSearchQuery, dataset }: CompanyTableProps) {
@@ -26,7 +26,7 @@ export function CompanyTable({ searchQuery, setSearchQuery, dataset }: CompanyTa
   const [limit] = useState(50);
   const queryClient = useQueryClient();
 
-  const apiEndpoint = dataset === 'nasdaq100' ? '/api/nasdaq100' : '/api/companies';
+  const apiEndpoint = dataset === 'nasdaq100' ? '/api/nasdaq100' : dataset === 'ftse100' ? '/api/ftse100' : '/api/companies';
   
   const { data, isLoading, error } = useQuery({
     queryKey: [apiEndpoint, { 

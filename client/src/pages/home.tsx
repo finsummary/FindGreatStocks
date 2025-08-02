@@ -129,9 +129,10 @@ export default function Home() {
 
           {/* Company Table */}
           <Tabs defaultValue="sp500" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+            <TabsList className="grid w-full grid-cols-3 max-w-[600px]">
               <TabsTrigger value="sp500">S&P 500 (503)</TabsTrigger>
               <TabsTrigger value="nasdaq100">Nasdaq 100 (100)</TabsTrigger>
+              <TabsTrigger value="ftse100">FTSE 100 (100)</TabsTrigger>
             </TabsList>
             
             <TabsContent value="sp500" className="mt-6">
@@ -147,6 +148,14 @@ export default function Home() {
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
                 dataset="nasdaq100"
+              />
+            </TabsContent>
+            
+            <TabsContent value="ftse100" className="mt-6">
+              <CompanyTable 
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                dataset="ftse100"
               />
             </TabsContent>
           </Tabs>
