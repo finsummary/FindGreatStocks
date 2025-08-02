@@ -91,6 +91,9 @@ export class DatabaseStorage implements IStorage {
       case 'peRatio':
         baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${companies.peRatio} IS NULL OR ${companies.peRatio} = '0' THEN 999 ELSE CAST(${companies.peRatio} AS NUMERIC) END`));
         break;
+      case 'pegRatio':
+        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${companies.pegRatio} IS NULL OR ${companies.pegRatio} = '0' THEN 999 ELSE CAST(${companies.pegRatio} AS NUMERIC) END`));
+        break;
       case 'dailyChangePercent':
         baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${companies.dailyChangePercent} IS NULL THEN 0 ELSE CAST(${companies.dailyChangePercent} AS NUMERIC) END`));
         break;

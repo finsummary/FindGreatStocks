@@ -254,6 +254,17 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                 </div>
               </TableHead>
               <TableHead 
+                className={`text-right cursor-pointer hover:bg-muted/80 transition-colors w-[75px] ${
+                  sortBy === 'pegRatio' ? 'bg-primary/10 text-primary' : ''
+                }`}
+                onClick={() => handleSort('pegRatio')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  PEG Ratio
+                  <SortIcon column="pegRatio" />
+                </div>
+              </TableHead>
+              <TableHead 
                 className={`text-right cursor-pointer hover:bg-muted/80 transition-colors w-[85px] ${
                   sortBy === 'return3Year' ? 'bg-primary/10 text-primary' : ''
                 }`}
@@ -415,6 +426,11 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                   <TableCell className="text-right font-mono">
                     {company.peRatio && parseFloat(company.peRatio) > 0 ? 
                       parseFloat(company.peRatio).toFixed(1) : 
+                      <span className="text-muted-foreground">-</span>}
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    {company.pegRatio && parseFloat(company.pegRatio) > 0 ? 
+                      parseFloat(company.pegRatio).toFixed(2) : 
                       <span className="text-muted-foreground">-</span>}
                   </TableCell>
                   <TableCell className="text-right">

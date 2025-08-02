@@ -200,6 +200,7 @@ export function WatchlistPage() {
                     <TableHead className="text-right w-[90px]">Revenue</TableHead>
                     <TableHead className="text-right w-[90px]">Earnings</TableHead>
                     <TableHead className="text-right w-[75px]">P/E Ratio</TableHead>
+                    <TableHead className="text-right w-[75px]">PEG Ratio</TableHead>
                     <TableHead className="text-right w-[85px]">3Y Return</TableHead>
                     <TableHead className="text-right w-[85px]">5Y Return</TableHead>
                     <TableHead className="text-right w-[85px]">10Y Return</TableHead>
@@ -264,6 +265,11 @@ export function WatchlistPage() {
                       <TableCell className="text-right font-mono">
                         {company.peRatio && parseFloat(company.peRatio) > 0 ? 
                           parseFloat(company.peRatio).toFixed(1) : 
+                          <span className="text-muted-foreground">-</span>}
+                      </TableCell>
+                      <TableCell className="text-right font-mono">
+                        {company.pegRatio && parseFloat(company.pegRatio) > 0 ? 
+                          parseFloat(company.pegRatio).toFixed(2) : 
                           <span className="text-muted-foreground">-</span>}
                       </TableCell>
                       <TableCell className="text-right">

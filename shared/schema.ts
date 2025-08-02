@@ -26,6 +26,7 @@ export const companies = pgTable("companies", {
   
   // Key financial metrics
   peRatio: decimal("pe_ratio", { precision: 8, scale: 2 }),
+  pegRatio: decimal("peg_ratio", { precision: 8, scale: 2 }),
   eps: decimal("eps", { precision: 8, scale: 2 }),
   beta: decimal("beta", { precision: 5, scale: 3 }),
   dividendYield: decimal("dividend_yield", { precision: 5, scale: 4 }),
