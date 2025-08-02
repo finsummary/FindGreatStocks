@@ -103,6 +103,15 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### August 2, 2025 - Column Highlighting and Watchlist Features
+- **Column Highlighting**: Currently sorted column now displays with blue background and primary color for improved visual feedback
+- **Watchlist Functionality**: Added star icons next to each company for personal stock tracking
+- **Interactive Stars**: Empty stars for unwatched companies, filled yellow stars for watchlist items with hover effects
+- **Real-time Updates**: Watchlist changes update immediately across the interface with optimistic UI updates
+- **Database Integration**: Created watchlist table with persistent storage for user preferences
+- **Clean Interface**: Removed unnecessary gray menu tabs, country selection, Time Machine, and Edit buttons for streamlined experience
+- **Brand Update**: Successfully rebranded from "CompaniesMarketCap" to "FindGreatStocks" with S&P 500 focus
+
 ### August 1, 2025 - Enhanced UI and Complete Data Population
 - **Responsive Table Design**: Fixed horizontal scrolling by implementing fixed table layout with optimized column widths
 - **Full Column Headers**: All column names now display completely (Market Cap, 3Y Return, 5Y Return, Max Drawdown, AR/MDD Ratio)

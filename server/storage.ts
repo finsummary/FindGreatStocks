@@ -1,6 +1,6 @@
 import { companies, watchlist, users, type User, type InsertUser, type Company, type InsertCompany, type Watchlist, type InsertWatchlist } from "@shared/schema";
 import { db } from "./db";
-import { eq, sql, desc, asc } from "drizzle-orm";
+import { eq, sql, desc, asc, and } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -141,12 +141,12 @@ export class DatabaseStorage implements IStorage {
   async removeFromWatchlist(companySymbol: string, userId: string = "guest"): Promise<void> {
     await db
       .delete(watchlist)
-      .where(sql`${watchlist.companySymbol} = ${companySymbol} AND ${watchlist.userId} = ${userId}`);
+      .where(and(eq(watchlist.companySymbol, companySymbol), eq(watchlist.userId, userId)));
   }
 
   async isInWatchlist(companySymbol: string, userId: string = "guest"): Promise<boolean> {
     const result = await db.select().from(watchlist)
-      .where(sql`${watchlist.companySymbol} = ${companySymbol} AND ${watchlist.userId} = ${userId}`);
+      .where(and(eq(watchlist.companySymbol, companySymbol), eq(watchlist.userId, userId)));
     return result.length > 0;
   }
 }
