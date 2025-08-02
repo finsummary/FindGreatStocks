@@ -403,6 +403,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // FTSE 100 data enhancement endpoint
+  app.post("/api/ftse100/enhance", async (req, res) => {
+    try {
+      console.log("🔧 FTSE 100 data enhancement requested...");
+      const { enhanceFTSE100Data } = await import('./ftse100-data-enhancer');
+      
+      // Run in background
+      enhanceFTSE100Data().then((result) => {
+        console.log(`✅ FTSE 100 enhancement completed: ${result.enhanced} enhanced, ${result.failed} failed`);
+      }).catch(error => {
+        console.error("❌ FTSE 100 enhancement failed:", error);
+      });
+      
+      res.json({
+        message: "FTSE 100 data enhancement started in background",
+        status: "running",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error starting FTSE 100 enhancement:", error);
+      res.status(500).json({
+        message: "Failed to start FTSE 100 enhancement",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
 
 
   // Enhance financial data endpoint
