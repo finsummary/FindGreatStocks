@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatMarketCap, formatPrice, formatPercentage, formatCountry, formatEarnings } from "@/lib/format";
+import { formatMarketCap, formatPrice, formatPercentage, formatPercentageFromDecimal, formatCountry, formatEarnings } from "@/lib/format";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -451,7 +451,7 @@ export function CompanyTable({ searchQuery, setSearchQuery, dataset }: CompanyTa
                             : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'
                         }`}
                       >
-                        {formatPercentage(company.return3Year, true)}
+                        {dataset === 'ftse100' ? formatPercentageFromDecimal(company.return3Year, true) : formatPercentage(company.return3Year, true)}
                       </Badge>
                       : <span className="text-muted-foreground">-</span>}
                   </TableCell>
@@ -465,7 +465,7 @@ export function CompanyTable({ searchQuery, setSearchQuery, dataset }: CompanyTa
                             : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'
                         }`}
                       >
-                        {formatPercentage(company.return5Year, true)}
+                        {dataset === 'ftse100' ? formatPercentageFromDecimal(company.return5Year, true) : formatPercentage(company.return5Year, true)}
                       </Badge>
                       : <span className="text-muted-foreground">-</span>}
                   </TableCell>
@@ -479,7 +479,7 @@ export function CompanyTable({ searchQuery, setSearchQuery, dataset }: CompanyTa
                             : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'
                         }`}
                       >
-                        {formatPercentage(company.return10Year, true)}
+                        {dataset === 'ftse100' ? formatPercentageFromDecimal(company.return10Year, true) : formatPercentage(company.return10Year, true)}
                       </Badge>
                       : <span className="text-muted-foreground">-</span>}
                   </TableCell>
@@ -489,7 +489,7 @@ export function CompanyTable({ searchQuery, setSearchQuery, dataset }: CompanyTa
                         variant="outline" 
                         className="font-mono text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950"
                       >
-                        -{parseFloat(company.maxDrawdown10Year).toFixed(2)}%
+                        -{dataset === 'ftse100' ? (parseFloat(company.maxDrawdown10Year) * 100).toFixed(2) : parseFloat(company.maxDrawdown10Year).toFixed(2)}%
                       </Badge>
                       : <span className="text-muted-foreground">-</span>}
                   </TableCell>
@@ -498,14 +498,25 @@ export function CompanyTable({ searchQuery, setSearchQuery, dataset }: CompanyTa
                       <Badge 
                         variant="outline" 
                         className={`font-mono ${
-                          (parseFloat(company.return10Year) / parseFloat(company.maxDrawdown10Year)) >= 0.5
-                            ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950'
-                            : (parseFloat(company.return10Year) / parseFloat(company.maxDrawdown10Year)) >= 0.2
-                            ? 'text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950'
-                            : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'
+                          (() => {
+                            // For FTSE 100, both return and drawdown need to be converted from decimal for ratio calculation
+                            const returnValue = dataset === 'ftse100' ? parseFloat(company.return10Year) * 100 : parseFloat(company.return10Year);
+                            const drawdownValue = dataset === 'ftse100' ? parseFloat(company.maxDrawdown10Year) * 100 : parseFloat(company.maxDrawdown10Year);
+                            const ratio = returnValue / drawdownValue;
+                            return ratio >= 0.5
+                              ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950'
+                              : ratio >= 0.2
+                              ? 'text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950'
+                              : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950';
+                          })()
                         }`}
                       >
-                        {(parseFloat(company.return10Year) / parseFloat(company.maxDrawdown10Year)).toFixed(2)}
+                        {(() => {
+                          // For FTSE 100, both return and drawdown need to be converted from decimal for ratio calculation
+                          const returnValue = dataset === 'ftse100' ? parseFloat(company.return10Year) * 100 : parseFloat(company.return10Year);
+                          const drawdownValue = dataset === 'ftse100' ? parseFloat(company.maxDrawdown10Year) * 100 : parseFloat(company.maxDrawdown10Year);
+                          return (returnValue / drawdownValue).toFixed(2);
+                        })()}
                       </Badge>
                       : <span className="text-muted-foreground">-</span>}
                   </TableCell>
