@@ -1,6 +1,6 @@
 import { companies, watchlist, users, type User, type UpsertUser, type Company, type InsertCompany, type Watchlist, type InsertWatchlist } from "@shared/schema";
 import { db } from "./db";
-import { eq, sql, desc, asc, and } from "drizzle-orm";
+import { eq, sql, desc, asc, and, or, ilike } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -53,6 +53,18 @@ export class DatabaseStorage implements IStorage {
     
     let baseQuery = db.select().from(companies);
     
+    // Apply search filter if provided
+    if (search && search.trim()) {
+      const searchTerm = `%${search.trim()}%`;
+      baseQuery = baseQuery.where(
+        or(
+          ilike(companies.symbol, searchTerm),
+          ilike(companies.name, searchTerm)
+        )
+      );
+    }
+    
+    // Apply sorting
     switch (sortBy) {
       case 'rank':
       case 'marketCap':
@@ -99,7 +111,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCompanyCount(search?: string, country?: string): Promise<number> {
-    const result = await db.select({ count: sql`count(*)` }).from(companies);
+    let baseQuery = db.select({ count: sql`count(*)` }).from(companies);
+    
+    // Apply search filter if provided
+    if (search && search.trim()) {
+      const searchTerm = `%${search.trim()}%`;
+      baseQuery = baseQuery.where(
+        or(
+          ilike(companies.symbol, searchTerm),
+          ilike(companies.name, searchTerm)
+        )
+      );
+    }
+    
+    const result = await baseQuery;
     return Number(result[0]?.count || 0);
   }
 
