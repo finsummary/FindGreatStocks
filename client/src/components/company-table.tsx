@@ -154,7 +154,7 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
               <SelectItem value="maxDrawdown10Year">Max Drawdown</SelectItem>
               <SelectItem value="returnDrawdownRatio10Year">AR/MDD Ratio</SelectItem>
               <SelectItem value="peRatio">P/E Ratio</SelectItem>
-              <SelectItem value="dailyChangePercent">Today's Change</SelectItem>
+              <SelectItem value="pegRatio">PEG Ratio</SelectItem>
             </SelectContent>
           </Select>
           
