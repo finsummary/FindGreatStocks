@@ -11,10 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatMarketCap, formatPrice, formatPercentage, formatCountry, formatEarnings } from "@/lib/format";
 import { apiRequest } from "@/lib/queryClient";
 import type { Company, Nasdaq100Company } from "@shared/schema";
-import { 
-  SiApple, SiGoogle, SiAmazon, SiNvidia, SiTesla, SiMeta, 
-  SiNetflix, SiAdobe, SiIntel, SiPaypal, SiZoom, SiEbay
-} from "react-icons/si";
+
 
 interface CompanyTableProps {
   searchQuery: string;
@@ -92,23 +89,7 @@ export function CompanyTable({ searchQuery, setSearchQuery, dataset }: CompanyTa
 
   const companies = data?.companies || [];
 
-  // Company logo mapping for Nasdaq 100
-  const getCompanyLogo = (symbol: string) => {
-    if (dataset !== 'nasdaq100') return null;
-    
-    const logos: Record<string, any> = {
-      'AAPL': SiApple, 'GOOGL': SiGoogle, 'GOOG': SiGoogle,
-      'AMZN': SiAmazon, 'NVDA': SiNvidia, 'TSLA': SiTesla, 'META': SiMeta,
-      'NFLX': SiNetflix, 'ADBE': SiAdobe, 'INTC': SiIntel, 'PYPL': SiPaypal,
-      'ZM': SiZoom, 'EBAY': SiEbay
-    };
-    
-    const LogoComponent = logos[symbol];
-    return LogoComponent ? <LogoComponent className="h-6 w-6" /> : 
-           <div className="h-6 w-6 bg-primary/10 rounded flex items-center justify-center text-xs font-bold">
-             {symbol.slice(0, 2)}
-           </div>;
-  };
+
 
   const handleWatchlistToggle = (symbol: string) => {
     if (isInWatchlist(symbol)) {
@@ -407,7 +388,6 @@ export function CompanyTable({ searchQuery, setSearchQuery, dataset }: CompanyTa
                   <TableCell className="font-medium">{company.rank}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      {dataset === 'nasdaq100' && getCompanyLogo(company.symbol)}
                       <img 
                         src={company.logoUrl || `https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&auto=format&fit=crop&w=64&h=64`}
                         alt={`${company.symbol} logo`}
