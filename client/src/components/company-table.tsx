@@ -489,7 +489,7 @@ export function CompanyTable({ searchQuery, setSearchQuery, dataset }: CompanyTa
                         variant="outline" 
                         className="font-mono text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950"
                       >
-                        -{(parseFloat(company.maxDrawdown10Year) * 100).toFixed(2)}%
+                        -{parseFloat(company.maxDrawdown10Year).toFixed(2)}%
                       </Badge>
                       : <span className="text-muted-foreground">-</span>}
                   </TableCell>
