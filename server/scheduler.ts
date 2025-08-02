@@ -84,20 +84,21 @@ class DataScheduler {
     
     // Only update between 9 PM UTC (4 PM ET) and 2 AM UTC (9 PM ET)
     if (utcHour < 21 && utcHour > 2) {
-      console.log('Market is still open, skipping update...');
+      console.log(`Market is still open (${utcHour}:00 UTC), skipping update. Next update after 21:00 UTC...`);
       return;
     }
 
     this.isUpdating = true;
-    console.log('Starting daily S&P 500 price update...');
+    console.log(`🕒 Starting daily S&P 500 price update at ${now.toISOString()}...`);
 
     try {
       // Use the daily price updater for S&P 500 companies
       const { dailyPriceUpdater } = await import('./daily-price-updater');
       const result = await dailyPriceUpdater.updateAllPrices();
-      console.log(`Successfully updated prices for ${result.updated} S&P 500 companies (${result.errors} errors)`);
+      console.log(`✅ Daily update completed successfully: ${result.updated} companies updated (${result.errors} errors)`);
+      console.log(`📊 Next update scheduled for tomorrow after market close (21:00 UTC)`);
     } catch (error) {
-      console.error('Error during daily S&P 500 update:', error);
+      console.error('❌ Error during daily S&P 500 update:', error);
     } finally {
       this.isUpdating = false;
     }

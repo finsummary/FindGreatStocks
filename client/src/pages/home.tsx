@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Moon, Sun, Globe, DollarSign, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CompanyTable } from "@/components/company-table";
+import { UpdateStatus } from "@/components/update-status";
 import { useTheme } from "@/components/theme-provider";
 import { formatMarketCap } from "@/lib/format";
 import { useLocation } from "wouter";
@@ -87,6 +88,9 @@ export default function Home() {
               </p>
             </div>
           </div>
+
+          {/* Update Status */}
+          <UpdateStatus />
 
           {/* Company Table */}
           <CompanyTable 
