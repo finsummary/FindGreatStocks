@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Moon, Sun, Globe, DollarSign } from "lucide-react";
+import { Moon, Sun, Globe, DollarSign, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CompanyTable } from "@/components/company-table";
 import { useTheme } from "@/components/theme-provider";
 import { formatMarketCap } from "@/lib/format";
+import { useLocation } from "wouter";
 
 export default function Home() {
   const { theme, setTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
+  const [, setLocation] = useLocation();
 
   const [currency, setCurrency] = useState("USD");
   const [language, setLanguage] = useState("EN");
@@ -41,17 +43,15 @@ export default function Home() {
 
             {/* Controls */}
             <div className="flex items-center space-x-2">
-
-              {/* Language Selector */}
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <img src="https://flagcdn.com/w20/us.png" alt="US Flag" className="w-4 h-3" />
-                <span>{language}</span>
-              </Button>
-
-              {/* Currency Selector */}
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4" />
-                <span className="font-mono">{currency}</span>
+              {/* Watchlist Button */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setLocation('/watchlist')}
+                className="flex items-center gap-2"
+              >
+                <Star className="h-4 w-4" />
+                <span>Watchlist</span>
               </Button>
 
               {/* Theme Toggle */}
@@ -62,9 +62,6 @@ export default function Home() {
                   <Sun className="h-4 w-4" />
                 )}
               </Button>
-
-              {/* Sign In */}
-              <Button size="sm">Sign In</Button>
             </div>
           </div>
         </div>
