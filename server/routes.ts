@@ -4,6 +4,10 @@ import { storage } from "./storage";
 import { financialDataService } from "./financial-data";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { z } from "zod";
+import { db } from "./db";
+import { companies, nasdaq100Companies, ftse100Companies, watchlist } from "@shared/schema";
+import { eq, sql, desc, asc, and, or, ilike } from "drizzle-orm";
+import { dataScheduler } from "./scheduler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
