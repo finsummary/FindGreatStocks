@@ -37,11 +37,13 @@ async function fetchPEGRatio(symbol: string): Promise<number | null> {
     const ttmData = await makeRequest(`/ratios-ttm/${symbol}`);
     if (ttmData && Array.isArray(ttmData) && ttmData.length > 0) {
       const ratios = ttmData[0];
-      if (ratios.priceEarningsToGrowthRatio && ratios.priceEarningsToGrowthRatio > 0) {
-        return parseFloat(ratios.priceEarningsToGrowthRatio);
-      }
-      if (ratios.pegRatio && ratios.pegRatio > 0) {
-        return parseFloat(ratios.pegRatio);
+      // console.log(`TTM data for ${symbol}:`, JSON.stringify(ratios, null, 2));
+      
+      // Check for valid PEG ratio in TTM data (correct field name)
+      if (ratios.pegRatioTTM && 
+          ratios.pegRatioTTM > 0 && 
+          ratios.pegRatioTTM < 10) { // Filter out unrealistic values
+        return parseFloat(ratios.pegRatioTTM);
       }
     }
 
@@ -49,14 +51,17 @@ async function fetchPEGRatio(symbol: string): Promise<number | null> {
     const annualData = await makeRequest(`/ratios/${symbol}?limit=1`);
     if (annualData && Array.isArray(annualData) && annualData.length > 0) {
       const ratios = annualData[0];
-      if (ratios.priceEarningsToGrowthRatio && ratios.priceEarningsToGrowthRatio > 0) {
+      // console.log(`Annual data for ${symbol}:`, JSON.stringify(ratios, null, 2));
+      
+      // Check for valid PEG ratio in annual data
+      if (ratios.priceEarningsToGrowthRatio && 
+          ratios.priceEarningsToGrowthRatio > 0 && 
+          ratios.priceEarningsToGrowthRatio < 10) { // Filter out unrealistic values
         return parseFloat(ratios.priceEarningsToGrowthRatio);
-      }
-      if (ratios.pegRatio && ratios.pegRatio > 0) {
-        return parseFloat(ratios.pegRatio);
       }
     }
 
+    console.log(`No valid PEG ratio found for ${symbol}`);
     return null;
   } catch (error) {
     console.error(`Error fetching PEG ratio for ${symbol}:`, error);
