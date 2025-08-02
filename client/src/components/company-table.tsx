@@ -62,11 +62,7 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
 
   const addToWatchlistMutation = useMutation({
     mutationFn: async (companySymbol: string) => {
-      return await apiRequest('/api/watchlist', {
-        method: 'POST',
-        body: JSON.stringify({ companySymbol }),
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return await apiRequest('POST', '/api/watchlist', { companySymbol });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
@@ -75,9 +71,7 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
 
   const removeFromWatchlistMutation = useMutation({
     mutationFn: async (companySymbol: string) => {
-      return await apiRequest(`/api/watchlist/${companySymbol}`, {
-        method: 'DELETE',
-      });
+      return await apiRequest('DELETE', `/api/watchlist/${companySymbol}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
