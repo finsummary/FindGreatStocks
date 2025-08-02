@@ -9,6 +9,11 @@ import Home from "@/pages/home";
 import { WatchlistPage } from "@/pages/watchlist";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
+import About from "@/pages/about";
+import Terms from "@/pages/terms";
+import Privacy from "@/pages/privacy";
+import Disclaimer from "@/pages/disclaimer";
+import Contact from "@/pages/contact";
 import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
@@ -30,6 +35,12 @@ function Router() {
           <Route path="/watchlist" component={WatchlistPage} />
         </>
       )}
+      {/* Public pages available to all users */}
+      <Route path="/about" component={About} />
+      <Route path="/terms" component={Terms} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/disclaimer" component={Disclaimer} />
+      <Route path="/contact" component={Contact} />
       <Route component={NotFound} />
     </Switch>
   );

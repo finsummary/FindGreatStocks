@@ -13,7 +13,7 @@ export default function Landing() {
         {/* Header */}
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-6">
-            Find<span className="text-blue-600">Great</span>Stocks
+            FindGreatStocks<span className="text-blue-600">.com</span>
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
             Professional S&P 500 market intelligence platform with real-time financial data, 

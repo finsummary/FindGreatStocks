@@ -36,7 +36,7 @@ export default function Home() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center">
-              <h1 className="text-xl font-bold text-primary">FindGreatStocks</h1>
+              <h1 className="text-xl font-bold text-primary">FindGreatStocks.com</h1>
             </div>
 
             {/* Controls */}
@@ -160,13 +160,13 @@ export default function Home() {
       <footer className="border-t bg-muted/50 mt-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center text-muted-foreground">
-            <p className="mb-4">Real-time market capitalization data for the world's largest companies</p>
+            <p className="mb-4">© 2025 FindGreatStocks.com - Real-time market intelligence for smart investors</p>
             <div className="flex justify-center space-x-6 text-sm">
-              <a href="#" className="hover:text-primary transition-colors">About</a>
-              <a href="#" className="hover:text-primary transition-colors">API</a>
-              <a href="#" className="hover:text-primary transition-colors">Privacy</a>
-              <a href="#" className="hover:text-primary transition-colors">Terms</a>
-              <a href="#" className="hover:text-primary transition-colors">Contact</a>
+              <a href="/about" className="hover:text-primary transition-colors">About</a>
+              <a href="/terms" className="hover:text-primary transition-colors">Terms</a>
+              <a href="/privacy" className="hover:text-primary transition-colors">Privacy</a>
+              <a href="/disclaimer" className="hover:text-primary transition-colors">Disclaimer</a>
+              <a href="/contact" className="hover:text-primary transition-colors">Contact</a>
             </div>
           </div>
         </div>
