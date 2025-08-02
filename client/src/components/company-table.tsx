@@ -308,18 +308,7 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                   <SortIcon column="returnDrawdownRatio10Year" />
                 </div>
               </TableHead>
-              <TableHead 
-                className={`text-right cursor-pointer hover:bg-muted/80 transition-colors w-[70px] ${
-                  sortBy === 'dailyChangePercent' ? 'bg-primary/10 text-primary' : ''
-                }`}
-                onClick={() => handleSort('dailyChangePercent')}
-              >
-                <div className="flex items-center justify-end gap-1">
-                  Today
-                  <SortIcon column="dailyChangePercent" />
-                </div>
-              </TableHead>
-              <TableHead className="text-center w-24">Country</TableHead>
+
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -495,30 +484,6 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                         {(parseFloat(company.return10Year) / parseFloat(company.maxDrawdown10Year)).toFixed(2)}
                       </Badge>
                       : <span className="text-muted-foreground">-</span>}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Badge 
-                      variant="outline" 
-                      className={`font-mono ${
-                        parseFloat(company.dailyChangePercent) >= 0 
-                          ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950' 
-                          : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'
-                      }`}
-                    >
-                      {formatPercentage(company.dailyChangePercent)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <img 
-                        src={`https://flagcdn.com/w20/${company.countryCode}.png`}
-                        alt={company.country}
-                        className="h-3 w-4 object-cover"
-                      />
-                      <span className="text-xs text-muted-foreground">
-                        {formatCountry(company.countryCode)}
-                      </span>
-                    </div>
                   </TableCell>
                 </TableRow>
               ))

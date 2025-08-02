@@ -203,7 +203,6 @@ export function WatchlistPage() {
                     <TableHead className="text-right w-[85px]">3Y Return</TableHead>
                     <TableHead className="text-right w-[85px]">5Y Return</TableHead>
                     <TableHead className="text-right w-[85px]">10Y Return</TableHead>
-                    <TableHead className="text-right w-[70px]">Today</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -306,20 +305,6 @@ export function WatchlistPage() {
                             }`}
                           >
                             {parseFloat(company.return10Year) >= 0 ? '+' : ''}{parseFloat(company.return10Year).toFixed(1)}%
-                          </Badge>
-                          : <span className="text-muted-foreground">-</span>}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {company.dailyChangePercent ? 
-                          <Badge 
-                            variant="outline" 
-                            className={`font-mono ${
-                              parseFloat(company.dailyChangePercent) >= 0 
-                                ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950' 
-                                : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'
-                            }`}
-                          >
-                            {parseFloat(company.dailyChangePercent) >= 0 ? '+' : ''}{parseFloat(company.dailyChangePercent).toFixed(2)}%
                           </Badge>
                           : <span className="text-muted-foreground">-</span>}
                       </TableCell>
