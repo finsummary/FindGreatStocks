@@ -1,4 +1,4 @@
-import { companies, watchlist, users, type User, type UpsertUser, type Company, type InsertCompany, type Watchlist, type InsertWatchlist } from "@shared/schema";
+import { companies, nasdaq100Companies, watchlist, users, type User, type UpsertUser, type Company, type Nasdaq100Company, type InsertCompany, type InsertNasdaq100Company, type Watchlist, type InsertWatchlist } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, asc, and, or, ilike } from "drizzle-orm";
 
@@ -15,6 +15,11 @@ export interface IStorage {
   createCompany(company: InsertCompany): Promise<Company>;
   updateCompany(symbol: string, updates: Partial<Company>): Promise<void>;
   clearAllCompanies(): Promise<void>;
+  
+  // Nasdaq 100 methods
+  getNasdaq100Companies(limit?: number, offset?: number, sortBy?: string, sortOrder?: 'asc' | 'desc', search?: string): Promise<Nasdaq100Company[]>;
+  getNasdaq100CompanyCount(search?: string): Promise<number>;
+  getNasdaq100CompanyBySymbol(symbol: string): Promise<Nasdaq100Company | undefined>;
   
   // Watchlist methods
   getWatchlist(userId: string): Promise<Watchlist[]>;
@@ -91,9 +96,7 @@ export class DatabaseStorage implements IStorage {
       case 'peRatio':
         baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${companies.peRatio} IS NULL OR ${companies.peRatio} = '0' THEN 999 ELSE CAST(${companies.peRatio} AS NUMERIC) END`));
         break;
-      case 'pegRatio':
-        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${companies.pegRatio} IS NULL OR ${companies.pegRatio} = '0' THEN 999 ELSE CAST(${companies.pegRatio} AS NUMERIC) END`));
-        break;
+
       case 'dailyChangePercent':
         baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${companies.dailyChangePercent} IS NULL THEN 0 ELSE CAST(${companies.dailyChangePercent} AS NUMERIC) END`));
         break;
@@ -153,6 +156,100 @@ export class DatabaseStorage implements IStorage {
 
   async clearAllCompanies(): Promise<void> {
     await db.delete(companies);
+  }
+
+  // Nasdaq 100 methods
+  async getNasdaq100Companies(
+    limit: number = 50,
+    offset: number = 0,
+    sortBy: string = 'marketCap',
+    sortOrder: 'asc' | 'desc' = 'desc',
+    search?: string
+  ): Promise<Nasdaq100Company[]> {
+    let baseQuery = db.select().from(nasdaq100Companies);
+
+    if (search) {
+      baseQuery = baseQuery.where(
+        or(
+          ilike(nasdaq100Companies.name, `%${search}%`),
+          ilike(nasdaq100Companies.symbol, `%${search}%`),
+          ilike(nasdaq100Companies.sector, `%${search}%`)
+        )
+      );
+    }
+
+    const orderDirection = sortOrder === 'desc' ? desc : asc;
+
+    switch (sortBy) {
+      case 'marketCap':
+        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${nasdaq100Companies.marketCap} IS NULL THEN 0 ELSE CAST(${nasdaq100Companies.marketCap} AS BIGINT) END`));
+        break;
+      case 'price':
+        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${nasdaq100Companies.price} IS NULL THEN 0 ELSE CAST(${nasdaq100Companies.price} AS NUMERIC) END`));
+        break;
+      case 'revenue':
+        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${nasdaq100Companies.revenue} IS NULL THEN 0 ELSE CAST(${nasdaq100Companies.revenue} AS BIGINT) END`));
+        break;
+      case 'netIncome':
+        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${nasdaq100Companies.netIncome} IS NULL THEN 0 ELSE CAST(${nasdaq100Companies.netIncome} AS BIGINT) END`));
+        break;
+      case 'peRatio':
+        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${nasdaq100Companies.peRatio} IS NULL OR ${nasdaq100Companies.peRatio} = '0' THEN 999 ELSE CAST(${nasdaq100Companies.peRatio} AS NUMERIC) END`));
+        break;
+      case 'dailyChangePercent':
+        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${nasdaq100Companies.dailyChangePercent} IS NULL THEN 0 ELSE CAST(${nasdaq100Companies.dailyChangePercent} AS NUMERIC) END`));
+        break;
+      case 'name':
+        baseQuery = baseQuery.orderBy(orderDirection(nasdaq100Companies.name));
+        break;
+      case 'symbol':
+        baseQuery = baseQuery.orderBy(orderDirection(nasdaq100Companies.symbol));
+        break;
+      case 'return3Year':
+        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${nasdaq100Companies.return3Year} IS NULL THEN -999 ELSE CAST(${nasdaq100Companies.return3Year} AS NUMERIC) END`));
+        break;
+      case 'return5Year':
+        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${nasdaq100Companies.return5Year} IS NULL THEN -999 ELSE CAST(${nasdaq100Companies.return5Year} AS NUMERIC) END`));
+        break;
+      case 'return10Year':
+        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${nasdaq100Companies.return10Year} IS NULL THEN -999 ELSE CAST(${nasdaq100Companies.return10Year} AS NUMERIC) END`));
+        break;
+      case 'maxDrawdown10Year':
+        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${nasdaq100Companies.maxDrawdown10Year} IS NULL THEN 999 ELSE CAST(${nasdaq100Companies.maxDrawdown10Year} AS NUMERIC) END`));
+        break;
+      case 'returnDrawdownRatio10Year':
+        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${nasdaq100Companies.returnDrawdownRatio10Year} IS NULL THEN -999 ELSE CAST(${nasdaq100Companies.returnDrawdownRatio10Year} AS NUMERIC) END`));
+        break;
+      default:
+        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${nasdaq100Companies.marketCap} IS NULL THEN 0 ELSE CAST(${nasdaq100Companies.marketCap} AS BIGINT) END`));
+    }
+
+    return baseQuery.limit(limit).offset(offset);
+  }
+
+  async getNasdaq100CompanyCount(search?: string): Promise<number> {
+    let baseQuery = db.select({ count: sql`count(*)` }).from(nasdaq100Companies);
+
+    if (search) {
+      baseQuery = baseQuery.where(
+        or(
+          ilike(nasdaq100Companies.name, `%${search}%`),
+          ilike(nasdaq100Companies.symbol, `%${search}%`),
+          ilike(nasdaq100Companies.sector, `%${search}%`)
+        )
+      );
+    }
+
+    const result = await baseQuery;
+    return Number(result[0].count);
+  }
+
+  async getNasdaq100CompanyBySymbol(symbol: string): Promise<Nasdaq100Company | undefined> {
+    const [company] = await db
+      .select()
+      .from(nasdaq100Companies)
+      .where(eq(nasdaq100Companies.symbol, symbol));
+    return company;
   }
 
   async getWatchlist(userId: string): Promise<Watchlist[]> {

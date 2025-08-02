@@ -9,6 +9,7 @@ import { formatMarketCap } from "@/lib/format";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Home() {
   const { theme, setTheme } = useTheme();
@@ -127,10 +128,28 @@ export default function Home() {
           <UpdateStatus />
 
           {/* Company Table */}
-          <CompanyTable 
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-          />
+          <Tabs defaultValue="sp500" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+              <TabsTrigger value="sp500">S&P 500 (503)</TabsTrigger>
+              <TabsTrigger value="nasdaq100">Nasdaq 100 (100)</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="sp500" className="mt-6">
+              <CompanyTable 
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                dataset="sp500"
+              />
+            </TabsContent>
+            
+            <TabsContent value="nasdaq100" className="mt-6">
+              <CompanyTable 
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                dataset="nasdaq100"
+              />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 

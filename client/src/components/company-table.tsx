@@ -15,29 +15,33 @@ import type { Company } from "@shared/schema";
 interface CompanyTableProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  dataset: 'sp500' | 'nasdaq100';
 }
 
-export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps) {
+export function CompanyTable({ searchQuery, setSearchQuery, dataset }: CompanyTableProps) {
   const [sortBy, setSortBy] = useState<string>('marketCap');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(0);
   const [limit] = useState(50);
   const queryClient = useQueryClient();
 
+  const apiEndpoint = dataset === 'nasdaq100' ? '/api/nasdaq100' : '/api/companies';
+  
   const { data, isLoading, error } = useQuery({
-    queryKey: ['/api/companies', { 
+    queryKey: [apiEndpoint, { 
       limit, 
       offset: page * limit, 
       sortBy, 
       sortOrder, 
-      search: searchQuery || undefined
+      search: searchQuery || undefined,
+      dataset
     }],
     queryFn: async ({ queryKey }) => {
       const [url, params] = queryKey as [string, any];
       const searchParams = new URLSearchParams();
       
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined) {
+        if (value !== undefined && key !== 'dataset') {
           searchParams.append(key, String(value));
         }
       });
@@ -154,7 +158,6 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
               <SelectItem value="maxDrawdown10Year">Max Drawdown</SelectItem>
               <SelectItem value="returnDrawdownRatio10Year">AR/MDD Ratio</SelectItem>
               <SelectItem value="peRatio">P/E Ratio</SelectItem>
-              <SelectItem value="pegRatio">PEG Ratio</SelectItem>
             </SelectContent>
           </Select>
           
@@ -253,17 +256,7 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                   <SortIcon column="peRatio" />
                 </div>
               </TableHead>
-              <TableHead 
-                className={`text-right cursor-pointer hover:bg-muted/80 transition-colors w-[75px] ${
-                  sortBy === 'pegRatio' ? 'bg-primary/10 text-primary' : ''
-                }`}
-                onClick={() => handleSort('pegRatio')}
-              >
-                <div className="flex items-center justify-end gap-1">
-                  PEG Ratio
-                  <SortIcon column="pegRatio" />
-                </div>
-              </TableHead>
+
               <TableHead 
                 className={`text-right cursor-pointer hover:bg-muted/80 transition-colors w-[85px] ${
                   sortBy === 'return3Year' ? 'bg-primary/10 text-primary' : ''
@@ -428,11 +421,7 @@ export function CompanyTable({ searchQuery, setSearchQuery }: CompanyTableProps)
                       parseFloat(company.peRatio).toFixed(1) : 
                       <span className="text-muted-foreground">-</span>}
                   </TableCell>
-                  <TableCell className="text-right font-mono">
-                    {company.pegRatio && parseFloat(company.pegRatio) > 0 ? 
-                      parseFloat(company.pegRatio).toFixed(2) : 
-                      <span className="text-muted-foreground">-</span>}
-                  </TableCell>
+
                   <TableCell className="text-right">
                     {company.return3Year && parseFloat(company.return3Year) !== 0 ? 
                       <Badge 

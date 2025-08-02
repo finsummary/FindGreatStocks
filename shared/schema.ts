@@ -26,7 +26,6 @@ export const companies = pgTable("companies", {
   
   // Key financial metrics
   peRatio: decimal("pe_ratio", { precision: 8, scale: 2 }),
-  pegRatio: decimal("peg_ratio", { precision: 8, scale: 2 }),
   eps: decimal("eps", { precision: 8, scale: 2 }),
   beta: decimal("beta", { precision: 5, scale: 3 }),
   dividendYield: decimal("dividend_yield", { precision: 5, scale: 4 }),
@@ -100,6 +99,58 @@ export const watchlist = pgTable("watchlist", {
 
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+
+// Nasdaq 100 companies table
+export const nasdaq100Companies = pgTable("nasdaq100_companies", {
+  id: serial("id").primaryKey(),
+  rank: integer("rank"),
+  symbol: varchar("symbol", { length: 10 }).notNull().unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  
+  // Core metrics
+  marketCap: decimal("market_cap", { precision: 15, scale: 0 }),
+  price: decimal("price", { precision: 10, scale: 2 }),
+  
+  // Daily changes
+  dailyChange: decimal("daily_change", { precision: 10, scale: 2 }),
+  dailyChangePercent: decimal("daily_change_percent", { precision: 8, scale: 4 }),
+  
+  // Company details
+  sector: varchar("sector", { length: 100 }),
+  industry: varchar("industry", { length: 100 }),
+  country: varchar("country", { length: 2 }),
+  website: text("website"),
+  description: text("description"),
+  ceo: text("ceo"),
+  employees: integer("employees"),
+  
+  // Key financial metrics
+  peRatio: decimal("pe_ratio", { precision: 8, scale: 2 }),
+  eps: decimal("eps", { precision: 8, scale: 2 }),
+  beta: decimal("beta", { precision: 5, scale: 3 }),
+  dividendYield: decimal("dividend_yield", { precision: 5, scale: 4 }),
+  
+  // Financial statements data
+  revenue: decimal("revenue", { precision: 15, scale: 0 }),
+  netIncome: decimal("net_income", { precision: 15, scale: 0 }),
+  totalDebt: decimal("total_debt", { precision: 15, scale: 0 }),
+  totalCash: decimal("total_cash", { precision: 15, scale: 0 }),
+  freeCashFlow: decimal("free_cash_flow", { precision: 15, scale: 0 }),
+  
+  // Performance metrics  
+  return3Year: decimal("return_3_year", { precision: 8, scale: 4 }),
+  return5Year: decimal("return_5_year", { precision: 8, scale: 4 }),
+  return10Year: decimal("return_10_year", { precision: 8, scale: 4 }),
+  maxDrawdown10Year: decimal("max_drawdown_10_year", { precision: 8, scale: 4 }),
+  returnDrawdownRatio10Year: decimal("return_drawdown_ratio_10_year", { precision: 8, scale: 4 }),
+  
+  // Timestamps
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type InsertNasdaq100Company = typeof nasdaq100Companies.$inferInsert;
+export type Nasdaq100Company = typeof nasdaq100Companies.$inferSelect;
 export type Watchlist = typeof watchlist.$inferSelect;
 
 export const insertWatchlistSchema = createInsertSchema(watchlist).omit({

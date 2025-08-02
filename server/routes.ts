@@ -20,6 +20,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch user" });
     }
   });
+
+  // Nasdaq 100 routes
+  app.get('/api/nasdaq100', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const sortBy = (req.query.sortBy as string) || 'marketCap';
+      const sortOrder = (req.query.sortOrder as 'asc' | 'desc') || 'desc';
+      const search = req.query.search as string;
+      
+      const companies = await storage.getNasdaq100Companies(
+        limit,
+        offset,
+        sortBy,
+        sortOrder,
+        search
+      );
+      
+      const totalCount = await storage.getNasdaq100CompanyCount(search);
+      
+      res.json({
+        companies,
+        total: totalCount,
+        limit,
+        offset,
+        hasMore: offset + limit < totalCount
+      });
+    } catch (error) {
+      console.error('Error fetching Nasdaq 100 companies:', error);
+      res.status(500).json({ message: 'Failed to fetch companies' });
+    }
+  });
+
+  app.get('/api/nasdaq100/:symbol', async (req, res) => {
+    try {
+      const company = await storage.getNasdaq100CompanyBySymbol(req.params.symbol);
+      if (!company) {
+        return res.status(404).json({ message: 'Company not found' });
+      }
+      res.json(company);
+    } catch (error) {
+      console.error('Error fetching company:', error);
+      res.status(500).json({ message: 'Failed to fetch company' });
+    }
+  });
+
   // Get companies with pagination, sorting, and filtering
   app.get("/api/companies", async (req, res) => {
     try {
