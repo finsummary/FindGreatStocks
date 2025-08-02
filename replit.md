@@ -107,7 +107,11 @@ Preferred communication style: Simple, everyday language.
 - **Immediate Access**: Stock scanner now serves as the default home page for all users (authenticated and non-authenticated)
 - **Authentication Flow**: Users only prompted to sign in when attempting to add stocks to watchlist, not for viewing data
 - **Smart Routing**: Landing page moved to /welcome as optional marketing page, stock scanner accessible immediately
-- **Data Formatting Fix**: Fixed critical bug where 3Y/5Y/10Y returns and Max Drawdown displayed 100x larger values
+- **Critical Data Formatting Fixes**: 
+  - Fixed S&P 500/Nasdaq 100 returns displaying 100x larger values (removed double percentage conversion)
+  - Fixed FTSE 100 returns showing near-zero values (added decimal-to-percentage conversion for 0.0772 → 7.72%)
+  - Corrected Max Drawdown formatting across all three indices with proper percentage display
+  - Updated AR/MDD ratio calculations to handle different data formats correctly
 - **Google Ads Error Handling**: Temporarily disabled Google Ads initialization until proper AdSense publisher ID configured
 - **Enhanced User Experience**: Sign In button appears in header for non-authenticated users with clear prompts for watchlist access
 
