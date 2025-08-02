@@ -19,8 +19,16 @@ export function formatPrice(price: number | string): string {
 
 export function formatPercentage(percentage: number | string, showSign = true): string {
   const num = typeof percentage === 'string' ? parseFloat(percentage) : percentage;
-  const sign = showSign && num > 0 ? '+' : '';
-  return `${sign}${num.toFixed(2)}%`;
+  
+  // Handle null, undefined, or invalid values
+  if (isNaN(num)) {
+    return '-';
+  }
+  
+  // Convert decimal to percentage (0.0772 becomes 7.72%)
+  const percentValue = num * 100;
+  const sign = showSign && percentValue > 0 ? '+' : '';
+  return `${sign}${percentValue.toFixed(2)}%`;
 }
 
 export function formatEarnings(value: number | string): string {
