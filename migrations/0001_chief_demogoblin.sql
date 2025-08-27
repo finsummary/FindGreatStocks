@@ -1,0 +1,1 @@
+ALTER TABLE "companies" ALTER COLUMN "dividend_yield" SET DATA TYPE numeric(8, 4);
