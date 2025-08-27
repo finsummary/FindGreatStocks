@@ -1,5 +1,5 @@
 import { pgTable, text, serial, decimal, integer, boolean, bigint, varchar, timestamp, jsonb, index } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from 'drizzle-orm';
 
@@ -64,13 +64,6 @@ export const companies = pgTable("companies", {
   arMddRatio3Year: decimal("ar_mdd_ratio_3_year", { precision: 10, scale: 4 }),
 });
 
-export const insertCompanySchema = createInsertSchema(companies).omit({
-  id: true,
-});
-
-export type InsertCompany = z.infer<typeof insertCompanySchema>;
-export type Company = typeof companies.$inferSelect;
-
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const sessions = pgTable(
@@ -101,9 +94,6 @@ export const watchlist = pgTable("watchlist", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   addedAt: timestamp("added_at").defaultNow(),
 });
-
-export type UpsertUser = typeof users.$inferInsert;
-export type User = typeof users.$inferSelect;
 
 // Nasdaq 100 companies table (mirrors the structure of the main 'companies' table)
 export const nasdaq100Companies = pgTable("nasdaq100_companies", {
@@ -167,13 +157,28 @@ export const nasdaq100Companies = pgTable("nasdaq100_companies", {
   arMddRatio3Year: decimal("ar_mdd_ratio_3_year", { precision: 10, scale: 4 }),
 });
 
-export type InsertNasdaq100Company = typeof nasdaq100Companies.$inferInsert;
-export type Nasdaq100Company = typeof nasdaq100Companies.$inferSelect;
+// --- Zod Schemas for API validation and type inference ---
 
-export type Watchlist = typeof watchlist.$inferSelect;
+// S&P 500 Companies
+export const insertCompanySchema = createInsertSchema(companies);
+export const selectCompanySchema = createSelectSchema(companies);
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+export type Company = z.infer<typeof selectCompanySchema>;
 
+// Nasdaq 100 Companies
+export const insertNasdaq100CompanySchema = createInsertSchema(nasdaq100Companies);
+export const selectNasdaq100CompanySchema = createSelectSchema(nasdaq100Companies);
+export type InsertNasdaq100Company = z.infer<typeof insertNasdaq100CompanySchema>;
+export type Nasdaq100Company = z.infer<typeof selectNasdaq100CompanySchema>;
+
+// Users
+export type UpsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
+
+// Watchlist
 export const insertWatchlistSchema = createInsertSchema(watchlist).omit({
   id: true,
   addedAt: true,
 });
+export type Watchlist = typeof watchlist.$inferSelect;
 export type InsertWatchlist = z.infer<typeof insertWatchlistSchema>;
