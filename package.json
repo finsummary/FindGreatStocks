@@ -31,7 +31,6 @@
     "db:fix-missing": "tsx server/fix-missing-companies.ts",
     "import:nasdaq": "tsx server/nasdaq100-import.ts",
     "fix:sp500-pe": "tsx server/fix-sp500-pe.ts",
-    "import:ftse": "tsx server/ftse100-import.ts",
     "enhance:nasdaq:returns": "tsx server/nasdaq100-returns-enhancer.ts",
     "enhance:nasdaq:drawdown": "tsx server/nasdaq100-drawdown-enhancer.ts",
     "enhance:nasdaq:armdd": "tsx server/nasdaq100-ar-mdd-enhancer.ts"

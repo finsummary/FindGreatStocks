@@ -8,6 +8,8 @@ import { db } from "./db";
 import { companies, nasdaq100Companies, ftse100Companies, watchlist } from "@shared/schema";
 import { eq, sql, desc, asc, and, or, ilike } from "drizzle-orm";
 import { dataScheduler } from "./scheduler";
+import { getCompanies, getCompanyCount, getNasdaq100Companies, getNasdaq100CompanyCount } from './storage';
+import { z } from 'zod';
 
 export function setupRoutes(app: Express) {
   // Auth middleware
@@ -292,63 +294,6 @@ export function setupRoutes(app: Express) {
       res.status(500).json({
         message: "Failed to update Nasdaq 100 prices",
         error: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  // FTSE 100 endpoints
-  app.get("/api/ftse100", async (req, res) => {
-    try {
-      const limit = parseInt(req.query.limit as string) || 100;
-      const offset = parseInt(req.query.offset as string) || 0;
-      const sortBy = req.query.sortBy as string || 'marketCap';
-      const sortOrder = req.query.sortOrder as 'asc' | 'desc' || 'desc';
-      const search = req.query.search as string;
-
-      // Get FTSE 100 companies from database
-      const companies = await db
-        .select()
-        .from(ftse100Companies)
-        .where(search ? 
-          or(
-            ilike(ftse100Companies.name, `%${search}%`),
-            ilike(ftse100Companies.symbol, `%${search}%`)
-          ) : 
-          undefined
-        )
-        .orderBy(
-          sortOrder === 'desc' ? 
-            desc(ftse100Companies[sortBy] || ftse100Companies.marketCap) :
-            asc(ftse100Companies[sortBy] || ftse100Companies.marketCap)
-        )
-        .limit(limit)
-        .offset(offset);
-
-      const totalCount = await db
-        .select({ count: sql`count(*)` })
-        .from(ftse100Companies)
-        .where(search ? 
-          or(
-            ilike(ftse100Companies.name, `%${search}%`),
-            ilike(ftse100Companies.symbol, `%${search}%`)
-          ) : 
-          undefined
-        );
-
-      res.json({
-        companies,
-        pagination: {
-          total: parseInt(totalCount[0].count as string),
-          limit,
-          offset,
-          hasMore: offset + limit < parseInt(totalCount[0].count as string)
-        }
-      });
-    } catch (error) {
-      console.error("Error fetching FTSE 100 companies:", error);
-      res.status(500).json({ 
-        message: "Failed to fetch FTSE 100 companies", 
-        error: error instanceof Error ? error.message : "Unknown error" 
       });
     }
   });

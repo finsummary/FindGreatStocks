@@ -1,4 +1,4 @@
-import { companies, nasdaq100Companies, ftse100Companies, watchlist, users, type User, type UpsertUser, type Company, type Nasdaq100Company, type Ftse100Company, type InsertCompany, type InsertNasdaq100Company, type InsertFtse100Company, type Watchlist, type InsertWatchlist } from "@shared/schema";
+import { companies, nasdaq100Companies, watchlist, users, type User, type UpsertUser, type Company, type Nasdaq100Company, type InsertCompany, type InsertNasdaq100Company, type Watchlist, type InsertWatchlist } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, asc, and, or, ilike } from "drizzle-orm";
 
@@ -316,88 +316,6 @@ export class DatabaseStorage implements IStorage {
     const result = await db.select().from(watchlist)
       .where(and(eq(watchlist.companySymbol, companySymbol), eq(watchlist.userId, userId)));
     return result.length > 0;
-  }
-
-  // FTSE 100 specific methods
-  async getFTSE100Companies(limit = 50, offset = 0, sortBy = 'rank', sortOrder: 'asc' | 'desc' = 'asc', search?: string): Promise<FTSE100Company[]> {
-    const orderDirection = sortOrder === 'desc' ? desc : asc;
-    
-    let baseQuery = db.select().from(ftse100Companies);
-    
-    if (search && search.trim()) {
-      const searchTerm = `%${search.trim()}%`;
-      baseQuery = baseQuery.where(
-        or(
-          ilike(ftse100Companies.symbol, searchTerm),
-          ilike(ftse100Companies.name, searchTerm),
-          ilike(ftse100Companies.sector, searchTerm)
-        )
-      );
-    }
-    
-    // Apply sorting
-    switch (sortBy) {
-      case 'rank':
-      case 'marketCap':
-        baseQuery = baseQuery.orderBy(desc(sql`CASE WHEN ${ftse100Companies.marketCap} IS NULL OR ${ftse100Companies.marketCap} = '0' THEN 0 ELSE CAST(${ftse100Companies.marketCap} AS BIGINT) END`));
-        break;
-      case 'revenue':
-        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${ftse100Companies.revenue} IS NULL OR ${ftse100Companies.revenue} = '0' THEN 0 ELSE CAST(${ftse100Companies.revenue} AS BIGINT) END`));
-        break;
-      case 'return3Year':
-        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${ftse100Companies.return3Year} IS NULL THEN -999 ELSE CAST(${ftse100Companies.return3Year} AS NUMERIC) END`));
-        break;
-      case 'return5Year':
-        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${ftse100Companies.return5Year} IS NULL THEN -999 ELSE CAST(${ftse100Companies.return5Year} AS NUMERIC) END`));
-        break;
-      case 'return10Year':
-        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${ftse100Companies.return10Year} IS NULL THEN -999 ELSE CAST(${ftse100Companies.return10Year} AS NUMERIC) END`));
-        break;
-      case 'maxDrawdown10Year':
-        baseQuery = baseQuery.orderBy(asc(sql`CASE WHEN ${ftse100Companies.maxDrawdown10Year} IS NULL THEN 999 ELSE CAST(${ftse100Companies.maxDrawdown10Year} AS NUMERIC) END`));
-        break;
-      case 'returnDrawdownRatio10Year':
-        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${ftse100Companies.returnDrawdownRatio10Year} IS NULL THEN -999 ELSE CAST(${ftse100Companies.returnDrawdownRatio10Year} AS NUMERIC) END`));
-        break;
-      case 'peRatio':
-        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${ftse100Companies.peRatio} IS NULL OR ${ftse100Companies.peRatio} = '0' THEN 999 ELSE CAST(${ftse100Companies.peRatio} AS NUMERIC) END`));
-        break;
-      case 'dailyChangePercent':
-        baseQuery = baseQuery.orderBy(orderDirection(sql`CASE WHEN ${ftse100Companies.dailyChangePercent} IS NULL THEN 0 ELSE CAST(${ftse100Companies.dailyChangePercent} AS NUMERIC) END`));
-        break;
-      case 'name':
-        baseQuery = baseQuery.orderBy(orderDirection(ftse100Companies.name));
-        break;
-      default:
-        baseQuery = baseQuery.orderBy(asc(ftse100Companies.rank));
-    }
-
-    return baseQuery.limit(limit).offset(offset);
-  }
-
-  async getFTSE100CompanyCount(search?: string): Promise<number> {
-    let baseQuery = db.select({ count: sql`count(*)` }).from(ftse100Companies);
-
-    if (search) {
-      baseQuery = baseQuery.where(
-        or(
-          ilike(ftse100Companies.name, `%${search}%`),
-          ilike(ftse100Companies.symbol, `%${search}%`),
-          ilike(ftse100Companies.sector, `%${search}%`)
-        )
-      );
-    }
-
-    const result = await baseQuery;
-    return Number(result[0].count);
-  }
-
-  async getFTSE100CompanyBySymbol(symbol: string): Promise<FTSE100Company | undefined> {
-    const [company] = await db
-      .select()
-      .from(ftse100Companies)
-      .where(eq(ftse100Companies.symbol, symbol));
-    return company;
   }
 }
 

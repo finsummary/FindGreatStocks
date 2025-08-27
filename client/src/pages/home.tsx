@@ -25,7 +25,6 @@ export function HomePage() {
           <TabsList>
             <TabsTrigger value="sp500">S&P 500</TabsTrigger>
             <TabsTrigger value="nasdaq100">Nasdaq 100</TabsTrigger>
-            <TabsTrigger value="ftse100">FTSE 100</TabsTrigger>
           </TabsList>
           <TabsContent value="sp500">
             <div className="mt-4">
@@ -36,13 +35,6 @@ export function HomePage() {
             <div className="mt-4">
               <CompanyTable dataset="nasdaq100" searchQuery={searchQuery} />
             </div>
-          </TabsContent>
-          <TabsContent value="ftse100">
-             <div className="mt-4">
-                <p className="text-center text-gray-500 dark:text-gray-400">
-                    FTSE 100 data is not yet available. Please check back later.
-                </p>
-             </div>
           </TabsContent>
         </Tabs>
       </div>
