@@ -35,6 +35,12 @@ const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'revenue', label: 'Revenue', width: 'w-[90px]', defaultVisible: true },
   { id: 'netIncome', label: 'Earnings', width: 'w-[90px]', defaultVisible: true },
   { id: 'peRatio', label: 'P/E Ratio', width: 'w-[75px]', defaultVisible: true },
+  { id: 'priceToSalesRatio', label: 'P/S Ratio', width: 'w-[75px]', defaultVisible: true },
+  { id: 'dividendYield', label: 'Dividend Yield', width: 'w-[100px]', defaultVisible: true },
+  { id: 'netProfitMargin', label: 'Net Profit Margin', width: 'w-[120px]', defaultVisible: true },
+  { id: 'revenueGrowth3Y', label: 'Rev G 3Y', width: 'w-[90px]', defaultVisible: false },
+  { id: 'revenueGrowth5Y', label: 'Rev G 5Y', width: 'w-[90px]', defaultVisible: false },
+  { id: 'revenueGrowth10Y', label: 'Rev G 10Y', width: 'w-[90px]', defaultVisible: false },
   { id: 'return', label: 'Return', width: 'w-[85px]', defaultVisible: true, isDynamic: true },
   { id: 'maxDrawdown', label: 'Max Drawdown', width: 'w-[100px]', defaultVisible: true, isDynamic: true },
   { id: 'arMddRatio', label: 'AR/MDD Ratio', width: 'w-[100px]', defaultVisible: true, isDynamic: true },
@@ -261,6 +267,11 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
               <SelectItem value={maxDrawdownColumn}>Max Drawdown</SelectItem>
               <SelectItem value={arMddRatioColumn}>AR/MDD Ratio</SelectItem>
               <SelectItem value="peRatio">P/E Ratio</SelectItem>
+              <SelectItem value="priceToSalesRatio">P/S Ratio</SelectItem>
+              <SelectItem value="netProfitMargin">Net Profit Margin</SelectItem>
+              <SelectItem value="revenueGrowth3Y">Rev Growth 3Y</SelectItem>
+              <SelectItem value="revenueGrowth5Y">Rev Growth 5Y</SelectItem>
+              <SelectItem value="revenueGrowth10Y">Rev Growth 10Y</SelectItem>
             </SelectContent>
           </Select>
 
@@ -431,6 +442,24 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
                             break;
                         case 'peRatio':
                           cellContent = <div className="font-mono">{company.peRatio && parseFloat(company.peRatio) > 0 ? parseFloat(company.peRatio).toFixed(1) : <span className="text-muted-foreground">-</span>}</div>;
+                          break;
+                        case 'priceToSalesRatio':
+                          cellContent = <div className="font-mono">{company.priceToSalesRatio && parseFloat(company.priceToSalesRatio) > 0 ? parseFloat(company.priceToSalesRatio).toFixed(1) : <span className="text-muted-foreground">-</span>}</div>;
+                          break;
+                        case 'dividendYield':
+                          cellContent = <div className="font-mono">{company.dividendYield && parseFloat(company.dividendYield) > 0 ? parseFloat(company.dividendYield).toFixed(2) : <span className="text-muted-foreground">-</span>}%</div>;
+                          break;
+                        case 'netProfitMargin':
+                          cellContent = <div className="font-mono">{company.netProfitMargin ? `${parseFloat(company.netProfitMargin).toFixed(1)}%` : <span className="text-muted-foreground">-</span>}</div>;
+                          break;
+                        case 'revenueGrowth3Y':
+                          cellContent = <div className="font-mono">{company.revenueGrowth3Y ? `${parseFloat(company.revenueGrowth3Y).toFixed(1)}%` : <span className="text-muted-foreground">-</span>}</div>;
+                          break;
+                        case 'revenueGrowth5Y':
+                          cellContent = <div className="font-mono">{company.revenueGrowth5Y ? `${parseFloat(company.revenueGrowth5Y).toFixed(1)}%` : <span className="text-muted-foreground">-</span>}</div>;
+                          break;
+                        case 'revenueGrowth10Y':
+                          cellContent = <div className="font-mono">{company.revenueGrowth10Y ? `${parseFloat(company.revenueGrowth10Y).toFixed(1)}%` : <span className="text-muted-foreground">-</span>}</div>;
                           break;
                         case 'return':
                         case 'maxDrawdown':

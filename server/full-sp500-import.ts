@@ -28,7 +28,12 @@ async function processInChunks<T, R>(items: T[], chunkProcessor: (chunk: T[]) =>
 }
 
 export async function importAllSP500() {
-  console.log("🚀 Starting FULL S&P 500 import (all 500+ companies)...");
+  console.log("🚀 Starting FULL S&P 500 import...");
+  
+  // Clear existing data
+  await storage.clearAllCompanies();
+  console.log("✅ Cleared existing company data");
+  
   try {
     console.log("Fetching S&P 500 constituents...");
     const constituents = await sp500Scanner.getSP500Constituents();

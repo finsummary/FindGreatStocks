@@ -9,8 +9,8 @@ export const companies = pgTable("companies", {
   symbol: text("symbol").notNull().unique(),
   marketCap: decimal("market_cap", { precision: 20, scale: 2 }).notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  dailyChange: decimal("daily_change", { precision: 5, scale: 2 }).notNull(),
-  dailyChangePercent: decimal("daily_change_percent", { precision: 5, scale: 2 }).notNull(),
+  dailyChange: decimal("daily_change", { precision: 5, scale: 2 }),
+  dailyChangePercent: decimal("daily_change_percent", { precision: 5, scale: 2 }),
   country: text("country").notNull(),
   countryCode: text("country_code"),
   rank: integer("rank").notNull(),
@@ -29,6 +29,11 @@ export const companies = pgTable("companies", {
   eps: decimal("eps", { precision: 8, scale: 2 }),
   beta: decimal("beta", { precision: 5, scale: 3 }),
   dividendYield: decimal("dividend_yield", { precision: 8, scale: 4 }),
+  priceToSalesRatio: decimal("price_to_sales_ratio", { precision: 8, scale: 2 }),
+  netProfitMargin: decimal("net_profit_margin", { precision: 8, scale: 4 }),
+  returnOnEquity: decimal("return_on_equity", { precision: 8, scale: 4 }),
+  returnOnAssets: decimal("return_on_assets", { precision: 8, scale: 4 }),
+  debtToEquity: decimal("debt_to_equity", { precision: 8, scale: 4 }),
   
   // Trading metrics
   volume: decimal("volume", { precision: 20, scale: 2 }),
@@ -62,6 +67,11 @@ export const companies = pgTable("companies", {
   arMddRatio10Year: decimal("ar_mdd_ratio_10_year", { precision: 10, scale: 4 }),
   arMddRatio5Year: decimal("ar_mdd_ratio_5_year", { precision: 10, scale: 4 }),
   arMddRatio3Year: decimal("ar_mdd_ratio_3_year", { precision: 10, scale: 4 }),
+
+  // Growth metrics
+  revenueGrowth3Y: decimal("revenue_growth_3y", { precision: 8, scale: 2 }),
+  revenueGrowth5Y: decimal("revenue_growth_5y", { precision: 8, scale: 2 }),
+  revenueGrowth10Y: decimal("revenue_growth_10y", { precision: 8, scale: 2 }),
 });
 
 // Session storage table.
@@ -102,8 +112,8 @@ export const nasdaq100Companies = pgTable("nasdaq100_companies", {
   symbol: text("symbol").notNull().unique(),
   marketCap: decimal("market_cap", { precision: 20, scale: 2 }).notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  dailyChange: decimal("daily_change", { precision: 5, scale: 2 }).notNull(),
-  dailyChangePercent: decimal("daily_change_percent", { precision: 5, scale: 2 }).notNull(),
+  dailyChange: decimal("daily_change", { precision: 5, scale: 2 }),
+  dailyChangePercent: decimal("daily_change_percent", { precision: 5, scale: 2 }),
   country: text("country").notNull(),
   countryCode: text("country_code"),
   rank: integer("rank").notNull(),
@@ -122,6 +132,11 @@ export const nasdaq100Companies = pgTable("nasdaq100_companies", {
   eps: decimal("eps", { precision: 8, scale: 2 }),
   beta: decimal("beta", { precision: 5, scale: 3 }),
   dividendYield: decimal("dividend_yield", { precision: 8, scale: 4 }),
+  priceToSalesRatio: decimal("price_to_sales_ratio", { precision: 8, scale: 2 }),
+  netProfitMargin: decimal("net_profit_margin", { precision: 8, scale: 4 }),
+  returnOnEquity: decimal("return_on_equity", { precision: 8, scale: 4 }),
+  returnOnAssets: decimal("return_on_assets", { precision: 8, scale: 4 }),
+  debtToEquity: decimal("debt_to_equity", { precision: 8, scale: 4 }),
   
   // Trading metrics
   volume: decimal("volume", { precision: 20, scale: 2 }),
@@ -155,6 +170,11 @@ export const nasdaq100Companies = pgTable("nasdaq100_companies", {
   arMddRatio10Year: decimal("ar_mdd_ratio_10_year", { precision: 10, scale: 4 }),
   arMddRatio5Year: decimal("ar_mdd_ratio_5_year", { precision: 10, scale: 4 }),
   arMddRatio3Year: decimal("ar_mdd_ratio_3_year", { precision: 10, scale: 4 }),
+
+  // Growth metrics
+  revenueGrowth3Y: decimal("revenue_growth_3y", { precision: 8, scale: 2 }),
+  revenueGrowth5Y: decimal("revenue_growth_5y", { precision: 8, scale: 2 }),
+  revenueGrowth10Y: decimal("revenue_growth_10y", { precision: 8, scale: 2 }),
 });
 
 // --- Zod Schemas for API validation and type inference ---

@@ -54,6 +54,16 @@ export interface CompanyProfile {
   isFund: boolean;
 }
 
+export interface KeyMetrics {
+  peRatioTTM: number;
+  dividendYieldTTM: number;
+  priceToSalesRatioTTM: number;
+  netProfitMarginTTM: number;
+  returnOnEquityTTM: number;
+  returnOnAssetsTTM: number;
+  debtToEquityTTM: number;
+}
+
 export interface IncomeStatement {
   date: string;
   symbol: string;
@@ -151,6 +161,16 @@ export class SP500Scanner {
     }
   }
 
+  async getKeyMetrics(symbol: string): Promise<KeyMetrics | null> {
+    try {
+      const metrics = await this.makeRequest(`/key-metrics-ttm/${symbol}`);
+      return Array.isArray(metrics) && metrics.length > 0 ? metrics[0] : null;
+    } catch (error) {
+      console.error(`Error fetching key metrics for ${symbol}:`, error);
+      return null;
+    }
+  }
+
   async getIncomeStatement(symbol: string): Promise<IncomeStatement | null> {
     try {
       const statements = await this.makeRequest(`/income-statement/${symbol}?limit=1`);
@@ -186,9 +206,10 @@ export class SP500Scanner {
       const batchPromises = batch.map(async (constituent) => {
         try {
           // Get company profile and income statement
-          const [profile, incomeStatement] = await Promise.all([
+          const [profile, incomeStatement, keyMetrics] = await Promise.all([
             this.getCompanyProfile(constituent.symbol),
-            this.getIncomeStatement(constituent.symbol)
+            this.getIncomeStatement(constituent.symbol),
+            this.getKeyMetrics(constituent.symbol),
           ]);
           
           if (!profile) {
@@ -196,8 +217,13 @@ export class SP500Scanner {
             return false;
           }
           
-          // Calculate daily change percentage
-          const dailyChangePercent = profile.changes || 0;
+          // Calculate daily change percentage safely
+          const price = profile.price || 0;
+          const changes = profile.changes || 0;
+          const previousPrice = price - changes;
+          const dailyChangePercent = previousPrice !== 0 ? (changes / previousPrice) * 100 : 0;
+          const lastDiv = profile.lastDiv || 0;
+          const calculatedDividendYield = price > 0 ? (lastDiv / price) * 100 : 0;
           
           // Prepare company data
           const companyData: InsertCompany = {
@@ -206,7 +232,7 @@ export class SP500Scanner {
             marketCap: Math.round(profile.mktCap || 0).toString(),
             price: profile.price?.toFixed(2) || "0",
             dailyChange: profile.changes?.toString() || "0",
-            dailyChangePercent: dailyChangePercent.toString(),
+            dailyChangePercent: dailyChangePercent.toFixed(4),
             country: profile.country || "United States",
             countryCode: this.getCountryCode(profile.country || "United States"),
             rank: rank++,
@@ -217,10 +243,15 @@ export class SP500Scanner {
             description: profile.description || null,
             ceo: profile.ceo || null,
             employees: profile.fullTimeEmployees || null,
-            peRatio: null, // Will be calculated from other metrics
+            peRatio: keyMetrics?.peRatioTTM?.toString() || null,
             eps: incomeStatement?.eps?.toString() || null,
             beta: profile.beta?.toString() || null,
-            dividendYield: profile.lastDiv?.toString() || null,
+            dividendYield: calculatedDividendYield.toFixed(4),
+            priceToSalesRatio: keyMetrics?.priceToSalesRatioTTM?.toString() || null,
+            netProfitMargin: keyMetrics?.netProfitMarginTTM?.toString() || null,
+            returnOnEquity: keyMetrics?.returnOnEquityTTM?.toString() || null,
+            returnOnAssets: keyMetrics?.returnOnAssetsTTM?.toString() || null,
+            debtToEquity: keyMetrics?.debtToEquityTTM?.toString() || null,
             volume: profile.volAvg?.toString() || null,
             avgVolume: profile.volAvg?.toString() || null,
             dayLow: null,
@@ -310,9 +341,10 @@ export class SP500Scanner {
     companyNameFromList?: string
   ): Promise<InsertCompany | null> {
     try {
-      const [profileData, incomeData, balanceSheetData, cashFlowData] = await Promise.all([
+      const [profileData, incomeData, keyMetrics, balanceSheetData, cashFlowData] = await Promise.all([
         this.getCompanyProfile(symbol),
         this.getIncomeStatement(symbol),
+        this.getKeyMetrics(symbol),
         // Assuming balance sheet and cash flow are not directly available via FMP API
         // For now, we'll just fetch income statement for simplicity in this example
         // If balance sheet/cash flow are needed, they would require separate API calls
@@ -332,6 +364,13 @@ export class SP500Scanner {
         console.warn(`⚠️ Could not determine company name for symbol ${symbol}. Skipping.`);
         return null;
       }
+      
+      const price = profileData.price || 0;
+      const changes = profileData.changes || 0;
+      const previousPrice = price - changes;
+      const dailyChangePercent = previousPrice !== 0 ? (changes / previousPrice) * 100 : 0;
+      const lastDiv = profileData.lastDiv || 0;
+      const calculatedDividendYield = price > 0 ? (lastDiv / price) * 100 : 0;
 
       const companyData: InsertCompany = {
         name: companyName,
@@ -339,7 +378,7 @@ export class SP500Scanner {
         marketCap: profileData.mktCap ? String(profileData.mktCap) : "0",
         price: profileData.price ? String(profileData.price) : "0",
         dailyChange: profileData.changes?.toString() || "0",
-        dailyChangePercent: profileData.changes?.toString() || "0",
+        dailyChangePercent: dailyChangePercent.toFixed(4),
         country: "United States", // Assuming default country for quick scan
         countryCode: "us", // Assuming default country code for quick scan
         rank: 0, // Placeholder, will be updated after scanning
@@ -350,10 +389,15 @@ export class SP500Scanner {
         description: profileData.description || null,
         ceo: profileData.ceo || null,
         employees: profileData.fullTimeEmployees || null,
-        peRatio: null,
+        peRatio: keyMetrics?.peRatioTTM?.toString() || null,
         eps: incomeData?.eps?.toString() || null,
         beta: profileData.beta?.toString() || null,
-        dividendYield: profileData.lastDiv?.toString() || null,
+        dividendYield: calculatedDividendYield.toFixed(4),
+        priceToSalesRatio: keyMetrics?.priceToSalesRatioTTM?.toString() || null,
+        netProfitMargin: keyMetrics?.netProfitMarginTTM?.toString() || null,
+        returnOnEquity: keyMetrics?.returnOnEquityTTM?.toString() || null,
+        returnOnAssets: keyMetrics?.returnOnAssetsTTM?.toString() || null,
+        debtToEquity: keyMetrics?.debtToEquityTTM?.toString() || null,
         volume: profileData.volAvg?.toString() || null,
         avgVolume: profileData.volAvg?.toString() || null,
         dayLow: null,
@@ -384,3 +428,15 @@ export class SP500Scanner {
 }
 
 export const sp500Scanner = new SP500Scanner();
+
+// Run if called directly
+import { fileURLToPath } from 'url';
+import { resolve } from 'path';
+
+const isMainModule = resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
+if (isMainModule) {
+  sp500Scanner.scanAndImportSP500().catch(error => {
+    console.error("Scan and import failed:", error);
+    process.exit(1);
+  });
+}
