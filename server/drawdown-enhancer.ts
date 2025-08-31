@@ -3,7 +3,10 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { storage } from './storage';
+import { db } from "./db";
+import { companies, nasdaq100Companies, dowJonesCompanies } from "@shared/schema";
+import { PgTable } from "drizzle-orm/pg-core";
+import { eq, sql } from "drizzle-orm";
 
 interface HistoricalPrice {
   date: string;
@@ -26,17 +29,31 @@ class DrawdownEnhancer {
     }
   }
 
-  private async makeRequest(endpoint: string): Promise<any> {
+  private async makeRequest(endpoint: string, retries = 3, initialDelay = 5000): Promise<any> {
     const url = `https://financialmodelingprep.com/api/v3${endpoint}${endpoint.includes('?') ? '&' : '?'}apikey=${this.apiKey}`;
-    
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`FMP API error: ${response.status} ${response.statusText} - ${errorText}`);
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                if (response.status === 429 || response.status >= 500) {
+                    const delay = initialDelay * Math.pow(2, i);
+                    console.warn(`[WARN] Rate limit hit or server error. Retrying in ${delay / 1000}s...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue;
+                }
+                const errorText = await response.text();
+                throw new Error(`FMP API error: ${response.status} ${response.statusText} - ${errorText}`);
+            }
+            return response.json();
+        } catch (error) {
+            if (i < retries - 1) {
+                const delay = initialDelay * Math.pow(2, i);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            } else {
+                throw error;
+            }
+        }
     }
-    
-    return response.json();
   }
 
   // Calculate maximum drawdown from price series
@@ -67,58 +84,44 @@ class DrawdownEnhancer {
   }
 
   // Get historical prices and calculate maximum drawdown
-  async getCompanyDrawdowns(symbol: string): Promise<{
-    symbol: string;
-    maxDrawdown10Year: number | null;
-    maxDrawdown5Year: number | null;
-    maxDrawdown3Year: number | null;
-  } | null> {
+  async getCompanyDrawdowns(symbol: string): Promise<{ maxDrawdown3Year: number | null; maxDrawdown5Year: number | null; maxDrawdown10Year: number | null; }> {
     try {
-      console.log(`Calculating max drawdowns for ${symbol}...`);
+      console.log(`Fetching historical data for drawdown calculation for ${symbol}...`);
       
-      // Get dates for 10-year period
+      const tenYearsAgo = new Date();
+      tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
       const today = new Date();
-      const threeDaysAgo = new Date(today);
-      threeDaysAgo.setDate(today.getDate() - 3);
-      
-      const tenYearsAgo = new Date(today);
-      tenYearsAgo.setFullYear(today.getFullYear() - 10);
 
-      // Fetch 10 years of historical prices
-      const historicalData = await this.makeRequest(`/historical-price-full/${symbol}?from=${tenYearsAgo.toISOString().split('T')[0]}&to=${threeDaysAgo.toISOString().split('T')[0]}`);
+      const historicalData = await this.makeRequest(`/historical-price-full/${symbol}?from=${tenYearsAgo.toISOString().split('T')[0]}&to=${today.toISOString().split('T')[0]}`);
       
-      if (!historicalData?.historical || !Array.isArray(historicalData.historical)) {
+      if (!historicalData?.historical || !Array.isArray(historicalData.historical) || historicalData.historical.length === 0) {
         console.log(`No historical data available for ${symbol}`);
-        return null;
+        return { maxDrawdown3Year: null, maxDrawdown5Year: null, maxDrawdown10Year: null };
       }
 
-      const prices: HistoricalPrice[] = historicalData.historical.sort((a: any, b: any) => 
-        new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
+      const prices: HistoricalPrice[] = historicalData.historical.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-      if (prices.length < 30) { // Need at least 30 data points for meaningful drawdown
-        console.log(`Insufficient price data for ${symbol}`);
-        return null;
-      }
+      const fiveYearsAgo = new Date();
+      fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+      const threeYearsAgo = new Date();
+      threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
 
-      // Calculate Max Drawdown for 10, 5, and 3 years
-      const maxDrawdown10Year = this.calculateMaxDrawdown(prices.slice(-2520)); // Approx 10 years of trading days
-      const maxDrawdown5Year = this.calculateMaxDrawdown(prices.slice(-1260)); // Approx 5 years
-      const maxDrawdown3Year = this.calculateMaxDrawdown(prices.slice(-756));  // Approx 3 years
+      const prices10Year = prices;
+      const prices5Year = prices.filter(p => new Date(p.date) >= fiveYearsAgo);
+      const prices3Year = prices.filter(p => new Date(p.date) >= threeYearsAgo);
 
-      const result = {
-        symbol,
-        maxDrawdown10Year,
-        maxDrawdown5Year,
-        maxDrawdown3Year,
+      const drawdowns = {
+        maxDrawdown10Year: prices10Year.length > 1 ? this.calculateMaxDrawdown(prices10Year) : null,
+        maxDrawdown5Year: prices5Year.length > 1 ? this.calculateMaxDrawdown(prices5Year) : null,
+        maxDrawdown3Year: prices3Year.length > 1 ? this.calculateMaxDrawdown(prices3Year) : null,
       };
 
-      console.log(`✅ Calculated drawdowns for ${symbol}: 3Y=${result.maxDrawdown3Year?.toFixed(2)}%, 5Y=${result.maxDrawdown5Year?.toFixed(2)}%, 10Y=${result.maxDrawdown10Year?.toFixed(2)}%`);
-      return result;
+      console.log(`✅ Calculated drawdowns for ${symbol}: 3Y=${drawdowns.maxDrawdown3Year?.toFixed(1)}%, 5Y=${drawdowns.maxDrawdown5Year?.toFixed(1)}%, 10Y=${drawdowns.maxDrawdown10Year?.toFixed(1)}%`);
+      return drawdowns;
 
     } catch (error) {
-      console.error(`Error processing drawdowns for ${symbol}:`, error);
-      return null;
+      console.error(`Error fetching drawdowns for ${symbol}:`, error);
+      return { maxDrawdown3Year: null, maxDrawdown5Year: null, maxDrawdown10Year: null };
     }
   }
 
@@ -128,7 +131,7 @@ class DrawdownEnhancer {
     
     try {
       // Get all companies from database
-      const companies = await storage.getCompanies(1000); // Get all companies
+      const companies = await db.select({ symbol: companies.symbol }).from(companies); // Get all companies
       console.log(`📊 Calculating max drawdown for ${companies.length} companies`);
       
       let updated = 0;
@@ -144,11 +147,11 @@ class DrawdownEnhancer {
           const drawdowns = await this.getCompanyDrawdowns(company.symbol);
           
           if (drawdowns) {
-            await storage.updateCompany(company.symbol, {
+            await db.update(companies).set({
               maxDrawdown10Year: drawdowns.maxDrawdown10Year?.toString(),
               maxDrawdown5Year: drawdowns.maxDrawdown5Year?.toString(),
               maxDrawdown3Year: drawdowns.maxDrawdown3Year?.toString(),
-            });
+            }).where(eq(companies.symbol, company.symbol));
             updated++;
             console.log(`✅ [${i + 1}/${companies.length}] ${company.symbol}: Max Drawdown = ${drawdowns.maxDrawdown10Year?.toFixed(1)}%`);
           } else {
@@ -194,11 +197,11 @@ class DrawdownEnhancer {
         const drawdownResult = await this.getCompanyDrawdowns(symbol);
         
         if (drawdownResult) {
-          await storage.updateCompany(symbol, {
+          await db.update(companies).set({
             maxDrawdown10Year: drawdownResult.maxDrawdown10Year?.toString(),
             maxDrawdown5Year: drawdownResult.maxDrawdown5Year?.toString(),
             maxDrawdown3Year: drawdownResult.maxDrawdown3Year?.toString(),
-          });
+          }).where(eq(companies.symbol, symbol));
           updated++;
           console.log(`✅ Enhanced ${symbol} with max drawdowns: 3Y=${drawdownResult.maxDrawdown3Year?.toFixed(1)}%, 5Y=${drawdownResult.maxDrawdown5Year?.toFixed(1)}%, 10Y=${drawdownResult.maxDrawdown10Year?.toFixed(1)}%`);
         } else {
@@ -218,19 +221,70 @@ class DrawdownEnhancer {
   }
 }
 
-export const drawdownEnhancer = new DrawdownEnhancer();
+export async function enhanceAllDrawdowns(table: PgTable, name: string) {
+    console.log(`📉 Starting drawdown enhancement for all ${name} companies...`);
+    const drawdownEnhancer = new DrawdownEnhancer();
+  
+    try {
+        const companiesToEnhance = await db.select({ symbol: table.symbol }).from(table).where(sql`${table.maxDrawdown3Year} is null`);
+        
+        if (companiesToEnhance.length === 0) {
+            console.log(`🎉 All companies in ${name} already have drawdown data. Nothing to do.`);
+            return;
+        }
+
+        console.log(`📊 Enhancing drawdown data for ${companiesToEnhance.length} companies in ${name}`);
+    
+        let updated = 0;
+        let errors = 0;
+    
+        for (let i = 0; i < companiesToEnhance.length; i++) {
+            const company = companiesToEnhance[i];
+            console.log(`[${i + 1}/${companiesToEnhance.length}] Processing ${company.symbol} for ${name}...`);
+
+            try {
+                const drawdowns = await drawdownEnhancer.getCompanyDrawdowns(company.symbol);
+                if (drawdowns) {
+                    await db.update(table).set({
+                        maxDrawdown3Year: drawdowns.maxDrawdown3Year,
+                        maxDrawdown5Year: drawdowns.maxDrawdown5Year,
+                        maxDrawdown10Year: drawdowns.maxDrawdown10Year,
+                    }).where(eq(table.symbol, company.symbol));
+                    updated++;
+                } else {
+                    errors++;
+                }
+            } catch (error) {
+                errors++;
+                console.error(`❌ Error processing ${company.symbol}:`, error);
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 1 sec delay between companies
+        }
+    
+        console.log(`🎉 ${name} drawdown enhancement complete: Updated ${updated}, Errors ${errors}`);
+    
+    } catch (error) {
+        console.error(`Error enhancing drawdown data for ${name}:`, error);
+        throw error;
+    }
+}
 
 // Run if called directly
-// The original check is unreliable on Windows, replacing with a simpler direct call
-// const isMainModule = import.meta.url === `file://${process.argv[1]}`;
-// if (isMainModule) {
-  drawdownEnhancer.enhanceAllCompaniesDrawdown()
-    .then(result => {
-      console.log("Drawdown enhancement completed:", result);
-      process.exit(0);
-    })
-    .catch(error => {
-      console.error("Drawdown enhancement failed:", error);
-      process.exit(1);
-    });
-// }
+import { fileURLToPath } from 'url';
+import { resolve } from 'path';
+
+const isMainModule = resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
+
+if (isMainModule) {
+  (async () => {
+    await enhanceAllDrawdowns(companies, "S&P 500");
+    await enhanceAllDrawdowns(nasdaq100Companies, "Nasdaq 100");
+    await enhanceAllDrawdowns(dowJonesCompanies, "Dow Jones");
+    console.log("\nAll drawdown enhancements complete.");
+    process.exit(0);
+  })().catch(error => {
+    console.error("Main drawdown execution failed:", error);
+    process.exit(1);
+  });
+}

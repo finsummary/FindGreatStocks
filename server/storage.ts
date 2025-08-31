@@ -1,4 +1,4 @@
-import { companies, nasdaq100Companies, watchlist, users, type User, type UpsertUser, type Company, type Nasdaq100Company, type InsertCompany, type InsertNasdaq100Company, type Watchlist, type InsertWatchlist } from "@shared/schema";
+import { companies, nasdaq100Companies, watchlist, users, type User, type UpsertUser, type Company, type Nasdaq100Company, type InsertCompany, type InsertNasdaq100Company, type Watchlist, type InsertWatchlist, type DowJonesCompany, type InsertDowJonesCompany } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, asc, and, or, ilike } from "drizzle-orm";
 
@@ -21,6 +21,11 @@ export interface IStorage {
   getNasdaq100CompanyCount(search?: string): Promise<number>;
   getNasdaq100CompanyBySymbol(symbol: string): Promise<Nasdaq100Company | undefined>;
   
+  // Dow Jones methods
+  getDowJonesCompanies(limit?: number, offset?: number, sortBy?: string, sortOrder?: 'asc' | 'desc', search?: string): Promise<DowJonesCompany[]>;
+  getDowJonesCompanyCount(search?: string): Promise<number>;
+  getDowJonesCompanyBySymbol(symbol: string): Promise<DowJonesCompany | undefined>;
+
   // FTSE 100 methods
   getFtse100Companies(limit?: number, offset?: number, sortBy?: string, sortOrder?: 'asc' | 'desc', search?: string): Promise<Ftse100Company[]>;
   getFtse100CompanyCount(search?: string): Promise<number>;
@@ -57,7 +62,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getCompanies(limit = 50, offset = 0, sortBy = 'marketCap', sortOrder: 'asc' | 'desc' = 'desc', search?: string): Promise<Company[]> {
+  async getCompanies(limit = 50, offset = 0, sortBy = 'rank', sortOrder: 'asc' | 'desc' = 'asc', search?: string): Promise<Company[]> {
     // Sanitize sortOrder to prevent SQL injection, though drizzle-orm's sql template should handle it.
     const direction = sortOrder === 'asc' ? sql`ASC NULLS FIRST` : sql`DESC NULLS LAST`;
 
@@ -307,6 +312,55 @@ export class DatabaseStorage implements IStorage {
     return company;
   }
 
+  // Dow Jones methods
+  async getDowJonesCompanies(
+    limit: number = 50,
+    offset: number = 0,
+    sortBy: string = 'marketCap',
+    sortOrder: 'asc' | 'desc' = 'desc',
+    search?: string
+  ): Promise<DowJonesCompany[]> {
+    const direction = sortOrder === 'asc' ? sql`ASC NULLS FIRST` : sql`DESC NULLS LAST`;
+    const sortColumn = this.buildOrderByClause(sortBy);
+
+    let whereClause = sql``;
+    if (search && search.trim()) {
+        const searchTerm = `%${search.trim()}%`;
+        whereClause = sql`WHERE "name" ILIKE ${searchTerm} OR "symbol" ILIKE ${searchTerm}`;
+    }
+
+    const query = sql`
+        SELECT * FROM dow_jones_companies
+        ${whereClause}
+        ORDER BY ${sortColumn} ${direction}
+        LIMIT ${limit}
+        OFFSET ${offset}
+    `;
+
+    const result = await db.execute(query);
+    return result.rows.map(this.mapDbRowToCompany as (row: any) => DowJonesCompany);
+  }
+
+  async getDowJonesCompanyCount(search?: string): Promise<number> {
+    let whereClause = sql``;
+    if (search && search.trim()) {
+        const searchTerm = `%${search.trim()}%`;
+        whereClause = sql`WHERE "name" ILIKE ${searchTerm} OR "symbol" ILIKE ${searchTerm}`;
+    }
+
+    const query = sql`SELECT count(*) FROM dow_jones_companies ${whereClause}`;
+    const result = await db.execute(query);
+    return Number(result.rows[0]?.count || 0);
+  }
+
+  async getDowJonesCompanyBySymbol(symbol: string): Promise<DowJonesCompany | undefined> {
+    const [company] = await db
+      .select()
+      .from(dowJonesCompanies)
+      .where(eq(dowJonesCompanies.symbol, symbol));
+    return company;
+  }
+
   async getWatchlist(userId: string): Promise<Watchlist[]> {
     const result = await db.select().from(watchlist).where(eq(watchlist.userId, userId));
     return result;
@@ -334,157 +388,32 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(watchlist.companySymbol, companySymbol), eq(watchlist.userId, userId)));
     return result.length > 0;
   }
-}
-
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private companies: Map<number, Company>;
-  private watchlist: Watchlist[];
-  private currentUserId: number;
-  private currentCompanyId: number;
-  private currentWatchlistId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.companies = new Map();
-    this.watchlist = [];
-    this.currentUserId = 1;
-    this.currentCompanyId = 1;
-    this.currentWatchlistId = 1;
-    
-    // Storage starts empty - scheduler will load data from API
-    console.log('MemStorage initialized - waiting for scheduler to load data');
-  }
-
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
-  }
-
-  async getCompanies(limit = 50, offset = 0, sortBy = 'rank', sortOrder: 'asc' | 'desc' = 'asc', search?: string, country?: string): Promise<Company[]> {
-    let companiesArray = Array.from(this.companies.values());
-
-    // Apply search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
-      companiesArray = companiesArray.filter(company => 
-        company.name.toLowerCase().includes(searchLower) ||
-        company.symbol.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Apply country filter
-    if (country) {
-      companiesArray = companiesArray.filter(company => 
-        company.countryCode === country
-      );
-    }
-
-    // Apply sorting
-    companiesArray.sort((a, b) => {
-      let aValue: any = a[sortBy as keyof Company];
-      let bValue: any = b[sortBy as keyof Company];
-
-      // Convert to numbers for numeric fields
-      if (['marketCap', 'price', 'dailyChange', 'dailyChangePercent', 'rank'].includes(sortBy)) {
-        aValue = parseFloat(String(aValue));
-        bValue = parseFloat(String(bValue));
-      }
-
-      if (sortOrder === 'desc') {
-        return bValue > aValue ? 1 : -1;
-      } else {
-        return aValue > bValue ? 1 : -1;
-      }
-    });
-
-    // Apply pagination
-    return companiesArray.slice(offset, offset + limit);
-  }
-
-  async getCompanyCount(search?: string, country?: string): Promise<number> {
-    let companiesArray = Array.from(this.companies.values());
-
-    if (search) {
-      const searchLower = search.toLowerCase();
-      companiesArray = companiesArray.filter(company => 
-        company.name.toLowerCase().includes(searchLower) ||
-        company.symbol.toLowerCase().includes(searchLower)
-      );
-    }
-
-    if (country) {
-      companiesArray = companiesArray.filter(company => 
-        company.countryCode === country
-      );
-    }
-
-    return companiesArray.length;
-  }
-
-  async getCompanyBySymbol(symbol: string): Promise<Company | undefined> {
-    return Array.from(this.companies.values()).find(
-      (company) => company.symbol === symbol,
-    );
-  }
-
-  async createCompany(insertCompany: InsertCompany): Promise<Company> {
-    const id = this.currentCompanyId++;
-    const company: Company = { 
-      ...insertCompany, 
-      id,
-      logoUrl: insertCompany.logoUrl || null
+  
+  private buildOrderByClause(sortBy: string): SQL {
+    const sortColumnMap: Record<string, SQL> = {
+        'rank': sql`CASE WHEN "rank" IS NULL THEN 0 ELSE "rank" END`,
+        'name': sql`"name"`,
+        'marketCap': sql`CASE WHEN "market_cap" IS NULL OR "market_cap"::text = '' THEN 0 ELSE CAST("market_cap" AS BIGINT) END`,
+        'price': sql`CASE WHEN "price" IS NULL OR "price"::text = '' THEN 0 ELSE CAST("price" AS NUMERIC) END`,
+        'revenue': sql`CASE WHEN "revenue" IS NULL OR "revenue"::text = '' THEN 0 ELSE CAST("revenue" AS BIGINT) END`,
+        'peRatio': sql`CASE WHEN "pe_ratio" IS NULL OR "pe_ratio"::text = '' THEN 99999 ELSE CAST("pe_ratio" AS NUMERIC) END`,
+        'priceToSalesRatio': sql`CASE WHEN "price_to_sales_ratio" IS NULL OR "price_to_sales_ratio"::text = '' THEN 99999 ELSE CAST("price_to_sales_ratio" AS NUMERIC) END`,
+        'netProfitMargin': sql`CASE WHEN "net_profit_margin" IS NULL OR "net_profit_margin"::text = '' THEN -99999 ELSE CAST("net_profit_margin" AS NUMERIC) END`,
+        'dividendYield': sql`CASE WHEN "dividend_yield" IS NULL OR "dividend_yield"::text = '' THEN -99999 ELSE CAST("dividend_yield" AS NUMERIC) END`,
+        'revenueGrowth3Y': sql`CASE WHEN "revenue_growth_3y" IS NULL OR "revenue_growth_3y"::text = '' THEN -99999 ELSE CAST("revenue_growth_3y" AS NUMERIC) END`,
+        'revenueGrowth5Y': sql`CASE WHEN "revenue_growth_5y" IS NULL OR "revenue_growth_5y"::text = '' THEN -99999 ELSE CAST("revenue_growth_5y" AS NUMERIC) END`,
+        'revenueGrowth10Y': sql`CASE WHEN "revenue_growth_10y" IS NULL OR "revenue_growth_10y"::text = '' THEN -99999 ELSE CAST("revenue_growth_10y" AS NUMERIC) END`,
+        'return3Year': sql`CASE WHEN "return_3_year" IS NULL OR "return_3_year"::text = '' THEN -99999 ELSE CAST("return_3_year" AS NUMERIC) END`,
+        'return5Year': sql`CASE WHEN "return_5_year" IS NULL OR "return_5_year"::text = '' THEN -99999 ELSE CAST("return_5_year" AS NUMERIC) END`,
+        'return10Year': sql`CASE WHEN "return_10_year" IS NULL OR "return_10_year"::text = '' THEN -99999 ELSE CAST("return_10_year" AS NUMERIC) END`,
+        'maxDrawdown3Year': sql`CASE WHEN "max_drawdown_3_year" IS NULL OR "max_drawdown_3_year"::text = '' THEN 99999 ELSE CAST("max_drawdown_3_year" AS NUMERIC) END`,
+        'maxDrawdown5Year': sql`CASE WHEN "max_drawdown_5_year" IS NULL OR "max_drawdown_5_year"::text = '' THEN 99999 ELSE CAST("max_drawdown_5_year" AS NUMERIC) END`,
+        'maxDrawdown10Year': sql`CASE WHEN "max_drawdown_10_year" IS NULL OR "max_drawdown_10_year"::text = '' THEN 99999 ELSE CAST("max_drawdown_10_year" AS NUMERIC) END`,
+        'arMddRatio3Year': sql`CASE WHEN "ar_mdd_ratio_3_year" IS NULL OR "ar_mdd_ratio_3_year"::text = '' THEN -99999 ELSE CAST("ar_mdd_ratio_3_year" AS NUMERIC) END`,
+        'arMddRatio5Year': sql`CASE WHEN "ar_mdd_ratio_5_year" IS NULL OR "ar_mdd_ratio_5_year"::text = '' THEN -99999 ELSE CAST("ar_mdd_ratio_5_year" AS NUMERIC) END`,
+        'arMddRatio10Year': sql`CASE WHEN "ar_mdd_ratio_10_year" IS NULL OR "ar_mdd_ratio_10_year"::text = '' THEN -99999 ELSE CAST("ar_mdd_ratio_10_year" AS NUMERIC) END`,
     };
-    this.companies.set(id, company);
-    return company;
-  }
-
-  async updateCompany(symbol: string, updates: Partial<Company>): Promise<void> {
-    const company = await this.getCompanyBySymbol(symbol);
-    if (company) {
-      const updatedCompany = { ...company, ...updates };
-      this.companies.set(company.id, updatedCompany);
-    }
-  }
-
-  async getWatchlist(userId: string = "guest"): Promise<Watchlist[]> {
-    return this.watchlist.filter(w => w.userId === userId);
-  }
-
-  async addToWatchlist(companySymbol: string, userId: string = "guest"): Promise<Watchlist> {
-    const watchlistItem: Watchlist = { 
-      id: this.currentWatchlistId++,
-      companySymbol, 
-      userId,
-      addedAt: new Date().toISOString()
-    };
-    this.watchlist.push(watchlistItem);
-    return watchlistItem;
-  }
-
-  async removeFromWatchlist(companySymbol: string, userId: string = "guest"): Promise<void> {
-    this.watchlist = this.watchlist.filter(w => !(w.userId === userId && w.companySymbol === companySymbol));
-  }
-
-  async isInWatchlist(companySymbol: string, userId: string = "guest"): Promise<boolean> {
-    return this.watchlist.some(w => w.userId === userId && w.companySymbol === companySymbol);
-  }
-
-  async clearAllCompanies(): Promise<void> {
-    this.companies.clear();
-    this.currentCompanyId = 1;
+    return sortColumnMap[sortBy] || sql`CASE WHEN "market_cap" IS NULL OR "market_cap" = '' THEN 0 ELSE CAST("market_cap" AS BIGINT) END`;
   }
 }
 

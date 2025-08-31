@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { formatMarketCap, formatPrice, formatPercentage, formatPercentageFromDecimal, formatCountry, formatEarnings } from "@/lib/format";
+import { formatCurrency, formatMarketCap, formatPercentage, formatPrice, formatEarnings, formatNumber } from "@/lib/format";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -49,12 +49,12 @@ const ALL_COLUMNS: ColumnConfig[] = [
 
 interface CompanyTableProps {
   searchQuery: string;
-  dataset: 'sp500' | 'nasdaq100' | 'ftse100';
+  dataset: 'sp500' | 'nasdaq100' | 'ftse100' | 'dowjones';
 }
 
 export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
-  const [sortBy, setSortBy] = useState<string>('marketCap');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortBy, setSortBy] = useState<string>('rank');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(0);
   const [limit] = useState(50);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('10Year');
@@ -111,7 +111,20 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
     });
   }, [timePeriod, visibleColumns]);
 
-  const apiEndpoint = dataset === 'nasdaq100' ? '/api/nasdaq100' : dataset === 'ftse100' ? '/api/ftse100' : '/api/companies';
+  let apiEndpoint;
+  switch (dataset) {
+    case 'sp500':
+      apiEndpoint = '/api/companies';
+      break;
+    case 'nasdaq100':
+      apiEndpoint = '/api/nasdaq100';
+      break;
+    case 'dowjones':
+      apiEndpoint = '/api/dowjones';
+      break;
+    default:
+      apiEndpoint = '/api/companies';
+  }
 
   const { data, isLoading, error } = useQuery({
     queryKey: [apiEndpoint, page, sortBy, sortOrder, searchQuery],
@@ -125,7 +138,7 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
       ];
 
       const params = new URLSearchParams({
-        page: String(page),
+        offset: String(page * limit),
         limit: String(limit),
         sortBy: sortBy,
         sortOrder: sortOrder,
@@ -410,7 +423,7 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
                           );
                           break;
                         case 'rank':
-                          cellContent = <div className="font-medium">{page * limit + index + 1}</div>;
+                          cellContent = <div className="font-medium">{(page * limit) + index + 1}</div>;
                           break;
                         case 'name':
                           cellContent = (
@@ -438,28 +451,28 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
                           cellContent = <div className="font-mono">{company.revenue ? formatMarketCap(company.revenue) : <span className="text-muted-foreground">-</span>}</div>;
                           break;
                         case 'netIncome':
-                            cellContent = <div className="font-mono">{company.netIncome ? formatEarnings(company.netIncome) : <span className="text-muted-foreground">-</span>}</div>;
+                            cellContent = <div className="font-mono">{formatEarnings(company.netIncome)}</div>;
                             break;
                         case 'peRatio':
-                          cellContent = <div className="font-mono">{company.peRatio && parseFloat(company.peRatio) > 0 ? parseFloat(company.peRatio).toFixed(1) : <span className="text-muted-foreground">-</span>}</div>;
+                          cellContent = <div className="font-mono">{formatNumber(company.peRatio, 1)}</div>;
                           break;
                         case 'priceToSalesRatio':
-                          cellContent = <div className="font-mono">{company.priceToSalesRatio && parseFloat(company.priceToSalesRatio) > 0 ? parseFloat(company.priceToSalesRatio).toFixed(1) : <span className="text-muted-foreground">-</span>}</div>;
+                          cellContent = <div className="font-mono">{formatNumber(company.priceToSalesRatio, 1)}</div>;
                           break;
                         case 'dividendYield':
-                          cellContent = <div className="font-mono">{company.dividendYield && parseFloat(company.dividendYield) > 0 ? parseFloat(company.dividendYield).toFixed(2) : <span className="text-muted-foreground">-</span>}%</div>;
+                          cellContent = <div className="font-mono">{formatPercentage(company.dividendYield, false, 2)}</div>;
                           break;
                         case 'netProfitMargin':
-                          cellContent = <div className="font-mono">{company.netProfitMargin ? `${parseFloat(company.netProfitMargin).toFixed(1)}%` : <span className="text-muted-foreground">-</span>}</div>;
+                          cellContent = <div className="font-mono">{formatPercentage(company.netProfitMargin, false, 1)}</div>;
                           break;
                         case 'revenueGrowth3Y':
-                          cellContent = <div className="font-mono">{company.revenueGrowth3Y ? `${parseFloat(company.revenueGrowth3Y).toFixed(1)}%` : <span className="text-muted-foreground">-</span>}</div>;
+                          cellContent = <div className="font-mono">{formatPercentage(company.revenueGrowth3Y, false, 1)}</div>;
                           break;
                         case 'revenueGrowth5Y':
-                          cellContent = <div className="font-mono">{company.revenueGrowth5Y ? `${parseFloat(company.revenueGrowth5Y).toFixed(1)}%` : <span className="text-muted-foreground">-</span>}</div>;
+                          cellContent = <div className="font-mono">{formatPercentage(company.revenueGrowth5Y, false, 1)}</div>;
                           break;
                         case 'revenueGrowth10Y':
-                          cellContent = <div className="font-mono">{company.revenueGrowth10Y ? `${parseFloat(company.revenueGrowth10Y).toFixed(1)}%` : <span className="text-muted-foreground">-</span>}</div>;
+                          cellContent = <div className="font-mono">{formatPercentage(company.revenueGrowth10Y, false, 1)}</div>;
                           break;
                         case 'return':
                         case 'maxDrawdown':
@@ -467,16 +480,16 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
                           const dynamicColId = `${column.id}${timePeriod}` as keyof Company;
                           const value = company[dynamicColId];
                           if (column.id.includes('return')) {
-                            cellContent = value && parseFloat(value as string) !== 0 ? (
+                            cellContent = value ? (
                               <Badge variant="outline" className={`font-mono ${parseFloat(value as string) >= 0 ? 'text-blue-600 border-blue-200 bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:bg-blue-950' : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'}`}>{formatPercentage(value as string, true)}</Badge>
                             ) : <span className="text-muted-foreground">-</span>;
                           } else if (column.id.includes('maxDrawdown')) {
-                            cellContent = value && parseFloat(value as string) > 0 ? (
-                              <Badge variant="outline" className="font-mono text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950">-{parseFloat(value as string).toFixed(2)}%</Badge>
+                            cellContent = value ? (
+                              <Badge variant="outline" className="font-mono text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950">-{formatPercentage(value as string, false, 2)}</Badge>
                             ) : <span className="text-muted-foreground">-</span>;
                           } else if (column.id.includes('arMddRatio')) {
-                            cellContent = value && parseFloat(value as string) !== 0 ? (
-                              <Badge variant="outline" className={`font-mono ${parseFloat(value as string) >= 0.5 ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950' : parseFloat(value as string) >= 0.2 ? 'text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950' : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'}`}>{parseFloat(value as string).toFixed(2)}</Badge>
+                            cellContent = value ? (
+                              <Badge variant="outline" className={`font-mono ${parseFloat(value as string) >= 0.5 ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950' : parseFloat(value as string) >= 0.2 ? 'text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950' : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'}`}>{formatNumber(value as string, 2)}</Badge>
                             ) : <span className="text-muted-foreground">-</span>;
                           } else {
                             cellContent = <span className="text-muted-foreground">-</span>;

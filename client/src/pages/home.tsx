@@ -22,9 +22,10 @@ export function HomePage() {
 
       <div className="mt-6">
         <Tabs defaultValue="sp500" className="w-full">
-          <TabsList>
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="sp500">S&P 500</TabsTrigger>
             <TabsTrigger value="nasdaq100">Nasdaq 100</TabsTrigger>
+            <TabsTrigger value="dowjones">Dow Jones</TabsTrigger>
           </TabsList>
           <TabsContent value="sp500">
             <div className="mt-4">
@@ -34,6 +35,11 @@ export function HomePage() {
           <TabsContent value="nasdaq100">
             <div className="mt-4">
               <CompanyTable dataset="nasdaq100" searchQuery={searchQuery} />
+            </div>
+          </TabsContent>
+          <TabsContent value="dowjones">
+            <div className="mt-4">
+              <CompanyTable dataset="dowjones" searchQuery={searchQuery} />
             </div>
           </TabsContent>
         </Tabs>

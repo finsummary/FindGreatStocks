@@ -51,6 +51,7 @@ export const companies = pgTable("companies", {
   totalAssets: decimal("total_assets", { precision: 20, scale: 0 }),
   totalDebt: decimal("total_debt", { precision: 20, scale: 0 }),
   cashAndEquivalents: decimal("cash_and_equivalents", { precision: 20, scale: 0 }),
+  freeCashFlow: decimal("free_cash_flow", { precision: 20, scale: 0 }),
   
   // Performance metrics (annualized returns as percentages)
   return3Year: decimal("return_3_year", { precision: 8, scale: 2 }),
@@ -154,6 +155,7 @@ export const nasdaq100Companies = pgTable("nasdaq100_companies", {
   totalAssets: decimal("total_assets", { precision: 20, scale: 0 }),
   totalDebt: decimal("total_debt", { precision: 20, scale: 0 }),
   cashAndEquivalents: decimal("cash_and_equivalents", { precision: 20, scale: 0 }),
+  freeCashFlow: decimal("free_cash_flow", { precision: 20, scale: 0 }),
   
   // Performance metrics (annualized returns as percentages)
   return3Year: decimal("return_3_year", { precision: 8, scale: 2 }),
@@ -177,6 +179,76 @@ export const nasdaq100Companies = pgTable("nasdaq100_companies", {
   revenueGrowth10Y: decimal("revenue_growth_10y", { precision: 8, scale: 2 }),
 });
 
+// Dow Jones companies table (mirrors the structure of the main 'companies' table)
+export const dowJonesCompanies = pgTable("dow_jones_companies", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  symbol: text("symbol").notNull().unique(),
+  marketCap: decimal("market_cap", { precision: 20, scale: 2 }),
+  price: decimal("price", { precision: 10, scale: 2 }),
+  dailyChange: decimal("daily_change", { precision: 10, scale: 2 }),
+  dailyChangePercent: decimal("daily_change_percent", { precision: 5, scale: 2 }),
+  country: text("country"),
+  countryCode: text("country_code"),
+  rank: integer("rank"),
+  logoUrl: text("logo_url"),
+  
+  // Enhanced financial data
+  industry: text("industry"),
+  sector: text("sector"),
+  website: text("website"),
+  description: text("description"),
+  ceo: text("ceo"),
+  employees: integer("employees"),
+  
+  // Key financial metrics
+  peRatio: decimal("pe_ratio", { precision: 10, scale: 2 }),
+  eps: decimal("eps", { precision: 10, scale: 2 }),
+  beta: decimal("beta", { precision: 8, scale: 4 }),
+  dividendYield: decimal("dividend_yield", { precision: 8, scale: 4 }),
+  priceToSalesRatio: decimal("price_to_sales_ratio", { precision: 10, scale: 2 }),
+  netProfitMargin: decimal("net_profit_margin", { precision: 8, scale: 4 }),
+  
+  // Trading metrics
+  volume: decimal("volume", { precision: 20, scale: 0 }),
+  avgVolume: decimal("avg_volume", { precision: 20, scale: 0 }),
+  dayLow: decimal("day_low", { precision: 10, scale: 2 }),
+  dayHigh: decimal("day_high", { precision: 10, scale: 2 }),
+  yearLow: decimal("year_low", { precision: 10, scale: 2 }),
+  yearHigh: decimal("year_high", { precision: 10, scale: 2 }),
+  
+  // Financial statement data
+  revenue: decimal("revenue", { precision: 20, scale: 0 }),
+  grossProfit: decimal("gross_profit", { precision: 20, scale: 0 }),
+  operatingIncome: decimal("operating_income", { precision: 20, scale: 0 }),
+  netIncome: decimal("net_income", { precision: 20, scale: 0 }),
+  totalAssets: decimal("total_assets", { precision: 20, scale: 0 }),
+  totalDebt: decimal("total_debt", { precision: 20, scale: 0 }),
+  cashAndEquivalents: decimal("cash_and_equivalents", { precision: 20, scale: 0 }),
+  freeCashFlow: decimal("free_cash_flow", { precision: 20, scale: 0 }),
+  
+  // Performance metrics
+  return3Year: decimal("return_3_year", { precision: 8, scale: 2 }),
+  return5Year: decimal("return_5_year", { precision: 8, scale: 2 }),
+  return10Year: decimal("return_10_year", { precision: 8, scale: 2 }),
+  
+  // Risk metrics
+  maxDrawdown10Year: decimal("max_drawdown_10_year", { precision: 8, scale: 2 }),
+  maxDrawdown5Year: decimal("max_drawdown_5_year", { precision: 8, scale: 2 }),
+  maxDrawdown3Year: decimal("max_drawdown_3_year", { precision: 8, scale: 2 }),
+  
+  // Risk-adjusted performance metrics
+  arMddRatio10Year: decimal("ar_mdd_ratio_10_year", { precision: 10, scale: 4 }),
+  arMddRatio5Year: decimal("ar_mdd_ratio_5_year", { precision: 10, scale: 4 }),
+  arMddRatio3Year: decimal("ar_mdd_ratio_3_year", { precision: 10, scale: 4 }),
+
+  // Growth metrics
+  revenueGrowth3Y: decimal("revenue_growth_3y", { precision: 8, scale: 2 }),
+  revenueGrowth5Y: decimal("revenue_growth_5y", { precision: 8, scale: 2 }),
+  revenueGrowth10Y: decimal("revenue_growth_10y", { precision: 8, scale: 2 }),
+});
+
+
 // --- Zod Schemas for API validation and type inference ---
 
 // S&P 500 Companies
@@ -190,6 +262,12 @@ export const insertNasdaq100CompanySchema = createInsertSchema(nasdaq100Companie
 export const selectNasdaq100CompanySchema = createSelectSchema(nasdaq100Companies);
 export type InsertNasdaq100Company = z.infer<typeof insertNasdaq100CompanySchema>;
 export type Nasdaq100Company = z.infer<typeof selectNasdaq100CompanySchema>;
+
+// Dow Jones Companies
+export const insertDowJonesCompanySchema = createInsertSchema(dowJonesCompanies);
+export const selectDowJonesCompanySchema = createSelectSchema(dowJonesCompanies);
+export type InsertDowJonesCompany = z.infer<typeof insertDowJonesCompanySchema>;
+export type DowJonesCompany = z.infer<typeof selectDowJonesCompanySchema>;
 
 // Users
 export type UpsertUser = typeof users.$inferInsert;

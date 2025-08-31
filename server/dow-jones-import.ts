@@ -1,7 +1,5 @@
-#!/usr/bin/env tsx
-
 import { db } from "./db";
-import { nasdaq100Companies } from "@shared/schema";
+import { dowJonesCompanies } from "@shared/schema";
 import 'dotenv/config';
 
 const FMP_BASE_URL = "https://financialmodelingprep.com/api/v3";
@@ -16,21 +14,21 @@ async function getConstituents(): Promise<Constituent[]> {
   if (!FMP_API_KEY) {
     throw new Error("FMP_API_KEY is not configured");
   }
-  const url = `${FMP_BASE_URL}/nasdaq_constituent?apikey=${FMP_API_KEY}`;
+  const url = `${FMP_BASE_URL}/dowjones_constituent?apikey=${FMP_API_KEY}`;
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`Failed to fetch Nasdaq 100 constituents: ${response.statusText}`);
+    throw new Error(`Failed to fetch Dow Jones constituents: ${response.statusText}`);
   }
   return response.json();
 }
 
-async function importNasdaq100() {
-  console.log("🚀 Starting Nasdaq 100 import (additive mode)...");
+async function importDowJones() {
+  console.log("🚀 Starting Dow Jones import (additive mode)...");
   try {
     const constituents = await getConstituents();
-    console.log(`Found ${constituents.length} Nasdaq 100 companies from API.`);
+    console.log(`Found ${constituents.length} Dow Jones companies from API.`);
 
-    const existingCompanies = await db.select({ symbol: nasdaq100Companies.symbol }).from(nasdaq100Companies);
+    const existingCompanies = await db.select({ symbol: dowJonesCompanies.symbol }).from(dowJonesCompanies);
     const existingSymbols = new Set(existingCompanies.map(c => c.symbol));
     console.log(`Found ${existingSymbols.size} companies already in the database.`);
 
@@ -48,15 +46,15 @@ async function importNasdaq100() {
       name: c.name,
     }));
 
-    await db.insert(nasdaq100Companies).values(newCompaniesData).onConflictDoNothing();
+    await db.insert(dowJonesCompanies).values(newCompaniesData).onConflictDoNothing();
 
-    console.log(`✅ Successfully added ${missingConstituents.length} new companies to the Nasdaq 100 table.`);
+    console.log(`✅ Successfully added ${missingConstituents.length} new companies to the Dow Jones table.`);
     console.log("Run `npm run enhance:all` to enrich the new entries.");
 
   } catch (error) {
-    console.error("❌ An error occurred during the Nasdaq 100 import process:", error);
+    console.error("❌ An error occurred during the Dow Jones import process:", error);
     process.exit(1);
   }
 }
 
-importNasdaq100();
+importDowJones();

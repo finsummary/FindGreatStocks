@@ -1,93 +1,91 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { storage } from './storage';
-import { Company, companies } from '@shared/schema';
-import { db } from './db';
-import { eq, sql } from 'drizzle-orm';
+import { db } from "./db";
+import { companies, nasdaq100Companies, dowJonesCompanies } from "@shared/schema";
+import { PgTable } from "drizzle-orm/pg-core";
+import { eq, isNotNull, and, or, sql } from "drizzle-orm";
 
-class ArMddEnhancer {
-  async enhanceAllCompanies() {
-    try {
-      console.log("🚀 Starting AR/MDD Ratio enhancement process for all companies...");
-      
-      const allCompanies = await storage.getCompaniesForEnhancement();
-      
-      console.log(`[INFO] Found ${allCompanies.length} companies to process.`);
+async function calculateAndStoreArMddRatiosForTable(
+  table: PgTable,
+  name: string
+) {
+  console.log(`🚀 Calculating AR/MDD Ratios for ${name}...`);
 
-      let updatedCount = 0;
-      let skippedCount = 0;
-      let errorCount = 0;
+  try {
+    // Select companies that have the necessary return and drawdown data, but AR/MDD is not yet calculated
+    const companiesToUpdate = await db
+      .select({
+        symbol: table.symbol,
+        return3Year: table.return3Year,
+        return5Year: table.return5Year,
+        return10Year: table.return10Year,
+        maxDrawdown3Year: table.maxDrawdown3Year,
+        maxDrawdown5Year: table.maxDrawdown5Year,
+        maxDrawdown10Year: table.maxDrawdown10Year,
+      })
+      .from(table)
+      .where(
+          and(
+              or(
+                  isNotNull(table.return3Year),
+                  isNotNull(table.return5Year),
+                  isNotNull(table.return10Year)
+              ),
+              sql`${table.arMddRatio3Year} is null`
+          )
+      );
 
-      for (const company of allCompanies) {
-        try {
-          const ratios = this.calculateArMddRatios(company);
+    if (companiesToUpdate.length === 0) {
+        console.log(`🎉 All companies in ${name} already have AR/MDD Ratios calculated. Nothing to do.`);
+        return;
+    }
 
-          if (ratios) {
-            await db.update(companies)
-              .set({
-                arMddRatio10Year: ratios.ratio10Y?.toString(),
-                arMddRatio5Year: ratios.ratio5Y?.toString(),
-                arMddRatio3Year: ratios.ratio3Y?.toString(),
-              })
-              .where(eq(companies.symbol, company.symbol));
+    console.log(
+      `📊 Found ${companiesToUpdate.length} companies in ${name} to calculate AR/MDD Ratios for.`
+    );
 
-            console.log(`✅ [${updatedCount + 1}/${allCompanies.length}] Updated ${company.symbol}: 10Y=${ratios.ratio10Y}, 5Y=${ratios.ratio5Y}, 3Y=${ratios.ratio3Y}`);
-            updatedCount++;
-          } else {
-            console.log(`⏭️ Skipping ${company.symbol}: Insufficient data.`);
-            skippedCount++;
-          }
-        } catch (error) {
-          console.error(`❌ Error processing ${company.symbol}:`, error);
-          errorCount++;
+    for (const company of companiesToUpdate) {
+            const parseAndCalculate = (ret: string | null, mdd: string | null): number | null => {
+                const returnVal = parseFloat(ret || '0');
+                const maxDrawdownVal = parseFloat(mdd || '0');
+                if (!isNaN(returnVal) && !isNaN(maxDrawdownVal) && maxDrawdownVal > 0) {
+                    return parseFloat((returnVal / maxDrawdownVal).toFixed(4));
+                }
+                return null;
+            };
+            
+            const arMddRatio3Year = parseAndCalculate(company.return3Year, company.maxDrawdown3Year);
+            const arMddRatio5Year = parseAndCalculate(company.return5Year, company.maxDrawdown5Year);
+            const arMddRatio10Year = parseAndCalculate(company.return10Year, company.maxDrawdown10Year);
+
+            const updates = {
+                arMddRatio3Year: arMddRatio3Year,
+                arMddRatio5Year: arMddRatio5Year,
+                arMddRatio10Year: arMddRatio10Year,
+            };
+
+            await db.update(table).set(updates).where(eq(table.symbol, company.symbol));
         }
-      }
 
-      console.log("\n--- AR/MDD Ratio Enhancement Complete ---");
-      console.log(`👍 Successfully updated: ${updatedCount}`);
-      console.log(`⏭️ Skipped (insufficient data): ${skippedCount}`);
-      console.log(`👎 Errors: ${errorCount}`);
+        console.log(
+          `✅ Successfully calculated and stored AR/MDD Ratios for ${companiesToUpdate.length} companies in ${name}.`
+        );
 
     } catch (error) {
-      console.error("❌ An unexpected error occurred during the AR/MDD enhancement process:", error);
+        console.error(`❌ Error calculating AR/MDD Ratios for ${name}:`, error);
     }
-  }
-
-  private calculateArMddRatios(company: Pick<Company, 'return3Year' | 'return5Year' | 'return10Year' | 'maxDrawdown3Year' | 'maxDrawdown5Year' | 'maxDrawdown10Year'>): { ratio10Y: number | null, ratio5Y: number | null, ratio3Y: number | null } | null {
-    const return10y = company.return10Year ? parseFloat(company.return10Year) : null;
-    const return5y = company.return5Year ? parseFloat(company.return5Year) : null;
-    const return3y = company.return3Year ? parseFloat(company.return3Year) : null;
-    const maxDrawdown10y = company.maxDrawdown10Year ? parseFloat(company.maxDrawdown10Year) : null;
-    const maxDrawdown5y = company.maxDrawdown5Year ? parseFloat(company.maxDrawdown5Year) : null;
-    const maxDrawdown3y = company.maxDrawdown3Year ? parseFloat(company.maxDrawdown3Year) : null;
-
-    const calculateRatio = (annualizedReturn: number | null, maxDrawdown: number | null): number | null => {
-      if (annualizedReturn === null || maxDrawdown === null || maxDrawdown === 0) {
-        return null;
-      }
-      return parseFloat((annualizedReturn / maxDrawdown).toFixed(4));
-    };
-
-    const ratio10Y = calculateRatio(return10y, maxDrawdown10y);
-    const ratio5Y = calculateRatio(return5y, maxDrawdown5y);
-    const ratio3Y = calculateRatio(return3y, maxDrawdown3y);
-
-    if (ratio10Y === null && ratio5Y === null && ratio3Y === null) {
-      return null;
-    }
-
-    return { ratio10Y, ratio5Y, ratio3Y };
-  }
 }
 
-const arMddEnhancer = new ArMddEnhancer();
-arMddEnhancer.enhanceAllCompanies()
-  .then(() => {
-    console.log("AR/MDD enhancer script finished.");
+async function main() {
+    await calculateAndStoreArMddRatiosForTable(companies, "S&P 500");
+    await calculateAndStoreArMddRatiosForTable(nasdaq100Companies, "Nasdaq 100");
+    await calculateAndStoreArMddRatiosForTable(dowJonesCompanies, "Dow Jones");
+    console.log("\nAll AR/MDD Ratio calculations complete.");
     process.exit(0);
-  })
-  .catch(error => {
-    console.error("AR/MDD enhancer script failed:", error);
+}
+
+main().catch(err => {
+    console.error("Fatal error during AR/MDD calculation:", err);
     process.exit(1);
-  });
+});

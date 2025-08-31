@@ -59,6 +59,37 @@ export function setupRoutes(app: Express) {
     }
   });
 
+  app.get('/api/dowjones', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const sortBy = (req.query.sortBy as string) || 'marketCap';
+      const sortOrder = (req.query.sortOrder as 'asc' | 'desc') || 'desc';
+      const search = req.query.search as string;
+      
+      const companies = await storage.getDowJonesCompanies(
+        limit,
+        offset,
+        sortBy,
+        sortOrder,
+        search
+      );
+      
+      const totalCount = await storage.getDowJonesCompanyCount(search);
+      
+      res.json({
+        companies,
+        total: totalCount,
+        limit,
+        offset,
+        hasMore: offset + limit < totalCount
+      });
+    } catch (error) {
+      console.error('Error fetching Dow Jones companies:', error);
+      res.status(500).json({ message: 'Failed to fetch companies' });
+    }
+  });
+
   app.get('/api/nasdaq100/:symbol', async (req, res) => {
     try {
       const company = await storage.getNasdaq100CompanyBySymbol(req.params.symbol);
@@ -82,20 +113,16 @@ export function setupRoutes(app: Express) {
       const search = req.query.search as string;
       const country = req.query.country as string;
 
-      const allCompanies = await storage.getCompanies(limit * 3, offset, sortBy, sortOrder, search, country); // Get more to account for filtering
+      const companies = await storage.getCompanies(limit, offset, sortBy, sortOrder, search, country);
       
-      // For S&P 500 companies, don't filter out any companies - show all 503
-      const filteredCompanies = allCompanies.slice(0, limit);
-      
-      const totalUnfiltered = await storage.getCompanyCount(search, country);
-      const totalFiltered = totalUnfiltered; // Show actual count for S&P 500
+      const totalCount = await storage.getCompanyCount(search, country);
 
       res.json({
-        companies: filteredCompanies,
-        total: totalFiltered,
+        companies: companies,
+        total: totalCount,
         limit,
         offset,
-        hasMore: offset + limit < totalFiltered
+        hasMore: offset + limit < totalCount
       });
     } catch (error) {
       console.error("========================================");

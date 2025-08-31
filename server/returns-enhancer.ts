@@ -1,4 +1,11 @@
-import { storage } from './storage';
+import { db } from "./db";
+import { companies, nasdaq100Companies, dowJonesCompanies } from "@shared/schema";
+import { eq, sql } from "drizzle-orm";
+import { PgTable } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+
+const FMP_BASE_URL = "https://financialmodelingprep.com/api/v3";
+const FMP_API_KEY = process.env.FMP_API_KEY;
 
 interface HistoricalPrice {
   date: string;
@@ -13,233 +20,176 @@ interface CompanyReturns {
   return10Year: number | null;
 }
 
-class ReturnsEnhancer {
-  private apiKey: string;
-
-  constructor() {
-    this.apiKey = process.env.FMP_API_KEY || '';
-    if (!this.apiKey) {
-      throw new Error('FMP_API_KEY environment variable is required');
+async function getHistoricalPrices(symbol: string, from: string, to: string): Promise<HistoricalPrice[]> {
+    if (!FMP_API_KEY) {
+        throw new Error("FMP_API_KEY is not configured");
     }
-  }
-
-  private async makeRequest(endpoint: string): Promise<any> {
-    const url = `https://financialmodelingprep.com/api/v3${endpoint}${endpoint.includes('?') ? '&' : '?'}apikey=${this.apiKey}`;
+    const url = `${FMP_BASE_URL}/historical-price-full/${symbol}?from=${from}&to=${to}&apikey=${FMP_API_KEY}`;
     
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`FMP API error: ${response.status} ${response.statusText} - ${errorText}`);
-    }
-    
-    return response.json();
-  }
-
-  // Calculate annualized return between two prices
-  private calculateAnnualizedReturn(startPrice: number, endPrice: number, years: number): number {
-    if (startPrice <= 0 || endPrice <= 0 || years <= 0) return 0;
-    return (Math.pow(endPrice / startPrice, 1 / years) - 1) * 100;
-  }
-
-  // Get historical prices and calculate returns
-  async getCompanyReturns(symbol: string): Promise<CompanyReturns | null> {
-    try {
-      console.log(`Fetching historical data for ${symbol}...`);
-      
-      // Get current date and calculate target dates
-      const today = new Date();
-      const threeDaysAgo = new Date(today);
-      threeDaysAgo.setDate(today.getDate() - 3);
-      
-      const threeYearsAgo = new Date(today);
-      threeYearsAgo.setFullYear(today.getFullYear() - 3);
-      
-      const fiveYearsAgo = new Date(today);
-      fiveYearsAgo.setFullYear(today.getFullYear() - 5);
-      
-      const tenYearsAgo = new Date(today);
-      tenYearsAgo.setFullYear(today.getFullYear() - 10);
-
-      // Fetch historical prices (last 11 years to ensure we have data)
-      const historicalData = await this.makeRequest(`/historical-price-full/${symbol}?from=${tenYearsAgo.toISOString().split('T')[0]}&to=${threeDaysAgo.toISOString().split('T')[0]}`);
-      
-      if (!historicalData?.historical || !Array.isArray(historicalData.historical)) {
-        console.log(`No historical data available for ${symbol}`);
-        return null;
-      }
-
-      const prices: HistoricalPrice[] = historicalData.historical.sort((a: any, b: any) => 
-        new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
-
-      if (prices.length === 0) {
-        console.log(`No price data found for ${symbol}`);
-        return null;
-      }
-
-      // Get current price (most recent)
-      const currentPrice = prices[prices.length - 1]?.adjClose || prices[prices.length - 1]?.close;
-      
-      if (!currentPrice || currentPrice <= 0) {
-        console.log(`Invalid current price for ${symbol}`);
-        return null;
-      }
-
-      // Find closest prices to target dates
-      const findClosestPrice = (targetDate: Date): number | null => {
-        let closestPrice = null;
-        let minDiff = Infinity;
-        
-        for (const price of prices) {
-          const priceDate = new Date(price.date);
-          const diff = Math.abs(priceDate.getTime() - targetDate.getTime());
-          
-          if (diff < minDiff) {
-            minDiff = diff;
-            closestPrice = price.adjClose || price.close;
-          }
-        }
-        
-        return closestPrice && closestPrice > 0 ? closestPrice : null;
-      };
-
-      const price3YearsAgo = findClosestPrice(threeYearsAgo);
-      const price5YearsAgo = findClosestPrice(fiveYearsAgo);
-      const price10YearsAgo = findClosestPrice(tenYearsAgo);
-
-      // Calculate annualized returns
-      const returns: CompanyReturns = {
-        symbol,
-        return3Year: price3YearsAgo ? this.calculateAnnualizedReturn(price3YearsAgo, currentPrice, 3) : null,
-        return5Year: price5YearsAgo ? this.calculateAnnualizedReturn(price5YearsAgo, currentPrice, 5) : null,
-        return10Year: price10YearsAgo ? this.calculateAnnualizedReturn(price10YearsAgo, currentPrice, 10) : null,
-      };
-
-      console.log(`✅ Calculated returns for ${symbol}: 3Y=${returns.return3Year?.toFixed(1)}%, 5Y=${returns.return5Year?.toFixed(1)}%, 10Y=${returns.return10Year?.toFixed(1)}%`);
-      
-      return returns;
-
-    } catch (error) {
-      console.error(`Error fetching returns for ${symbol}:`, error);
-      return null;
-    }
-  }
-
-  // Enhance all companies with return data
-  async enhanceAllCompaniesReturns(): Promise<{ updated: number; errors: number }> {
-    console.log("📈 Starting returns enhancement for all S&P 500 companies...");
-    
-    try {
-      // Get all companies from database
-      const companies = await storage.getCompanies(1000); // Get all companies
-      console.log(`📊 Enhancing returns data for ${companies.length} companies`);
-      
-      let updated = 0;
-      let errors = 0;
-      
-      // Process companies in smaller batches to respect API limits
-      const batchSize = 3; // Very small batch size for historical data requests
-      
-      for (let i = 0; i < companies.length; i += batchSize) {
-        const batch = companies.slice(i, i + batchSize);
-        
-        console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(companies.length/batchSize)}: ${batch.map(c => c.symbol).join(', ')}`);
-        
-        // Process batch in parallel
-        const batchPromises = batch.map(async (company) => {
-          try {
-            const returns = await this.getCompanyReturns(company.symbol);
-            
-            if (returns) {
-              await storage.updateCompany(company.symbol, {
-                return3Year: returns.return3Year?.toString() || null,
-                return5Year: returns.return5Year?.toString() || null,
-                return10Year: returns.return10Year?.toString() || null,
-              });
-              updated++;
-              console.log(`✅ Updated ${company.symbol} with returns data`);
-            } else {
-              errors++;
-              console.log(`❌ Failed to get returns data for ${company.symbol}`);
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                if (response.status === 429 || response.status >= 500) {
+                    const delay = 5000 * Math.pow(2, attempt - 1); // 5s, 10s, 20s
+                    console.warn(`[WARN] Attempt ${attempt}/3 for ${symbol} failed with status ${response.status}. Retrying in ${delay / 1000}s...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue; // Retry
+                }
+                console.error(`❌ Failed to fetch historical prices for ${symbol}: ${response.status} ${response.statusText}`);
+                try {
+                    const errorText = await response.text();
+                    console.error(`Error response body for ${symbol}: ${errorText}`);
+                } catch (e) {
+                    console.error(`Could not read error response body for ${symbol}.`);
+                }
+                return []; // Don't retry for client errors like 404
             }
-          } catch (error) {
-            errors++;
-            console.error(`❌ Error processing ${company.symbol}:`, error);
-          }
-        });
-        
-        await Promise.allSettled(batchPromises);
-        
-        // Longer rate limiting between batches for historical data
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Progress update every 30 companies
-        if ((i + batchSize) % 30 === 0) {
-          console.log(`📈 Progress: ${updated} companies updated, ${errors} errors so far`);
+            const data = await response.json();
+            if (data["Error Message"]) {
+                console.error(`❌ API Error for ${symbol}: ${data["Error Message"]}`);
+                return [];
+            }
+            return data.historical || [];
+        } catch (error) {
+            console.error(`[ATTEMPT ${attempt}/3] Network or fetch error for ${symbol}:`, (error as Error).message);
+            if (attempt < 3) {
+                const delay = 5000 * Math.pow(2, attempt - 1); // 5s, 10s, 20s
+                await new Promise(resolve => setTimeout(resolve, delay));
+            } else {
+                console.error(`❌ All 3 attempts failed for ${symbol}. Giving up.`);
+                return [];
+            }
         }
-      }
-      
-      console.log(`🎉 Returns enhancement complete:`);
-      console.log(`✅ Updated: ${updated} companies`);
-      console.log(`❌ Errors: ${errors} companies`);
-      
-      return { updated, errors };
-      
-    } catch (error) {
-      console.error("Error enhancing returns data:", error);
-      throw error;
     }
-  }
+    return []; // Should not be reached if retries are configured
+}
 
-  // Quick enhancement for specific symbols
-  async enhanceSpecificCompaniesReturns(symbols: string[]): Promise<{ updated: number; errors: number }> {
-    console.log(`📈 Enhancing returns data for specific companies: ${symbols.join(', ')}`);
-    
-    let updated = 0;
-    let errors = 0;
-    
-    for (const symbol of symbols) {
-      try {
-        const returns = await this.getCompanyReturns(symbol);
-        
-        if (returns) {
-          await storage.updateCompany(symbol, {
-            return3Year: returns.return3Year?.toString() || null,
-            return5Year: returns.return5Year?.toString() || null,
-            return10Year: returns.return10Year?.toString() || null,
-          });
-          updated++;
-          console.log(`✅ Enhanced ${symbol} with returns data`);
-        } else {
-          errors++;
-          console.log(`❌ Failed to enhance ${symbol}`);
-        }
-      } catch (error) {
-        errors++;
-        console.error(`❌ Error enhancing ${symbol}:`, error);
-      }
-      
-      // Rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1000));
+async function calculateAllAnnualizedReturns(symbol: string): Promise<{ return3Year: string | null; return5Year: string | null; return10Year: string | null; }> {
+  const toDate = new Date();
+  const fromDate10Y = new Date();
+  fromDate10Y.setFullYear(toDate.getFullYear() - 10);
+  const fromDateStr = fromDate10Y.toISOString().split('T')[0];
+  const toDateStr = toDate.toISOString().split('T')[0];
+
+  const returns = {
+    return3Year: null,
+    return5Year: null,
+    return10Year: null,
+  };
+
+  try {
+    const historicalData = await getHistoricalPrices(symbol, fromDateStr, toDateStr);
+
+    if (historicalData.length < 2) {
+      return returns;
     }
     
-    return { updated, errors };
+    // Data is newest to oldest, reverse for calculations
+    const sortedData = historicalData.slice().reverse();
+
+    for (const periodInYears of [3, 5, 10]) {
+        const fromDatePeriod = new Date();
+        fromDatePeriod.setFullYear(toDate.getFullYear() - periodInYears);
+
+        const startIndex = sortedData.findIndex(d => new Date(d.date) >= fromDatePeriod);
+        if (startIndex === -1) continue;
+
+        const relevantData = sortedData.slice(startIndex);
+        if(relevantData.length < 2) continue;
+
+        const startPrice = relevantData[0].close;
+        const endPrice = relevantData[relevantData.length - 1].close;
+
+        const startDate = new Date(relevantData[0].date);
+        const endDate = new Date(relevantData[relevantData.length - 1].date);
+        const years = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+        
+        if (startPrice === 0 || years <= 0) continue;
+
+        const totalReturn = (endPrice - startPrice) / startPrice;
+        const annualizedReturn = (Math.pow(1 + totalReturn, 1 / years) - 1) * 100;
+        
+        if (!isNaN(annualizedReturn)) {
+            if (periodInYears === 3) returns.return3Year = annualizedReturn.toFixed(2);
+            if (periodInYears === 5) returns.return5Year = annualizedReturn.toFixed(2);
+            if (periodInYears === 10) returns.return10Year = annualizedReturn.toFixed(2);
+        }
+    }
+
+    return returns;
+
+  } catch (error) {
+    console.error(`Error calculating annualized returns for ${symbol}:`, error);
+    return returns;
   }
 }
 
-export const returnsEnhancer = new ReturnsEnhancer();
+
+async function enhanceReturnsForTable(table: PgTable, name: string) {
+  console.log(`🚀 Starting returns enhancement for ${name}...`);
+  const companiesToEnhance = await db.select({ symbol: table.symbol }).from(table).where(sql`${table.return3Year} is null`);
+  
+  if (companiesToEnhance.length === 0) {
+    console.log(`🎉 All companies in ${name} already have return data. Nothing to do.`);
+    return;
+  }
+
+  console.log(`📊 Found ${companiesToEnhance.length} companies in ${name} to enhance.`);
+
+  let updatedCount = 0;
+  let errorCount = 0;
+
+  for (let i = 0; i < companiesToEnhance.length; i++) {
+    const company = companiesToEnhance[i];
+    const symbol = company.symbol;
+    console.log(`[${i + 1}/${companiesToEnhance.length}] Processing ${symbol}...`);
+
+    try {
+      const { return3Year, return5Year, return10Year } = await calculateAllAnnualizedReturns(symbol);
+
+      const updates: { [key: string]: string | null } = {};
+      if (return3Year) updates.return3Year = return3Year;
+      if (return5Year) updates.return5Year = return5Year;
+      if (return10Year) updates.return10Year = return10Year;
+
+      if (Object.keys(updates).length > 0) {
+        await db.update(table).set(updates).where(eq(table.symbol, symbol));
+        console.log(`✅ [${i + 1}/${companiesToEnhance.length}] ${symbol}: 3Y=${return3Year || 'N/A'}, 5Y=${return5Year || 'N/A'}, 10Y=${return10Year || 'N/A'}`);
+        updatedCount++;
+      } else {
+        console.log(`🤷 [${i + 1}/${companiesToEnhance.length}] No return data to update for ${symbol}.`);
+      }
+
+    } catch (error) {
+      console.error(`❌ Error processing ${symbol}:`, error);
+      errorCount++;
+    }
+    
+    // Add a delay between each company to respect API limits
+    await new Promise(resolve => setTimeout(resolve, 1000)); 
+
+    if ((i + 1) % 25 === 0) {
+      console.log(`🚀 PROGRESS: ${Math.round(((i + 1) / companiesToEnhance.length) * 100)}% complete (${updatedCount} updated, ${errorCount} errors)`);
+    }
+  }
+
+  console.log(`🎉 ENHANCEMENT COMPLETE for ${name}:`);
+  console.log(`✅ Updated: ${updatedCount} companies`);
+  console.log(`❌ Errors: ${errorCount} companies`);
+  console.log(`📊 Success Rate: ${companiesToEnhance.length > 0 ? Math.round((updatedCount / companiesToEnhance.length) * 100) : 100}%`);
+}
+
+async function main() {
+  await enhanceReturnsForTable(companies, 'S&P 500');
+  await enhanceReturnsForTable(nasdaq100Companies, 'Nasdaq 100');
+  await enhanceReturnsForTable(dowJonesCompanies, 'Dow Jones');
+  console.log("\nAll returns enhancements complete.");
+  process.exit(0);
+}
 
 // Run if called directly
-const isMainModule = import.meta.url === `file://${process.argv[1]}`;
-if (isMainModule) {
-  returnsEnhancer.enhanceAllCompaniesReturns()
-    .then(result => {
-      console.log("Returns enhancement completed:", result);
-      process.exit(0);
-    })
-    .catch(error => {
-      console.error("Returns enhancement failed:", error);
-      process.exit(1);
-    });
-}
+main().catch(error => {
+  console.error("Main execution failed:", error);
+  process.exit(1);
+});

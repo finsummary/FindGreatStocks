@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { db } from "./db";
-import { companies, nasdaq100Companies } from "@shared/schema";
+import { companies, nasdaq100Companies, dowJonesCompanies } from "@shared/schema";
 import { sql, isNotNull, and, eq, or, isNull } from "drizzle-orm";
 import { PgTable } from "drizzle-orm/pg-core";
 
@@ -23,6 +23,7 @@ async function enhanceMetricsForTable(table: PgTable, name: string) {
           isNotNull(table.marketCap),
           isNotNull(table.revenue),
           isNotNull(table.netIncome)
+          //isNull(table.priceToSalesRatio) // Only calculate if not already done - REMOVED TO FORCE RECALCULATION
         )
       );
 
@@ -51,13 +52,10 @@ async function enhanceMetricsForTable(table: PgTable, name: string) {
         const priceToSalesRatio = marketCap / revenue;
         const netProfitMargin = (netIncome / revenue) * 100; // as a percentage
 
-        await db
-          .update(table)
-          .set({
-            priceToSalesRatio: priceToSalesRatio.toFixed(2),
-            netProfitMargin: netProfitMargin.toFixed(2),
-          })
-          .where(eq(table.symbol, company.symbol));
+        await db.update(table).set({
+          priceToSalesRatio: priceToSalesRatio.toFixed(2),
+          netProfitMargin: netProfitMargin.toFixed(2),
+        }).where(eq(table.symbol, company.symbol));
         
         console.log(`✅ Calculated metrics for ${company.symbol}: P/S=${priceToSalesRatio.toFixed(2)}, NPM=${netProfitMargin.toFixed(2)}%`);
         successCount++;
@@ -80,6 +78,7 @@ async function enhanceMetricsForTable(table: PgTable, name: string) {
 async function main() {
     await enhanceMetricsForTable(companies, "S&P 500");
     await enhanceMetricsForTable(nasdaq100Companies, "Nasdaq 100");
+    await enhanceMetricsForTable(dowJonesCompanies, "Dow Jones");
     console.log("\nAll metric enhancements complete.");
     process.exit(0);
 }
