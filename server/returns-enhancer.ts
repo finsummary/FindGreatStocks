@@ -92,6 +92,14 @@ async function calculateAllAnnualizedReturns(symbol: string): Promise<{ return3Y
         const fromDatePeriod = new Date();
         fromDatePeriod.setFullYear(toDate.getFullYear() - periodInYears);
 
+        // Check if the earliest available data point is recenter than our target start date.
+        // If it is, we don't have enough data for this period.
+        const earliestDataDate = new Date(sortedData[0].date);
+        if (earliestDataDate > fromDatePeriod) {
+            console.log(`- Skipping ${periodInYears}Y calculation for ${symbol}: not enough historical data (earliest: ${earliestDataDate.toISOString().split('T')[0]}).`);
+            continue; // Not enough data for this period
+        }
+
         const startIndex = sortedData.findIndex(d => new Date(d.date) >= fromDatePeriod);
         if (startIndex === -1) continue;
 
@@ -128,68 +136,11 @@ async function calculateAllAnnualizedReturns(symbol: string): Promise<{ return3Y
 
 async function enhanceReturnsForTable(table: PgTable, name: string) {
   console.log(`🚀 Starting returns enhancement for ${name}...`);
-  const companiesToEnhance = await db.select({ symbol: table.symbol }).from(table).where(sql`${table.return3Year} is null`);
+  const companiesToEnhance = await db.select({ symbol: table.symbol }).from(table).where(sql`${table.return10Year} is null`);
   
   if (companiesToEnhance.length === 0) {
     console.log(`🎉 All companies in ${name} already have return data. Nothing to do.`);
     return;
   }
 
-  console.log(`📊 Found ${companiesToEnhance.length} companies in ${name} to enhance.`);
-
-  let updatedCount = 0;
-  let errorCount = 0;
-
-  for (let i = 0; i < companiesToEnhance.length; i++) {
-    const company = companiesToEnhance[i];
-    const symbol = company.symbol;
-    console.log(`[${i + 1}/${companiesToEnhance.length}] Processing ${symbol}...`);
-
-    try {
-      const { return3Year, return5Year, return10Year } = await calculateAllAnnualizedReturns(symbol);
-
-      const updates: { [key: string]: string | null } = {};
-      if (return3Year) updates.return3Year = return3Year;
-      if (return5Year) updates.return5Year = return5Year;
-      if (return10Year) updates.return10Year = return10Year;
-
-      if (Object.keys(updates).length > 0) {
-        await db.update(table).set(updates).where(eq(table.symbol, symbol));
-        console.log(`✅ [${i + 1}/${companiesToEnhance.length}] ${symbol}: 3Y=${return3Year || 'N/A'}, 5Y=${return5Year || 'N/A'}, 10Y=${return10Year || 'N/A'}`);
-        updatedCount++;
-      } else {
-        console.log(`🤷 [${i + 1}/${companiesToEnhance.length}] No return data to update for ${symbol}.`);
-      }
-
-    } catch (error) {
-      console.error(`❌ Error processing ${symbol}:`, error);
-      errorCount++;
-    }
-    
-    // Add a delay between each company to respect API limits
-    await new Promise(resolve => setTimeout(resolve, 1000)); 
-
-    if ((i + 1) % 25 === 0) {
-      console.log(`🚀 PROGRESS: ${Math.round(((i + 1) / companiesToEnhance.length) * 100)}% complete (${updatedCount} updated, ${errorCount} errors)`);
-    }
-  }
-
-  console.log(`🎉 ENHANCEMENT COMPLETE for ${name}:`);
-  console.log(`✅ Updated: ${updatedCount} companies`);
-  console.log(`❌ Errors: ${errorCount} companies`);
-  console.log(`📊 Success Rate: ${companiesToEnhance.length > 0 ? Math.round((updatedCount / companiesToEnhance.length) * 100) : 100}%`);
-}
-
-async function main() {
-  await enhanceReturnsForTable(companies, 'S&P 500');
-  await enhanceReturnsForTable(nasdaq100Companies, 'Nasdaq 100');
-  await enhanceReturnsForTable(dowJonesCompanies, 'Dow Jones');
-  console.log("\nAll returns enhancements complete.");
-  process.exit(0);
-}
-
-// Run if called directly
-main().catch(error => {
-  console.error("Main execution failed:", error);
-  process.exit(1);
-});
+  console.log(`

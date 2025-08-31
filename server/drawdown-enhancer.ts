@@ -106,9 +106,14 @@ class DrawdownEnhancer {
       const threeYearsAgo = new Date();
       threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
 
+      const earliestDataDate = new Date(prices[0].date);
+
       const prices10Year = prices;
-      const prices5Year = prices.filter(p => new Date(p.date) >= fiveYearsAgo);
-      const prices3Year = prices.filter(p => new Date(p.date) >= threeYearsAgo);
+      const prices5Year = earliestDataDate <= fiveYearsAgo ? prices.filter(p => new Date(p.date) >= fiveYearsAgo) : [];
+      const prices3Year = earliestDataDate <= threeYearsAgo ? prices.filter(p => new Date(p.date) >= threeYearsAgo) : [];
+
+      if (earliestDataDate > fiveYearsAgo) console.log(`- Skipping 5Y drawdown for ${symbol}: not enough data.`);
+      if (earliestDataDate > threeYearsAgo) console.log(`- Skipping 3Y drawdown for ${symbol}: not enough data.`);
 
       const drawdowns = {
         maxDrawdown10Year: prices10Year.length > 1 ? this.calculateMaxDrawdown(prices10Year) : null,
@@ -226,7 +231,7 @@ export async function enhanceAllDrawdowns(table: PgTable, name: string) {
     const drawdownEnhancer = new DrawdownEnhancer();
   
     try {
-        const companiesToEnhance = await db.select({ symbol: table.symbol }).from(table).where(sql`${table.maxDrawdown3Year} is null`);
+        const companiesToEnhance = await db.select({ symbol: table.symbol }).from(table).where(sql`${table.maxDrawdown10Year} is null`);
         
         if (companiesToEnhance.length === 0) {
             console.log(`🎉 All companies in ${name} already have drawdown data. Nothing to do.`);

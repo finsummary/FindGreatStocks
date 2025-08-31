@@ -16,14 +16,11 @@ import { useToast } from "@/hooks/use-toast";
 import type { Company, Nasdaq100Company, Ftse100Company } from "@shared/schema";
 import { authFetch } from "@/lib/authFetch";
 
-type TimePeriod = '3Year' | '5Year' | '10Year';
-
 interface ColumnConfig {
   id: keyof Company | 'rank' | 'name' | 'watchlist';
   label: string;
   width: string;
   defaultVisible: boolean;
-  isDynamic?: boolean; // For columns that depend on the time period
 }
 
 const ALL_COLUMNS: ColumnConfig[] = [
@@ -38,12 +35,19 @@ const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'priceToSalesRatio', label: 'P/S Ratio', width: 'w-[75px]', defaultVisible: true },
   { id: 'dividendYield', label: 'Dividend Yield', width: 'w-[100px]', defaultVisible: true },
   { id: 'netProfitMargin', label: 'Net Profit Margin', width: 'w-[120px]', defaultVisible: true },
+  { id: 'freeCashFlow', label: 'Free Cash Flow', width: 'w-[120px]', defaultVisible: false },
   { id: 'revenueGrowth3Y', label: 'Rev G 3Y', width: 'w-[90px]', defaultVisible: false },
   { id: 'revenueGrowth5Y', label: 'Rev G 5Y', width: 'w-[90px]', defaultVisible: false },
   { id: 'revenueGrowth10Y', label: 'Rev G 10Y', width: 'w-[90px]', defaultVisible: false },
-  { id: 'return', label: 'Return', width: 'w-[85px]', defaultVisible: true, isDynamic: true },
-  { id: 'maxDrawdown', label: 'Max Drawdown', width: 'w-[100px]', defaultVisible: true, isDynamic: true },
-  { id: 'arMddRatio', label: 'AR/MDD Ratio', width: 'w-[100px]', defaultVisible: true, isDynamic: true },
+  { id: 'return3Year', label: '3Y Return', width: 'w-[85px]', defaultVisible: false },
+  { id: 'return5Year', label: '5Y Return', width: 'w-[85px]', defaultVisible: false },
+  { id: 'return10Year', label: '10Y Return', width: 'w-[85px]', defaultVisible: true },
+  { id: 'maxDrawdown3Year', label: '3Y Max Drawdown', width: 'w-[120px]', defaultVisible: false },
+  { id: 'maxDrawdown5Year', label: '5Y Max Drawdown', width: 'w-[120px]', defaultVisible: false },
+  { id: 'maxDrawdown10Year', label: '10Y Max Drawdown', width: 'w-[120px]', defaultVisible: true },
+  { id: 'arMddRatio3Year', label: '3Y AR/MDD Ratio', width: 'w-[120px]', defaultVisible: false },
+  { id: 'arMddRatio5Year', label: '5Y AR/MDD Ratio', width: 'w-[120px]', defaultVisible: false },
+  { id: 'arMddRatio10Year', label: '10Y AR/MDD Ratio', width: 'w-[120px]', defaultVisible: true },
 ];
 
 
@@ -57,20 +61,9 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(0);
   const [limit] = useState(50);
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>('10Year');
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(
     ALL_COLUMNS.reduce((acc, col) => {
-      if (col.isDynamic) {
-        // For dynamic columns, the generic ID holds the visibility state.
-        acc[col.id] = col.defaultVisible;
-        // The specific, period-based columns are initially hidden...
-        acc[`${col.id}3Year`] = false;
-        acc[`${col.id}5Year`] = false;
-        // ...except for the default time period.
-        acc[`${col.id}10Year`] = col.defaultVisible;
-      } else {
-        acc[col.id] = col.defaultVisible;
-      }
+      acc[col.id] = col.defaultVisible;
       return acc;
     }, {} as Record<string, boolean>)
   );
@@ -83,11 +76,11 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
     const newVisible: Record<string, boolean> = { ...visibleColumns };
     let hasChanged = false;
 
-    ALL_COLUMNS.filter(c => c.isDynamic).forEach(col => {
+    ALL_COLUMNS.filter(c => c.id.includes('return') || c.id.includes('maxDrawdown') || c.id.includes('arMddRatio')).forEach(col => {
       const isGenericVisible = visibleColumns[col.id];
       ['3Year', '5Year', '10Year'].forEach(period => {
         const specificId = `${col.id}${period}`;
-        const shouldBeVisible = (isGenericVisible && period === timePeriod);
+        const shouldBeVisible = (isGenericVisible && period === '10Year'); // Default to 10Y for dynamic columns
         if (newVisible[specificId] !== shouldBeVisible) {
           newVisible[specificId] = shouldBeVisible;
           hasChanged = true;
@@ -101,15 +94,15 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
     
     setSortBy(currentSortBy => {
         if (currentSortBy.includes('return')) {
-            return `return${timePeriod}`;
+            return `return${'10Year'}`;
         } else if (currentSortBy.includes('maxDrawdown')) {
-            return `maxDrawdown${timePeriod}`;
+            return `maxDrawdown${'10Year'}`;
         } else if (currentSortBy.includes('arMddRatio')) {
-            return `arMddRatio${timePeriod}`;
+            return `arMddRatio${'10Year'}`;
         }
         return currentSortBy;
     });
-  }, [timePeriod, visibleColumns]);
+  }, [visibleColumns]);
 
   let apiEndpoint;
   switch (dataset) {
@@ -211,32 +204,17 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
     }
   };
 
-  const returnColumn: keyof Company = `return${timePeriod}` as keyof Company;
-  const maxDrawdownColumn: keyof Company = `maxDrawdown${timePeriod}` as keyof Company;
-  const arMddRatioColumn: keyof Company = `arMddRatio${timePeriod}` as keyof Company;
-
   const handleSort = (column: string) => {
-    let sortableColumn = column;
-    if (column.includes('return')) sortableColumn = returnColumn;
-    if (column.includes('maxDrawdown')) sortableColumn = maxDrawdownColumn;
-    if (column.includes('arMddRatio')) sortableColumn = arMddRatioColumn;
-
-    if (sortBy === sortableColumn) {
+    if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortBy(sortableColumn);
+      setSortBy(column);
       setSortOrder('asc');
     }
     setPage(0); // Reset to first page when sorting changes
   };
 
-  const currentVisibleColumns = ALL_COLUMNS.filter(col => {
-    if (col.isDynamic) {
-      // A dynamic column is visible if its specific time-period version is visible
-      return visibleColumns[`${col.id}${timePeriod}`];
-    }
-    return visibleColumns[col.id];
-  });
+  const currentVisibleColumns = ALL_COLUMNS.filter(col => visibleColumns[col.id]);
 
   const handleExportCSV = () => {
     window.open('/api/companies/export/csv', '_blank');
@@ -276,26 +254,22 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
             <SelectContent>
               <SelectItem value="marketCap">Market Cap</SelectItem>
               <SelectItem value="revenue">Revenue</SelectItem>
-              <SelectItem value={returnColumn}>Returns</SelectItem>
-              <SelectItem value={maxDrawdownColumn}>Max Drawdown</SelectItem>
-              <SelectItem value={arMddRatioColumn}>AR/MDD Ratio</SelectItem>
+              <SelectItem value="freeCashFlow">Free Cash Flow</SelectItem>
+              <SelectItem value="return3Year">3Y Return</SelectItem>
+              <SelectItem value="return5Year">5Y Return</SelectItem>
+              <SelectItem value="return10Year">10Y Return</SelectItem>
+              <SelectItem value="maxDrawdown3Year">3Y Max Drawdown</SelectItem>
+              <SelectItem value="maxDrawdown5Year">5Y Max Drawdown</SelectItem>
+              <SelectItem value="maxDrawdown10Year">10Y Max Drawdown</SelectItem>
+              <SelectItem value="arMddRatio3Year">3Y AR/MDD Ratio</SelectItem>
+              <SelectItem value="arMddRatio5Year">5Y AR/MDD Ratio</SelectItem>
+              <SelectItem value="arMddRatio10Year">10Y AR/MDD Ratio</SelectItem>
               <SelectItem value="peRatio">P/E Ratio</SelectItem>
               <SelectItem value="priceToSalesRatio">P/S Ratio</SelectItem>
               <SelectItem value="netProfitMargin">Net Profit Margin</SelectItem>
               <SelectItem value="revenueGrowth3Y">Rev Growth 3Y</SelectItem>
               <SelectItem value="revenueGrowth5Y">Rev Growth 5Y</SelectItem>
               <SelectItem value="revenueGrowth10Y">Rev Growth 10Y</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={timePeriod} onValueChange={(value) => setTimePeriod(value as TimePeriod)}>
-            <SelectTrigger className="w-full sm:w-32 text-sm">
-              <SelectValue placeholder="Period" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="3Year">3-Year</SelectItem>
-              <SelectItem value="5Year">5-Year</SelectItem>
-              <SelectItem value="10Year">10-Year</SelectItem>
             </SelectContent>
           </Select>
 
@@ -357,13 +331,13 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
                   <TableHead
                     key={column.id}
                     className={`text-right cursor-pointer hover:bg-muted/80 transition-colors ${column.width} ${
-                      sortBy === `${column.id}${timePeriod}` ? 'bg-primary/10 text-primary' : ''
+                      sortBy === column.id ? 'bg-primary/10 text-primary' : ''
                     }`}
-                    onClick={() => handleSort(column.isDynamic ? `${column.id}${timePeriod}` : column.id)}
+                    onClick={() => handleSort(column.id)}
                   >
                     <div className={`flex items-center ${column.id === 'name' || column.id === 'rank' ? 'justify-start' : 'justify-end'} gap-1`}>
-                      {column.isDynamic ? `${timePeriod.replace('Year', 'Y')} ${column.label}`: column.label}
-                      <SortIcon column={column.isDynamic ? `${column.id}${timePeriod}` : column.id} />
+                      {column.label}
+                      <SortIcon column={column.id} />
                     </div>
                   </TableHead>
                 ))}
@@ -465,6 +439,9 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
                         case 'netProfitMargin':
                           cellContent = <div className="font-mono">{formatPercentage(company.netProfitMargin, false, 1)}</div>;
                           break;
+                        case 'freeCashFlow':
+                          cellContent = <div className="font-mono">{company.freeCashFlow ? formatMarketCap(company.freeCashFlow) : <span className="text-muted-foreground">-</span>}</div>;
+                          break;
                         case 'revenueGrowth3Y':
                           cellContent = <div className="font-mono">{formatPercentage(company.revenueGrowth3Y, false, 1)}</div>;
                           break;
@@ -474,27 +451,27 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
                         case 'revenueGrowth10Y':
                           cellContent = <div className="font-mono">{formatPercentage(company.revenueGrowth10Y, false, 1)}</div>;
                           break;
-                        case 'return':
-                        case 'maxDrawdown':
-                        case 'arMddRatio':
-                          const dynamicColId = `${column.id}${timePeriod}` as keyof Company;
-                          const value = company[dynamicColId];
-                          if (column.id.includes('return')) {
-                            cellContent = value ? (
-                              <Badge variant="outline" className={`font-mono ${parseFloat(value as string) >= 0 ? 'text-blue-600 border-blue-200 bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:bg-blue-950' : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'}`}>{formatPercentage(value as string, true)}</Badge>
-                            ) : <span className="text-muted-foreground">-</span>;
-                          } else if (column.id.includes('maxDrawdown')) {
-                            cellContent = value ? (
-                              <Badge variant="outline" className="font-mono text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950">-{formatPercentage(value as string, false, 2)}</Badge>
-                            ) : <span className="text-muted-foreground">-</span>;
-                          } else if (column.id.includes('arMddRatio')) {
-                            cellContent = value ? (
-                              <Badge variant="outline" className={`font-mono ${parseFloat(value as string) >= 0.5 ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950' : parseFloat(value as string) >= 0.2 ? 'text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950' : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'}`}>{formatNumber(value as string, 2)}</Badge>
-                            ) : <span className="text-muted-foreground">-</span>;
-                          } else {
-                            cellContent = <span className="text-muted-foreground">-</span>;
-                          }
+                        case 'return3Year':
+                        case 'return5Year':
+                        case 'return10Year':
+                          cellContent = company[column.id] ? (
+                            <Badge variant="outline" className={`font-mono ${parseFloat(company[column.id] as string) >= 0 ? 'text-blue-600 border-blue-200 bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:bg-blue-950' : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'}`}>{formatPercentage(company[column.id] as string, true)}</Badge>
+                          ) : <span className="text-muted-foreground">-</span>;
                           break;
+                        case 'maxDrawdown3Year':
+                        case 'maxDrawdown5Year':
+                        case 'maxDrawdown10Year':
+                          cellContent = company[column.id] ? (
+                            <Badge variant="outline" className="font-mono text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950">-{formatPercentage(company[column.id] as string, false, 2)}</Badge>
+                          ) : <span className="text-muted-foreground">-</span>;
+                          break;
+                        case 'arMddRatio3Year':
+                        case 'arMddRatio5Year':
+                        case 'arMddRatio10Year':
+                            cellContent = company[column.id] ? (
+                              <Badge variant="outline" className={`font-mono ${parseFloat(company[column.id] as string) >= 0.5 ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950' : parseFloat(company[column.id] as string) >= 0.2 ? 'text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950' : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'}`}>{formatNumber(company[column.id] as string, 2)}</Badge>
+                            ) : <span className="text-muted-foreground">-</span>;
+                            break;
                         default:
                             cellContent = <span className="text-muted-foreground">-</span>;
                           break;
