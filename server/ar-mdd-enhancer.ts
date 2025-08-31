@@ -32,7 +32,7 @@ async function calculateAndStoreArMddRatiosForTable(
                   isNotNull(table.return5Year),
                   isNotNull(table.return10Year)
               ),
-              sql`${table.arMddRatio3Year} is null`
+              sql`${table.arMddRatio10Year} is null`
           )
       );
 
@@ -46,29 +46,37 @@ async function calculateAndStoreArMddRatiosForTable(
     );
 
     for (const company of companiesToUpdate) {
-            const parseAndCalculate = (ret: string | null, mdd: string | null): number | null => {
-                const returnVal = parseFloat(ret || '0');
-                const maxDrawdownVal = parseFloat(mdd || '0');
-                if (!isNaN(returnVal) && !isNaN(maxDrawdownVal) && maxDrawdownVal > 0) {
-                    return parseFloat((returnVal / maxDrawdownVal).toFixed(4));
-                }
+        const calculateRatio = (retStr: string | null, mddStr: string | null): number | null => {
+            // Ensure both values are not null and are valid numbers.
+            if (retStr === null || mddStr === null) {
                 return null;
-            };
+            }
+
+            const returnVal = parseFloat(retStr);
+            const maxDrawdownVal = parseFloat(mddStr);
+
+            // Ensure parsing was successful and maxDrawdown is a positive number to avoid division by zero or invalid logic.
+            if (!isNaN(returnVal) && !isNaN(maxDrawdownVal) && maxDrawdownVal > 0) {
+                return parseFloat((returnVal / maxDrawdownVal).toFixed(4));
+            }
             
-            const arMddRatio3Year = parseAndCalculate(company.return3Year, company.maxDrawdown3Year);
-            const arMddRatio5Year = parseAndCalculate(company.return5Year, company.maxDrawdown5Year);
-            const arMddRatio10Year = parseAndCalculate(company.return10Year, company.maxDrawdown10Year);
+            return null;
+        };
+        
+        const arMddRatio3Year = calculateRatio(company.return3Year, company.maxDrawdown3Year);
+        const arMddRatio5Year = calculateRatio(company.return5Year, company.maxDrawdown5Year);
+        const arMddRatio10Year = calculateRatio(company.return10Year, company.maxDrawdown10Year);
 
-            const updates = {
-                arMddRatio3Year: arMddRatio3Year,
-                arMddRatio5Year: arMddRatio5Year,
-                arMddRatio10Year: arMddRatio10Year,
-            };
+        const updates = {
+            arMddRatio3Year: arMddRatio3Year,
+            arMddRatio5Year: arMddRatio5Year,
+            arMddRatio10Year: arMddRatio10Year,
+        };
 
-            await db.update(table).set(updates).where(eq(table.symbol, company.symbol));
-        }
+        await db.update(table).set(updates).where(eq(table.symbol, company.symbol));
+    }
 
-        console.log(
+    console.log(
           `✅ Successfully calculated and stored AR/MDD Ratios for ${companiesToUpdate.length} companies in ${name}.`
         );
 

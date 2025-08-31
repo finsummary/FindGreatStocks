@@ -17,7 +17,7 @@ import type { Company, Nasdaq100Company, Ftse100Company } from "@shared/schema";
 import { authFetch } from "@/lib/authFetch";
 
 interface ColumnConfig {
-  id: keyof Company | 'rank' | 'name' | 'watchlist';
+  id: keyof Company | 'rank' | 'name' | 'watchlist' | 'none'; // 'none' for the placeholder
   label: string;
   width: string;
   defaultVisible: boolean;
@@ -57,7 +57,7 @@ interface CompanyTableProps {
 }
 
 export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
-  const [sortBy, setSortBy] = useState<string>('rank');
+  const [sortBy, setSortBy] = useState<string>('none'); // Default to 'none' for placeholder
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(0);
   const [limit] = useState(50);
@@ -122,7 +122,7 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
   const { data, isLoading, error } = useQuery({
     queryKey: [apiEndpoint, page, sortBy, sortOrder, searchQuery],
     queryFn: async ({ queryKey }) => {
-      const [url, page, sortBy, sortOrder, search] = queryKey as [
+      const [url, page, currentSortBy, sortOrder, search] = queryKey as [
         string,
         number,
         string,
@@ -133,10 +133,14 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
       const params = new URLSearchParams({
         offset: String(page * limit),
         limit: String(limit),
-        sortBy: sortBy,
-        sortOrder: sortOrder,
       });
 
+      // Only add sorting parameters if a sort order is actually selected
+      if (currentSortBy && currentSortBy !== 'none') {
+        params.append("sortBy", currentSortBy);
+        params.append("sortOrder", sortOrder);
+      }
+      
       if (search) {
         params.append("search", search);
       }
@@ -244,6 +248,7 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
       <div className="flex flex-col gap-3 sm:gap-4">
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-stretch sm:items-center">
           <Select value={sortBy} onValueChange={(value) => {
+            if (value === 'none') return;
             setSortBy(value);
             setSortOrder('desc'); // Default to descending for most metrics
             setPage(0); // Reset to first page when sorting changes
@@ -252,6 +257,7 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
               <SelectValue placeholder="Rank by..." />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="none" disabled>Rank by...</SelectItem>
               <SelectItem value="marketCap">Market Cap</SelectItem>
               <SelectItem value="revenue">Revenue</SelectItem>
               <SelectItem value="freeCashFlow">Free Cash Flow</SelectItem>
@@ -331,7 +337,7 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
                   <TableHead
                     key={column.id}
                     className={`text-right cursor-pointer hover:bg-muted/80 transition-colors ${column.width} ${
-                      sortBy === column.id ? 'bg-primary/10 text-primary' : ''
+                      sortBy === column.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
                     }`}
                     onClick={() => handleSort(column.id)}
                   >
