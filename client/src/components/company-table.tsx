@@ -83,11 +83,11 @@ const ALL_COLUMNS: ColumnConfig[] = [
 const PRESET_LAYOUTS = {
   'returnOnRisk': {
     name: 'Return on Risk (3, 5, 10 Years)',
-    columns: ['rank', 'name', 'ticker', 'marketCap', 'price', 'return10Y', 'maxDrawdown10Y', 'arMddRatio10Year', 'return5Y', 'maxDrawdown5Y', 'arMddRatio5Year', 'return3Y', 'maxDrawdown3Y', 'arMddRatio3Year'],
+    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'return10Y', 'maxDrawdown10Y', 'arMddRatio10Year', 'return5Y', 'maxDrawdown5Y', 'arMddRatio5Year', 'return3Y', 'maxDrawdown3Y', 'arMddRatio3Year'],
   },
   'dcfValuation': {
     name: 'DCF Valuation',
-    columns: ['rank', 'name', 'ticker', 'marketCap', 'price', 'revenue', 'revenueGrowth10Y', 'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth'],
+    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'revenue', 'revenueGrowth10Y', 'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth'],
   }
 };
 
@@ -661,7 +661,13 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
                   Array.from({ length: 10 }).map((_, i) => (
                     <TableRow key={i}>
                       {table.getVisibleFlatColumns().map(column => (
-                        <TableCell key={column.id} className={(column.columnDef.meta as any)?.columnConfig.id !== 'name' && (column.columnDef.meta as any)?.columnConfig.id !== 'rank' ? 'text-right' : ''}>
+                        <TableCell key={column.id} className={
+                          (column.columnDef.meta as any)?.columnConfig.id === 'rank' || (column.columnDef.meta as any)?.columnConfig.id === 'watchlist'
+                            ? 'text-center'
+                            : (column.columnDef.meta as any)?.columnConfig.id === 'name'
+                            ? ''
+                            : 'text-right'
+                        }>
                           <Skeleton className="h-6" />
                         </TableCell>
                       ))}
@@ -686,7 +692,13 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
                       onClick={() => console.log('Navigate to company:', row.original.symbol)}
                     >
                       {row.getVisibleCells().map(cell => (
-                        <TableCell key={cell.id} className={(cell.column.columnDef.meta as any)?.columnConfig.id !== 'name' && (cell.column.columnDef.meta as any)?.columnConfig.id !== 'rank' ? 'text-right' : ''}>
+                        <TableCell key={cell.id} className={
+                          (cell.column.columnDef.meta as any)?.columnConfig.id === 'rank' || (cell.column.columnDef.meta as any)?.columnConfig.id === 'watchlist'
+                            ? 'text-center'
+                            : (cell.column.columnDef.meta as any)?.columnConfig.id === 'name'
+                            ? ''
+                            : 'text-right'
+                        }>
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       ))}
