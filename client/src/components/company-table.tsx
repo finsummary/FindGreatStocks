@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronUp, ChevronDown, Star, Download, Search, Settings2 } from "lucide-react";
+import { ChevronUp, ChevronDown, Star, Download, Search, Settings2, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,6 +91,17 @@ const PRESET_LAYOUTS = {
   }
 };
 
+const LAYOUT_DESCRIPTIONS: Record<string, { title: string; description: string }> = {
+  'returnOnRisk': {
+    title: "Return on Risk Analysis",
+    description: "This layout helps you evaluate investment efficiency. It compares the annualized returns of stocks against their maximum drawdowns (the largest drop from a peak). The AR/MDD Ratio is a key metric here: a higher ratio suggests a better return for the amount of risk taken. This is useful for finding resilient stocks that have performed well without extreme volatility."
+  },
+  'dcfValuation': {
+    title: "DCF Valuation Analysis",
+    description: "This layout focuses on a company's intrinsic value using a Discounted Cash Flow (DCF) model. It estimates the company's value today based on projections of its future free cash flow. The 'Margin of Safety' shows the difference between the estimated DCF value and the current market price, helping you identify potentially undervalued stocks. The 'DCF Implied Growth' shows the future growth rate required to justify the stock's current price. You can compare this to historical growth rates (like 10Y Revenue Growth) to gauge whether the market's expectations are realistic."
+  }
+};
+
 const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlist' | 'none', string>> = {
   watchlist: 'Add to your personal watchlist. Sign-in required.',
   rank: 'Rank based on the current sorting criteria.',
@@ -132,6 +143,7 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(0);
   const [limit] = useState(50);
+  const [selectedLayout, setSelectedLayout] = useState<string | null>(null);
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>(
       ALL_COLUMNS.reduce((acc, col) => {
@@ -590,6 +602,7 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
                     return acc;
                   }, {} as VisibilityState);
                   setColumnVisibility(newVisibility);
+                  setSelectedLayout(key);
                 }}>
                   {layout.name}
                 </DropdownMenuItem>
@@ -598,6 +611,23 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Layout Description Box */}
+      {selectedLayout && LAYOUT_DESCRIPTIONS[selectedLayout] && (
+        <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 transition-all">
+           <div className="flex justify-between items-start gap-4">
+            <div>
+              <h4 className="font-semibold text-blue-800 dark:text-blue-200">{LAYOUT_DESCRIPTIONS[selectedLayout].title}</h4>
+              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                {LAYOUT_DESCRIPTIONS[selectedLayout].description}
+              </p>
+            </div>
+            <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0" onClick={() => setSelectedLayout(null)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {/* Table */}
       <Card className="overflow-hidden">
