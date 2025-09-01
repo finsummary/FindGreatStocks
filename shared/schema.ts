@@ -52,7 +52,10 @@ export const companies = pgTable("companies", {
   totalDebt: decimal("total_debt", { precision: 20, scale: 0 }),
   cashAndEquivalents: decimal("cash_and_equivalents", { precision: 20, scale: 0 }),
   freeCashFlow: decimal("free_cash_flow", { precision: 20, scale: 0 }),
-  
+  dcfEnterpriseValue: decimal('dcf_enterprise_value', { precision: 20, scale: 0 }),
+  marginOfSafety: decimal('margin_of_safety', { precision: 10, scale: 4 }),
+  dcfImpliedGrowth: decimal('dcf_implied_growth', { precision: 10, scale: 4 }),
+
   // Performance metrics (annualized returns as percentages)
   return3Year: decimal("return_3_year", { precision: 8, scale: 2 }),
   return5Year: decimal("return_5_year", { precision: 8, scale: 2 }),
@@ -156,7 +159,10 @@ export const nasdaq100Companies = pgTable("nasdaq100_companies", {
   totalDebt: decimal("total_debt", { precision: 20, scale: 0 }),
   cashAndEquivalents: decimal("cash_and_equivalents", { precision: 20, scale: 0 }),
   freeCashFlow: decimal("free_cash_flow", { precision: 20, scale: 0 }),
-  
+  dcfEnterpriseValue: decimal('dcf_enterprise_value', { precision: 20, scale: 0 }),
+  marginOfSafety: decimal('margin_of_safety', { precision: 10, scale: 4 }),
+  dcfImpliedGrowth: decimal('dcf_implied_growth', { precision: 10, scale: 4 }),
+
   // Performance metrics (annualized returns as percentages)
   return3Year: decimal("return_3_year", { precision: 8, scale: 2 }),
   return5Year: decimal("return_5_year", { precision: 8, scale: 2 }),
@@ -226,8 +232,11 @@ export const dowJonesCompanies = pgTable("dow_jones_companies", {
   totalDebt: decimal("total_debt", { precision: 20, scale: 0 }),
   cashAndEquivalents: decimal("cash_and_equivalents", { precision: 20, scale: 0 }),
   freeCashFlow: decimal("free_cash_flow", { precision: 20, scale: 0 }),
-  
-  // Performance metrics
+  dcfEnterpriseValue: decimal('dcf_enterprise_value', { precision: 20, scale: 0 }),
+  marginOfSafety: decimal('margin_of_safety', { precision: 10, scale: 4 }),
+  dcfImpliedGrowth: decimal('dcf_implied_growth', { precision: 10, scale: 4 }),
+
+  // Performance metrics (annualized returns as percentages)
   return3Year: decimal("return_3_year", { precision: 8, scale: 2 }),
   return5Year: decimal("return_5_year", { precision: 8, scale: 2 }),
   return10Year: decimal("return_10_year", { precision: 8, scale: 2 }),

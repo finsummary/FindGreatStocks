@@ -13,7 +13,7 @@ async function calculateAndStoreArMddRatiosForTable(
   console.log(`🚀 Calculating AR/MDD Ratios for ${name}...`);
 
   try {
-    // Select companies that have the necessary return and drawdown data, but AR/MDD is not yet calculated
+    // We will now select ALL companies to re-evaluate their ratios and ensure correctness
     const companiesToUpdate = await db
       .select({
         symbol: table.symbol,
@@ -24,20 +24,10 @@ async function calculateAndStoreArMddRatiosForTable(
         maxDrawdown5Year: table.maxDrawdown5Year,
         maxDrawdown10Year: table.maxDrawdown10Year,
       })
-      .from(table)
-      .where(
-          and(
-              or(
-                  isNotNull(table.return3Year),
-                  isNotNull(table.return5Year),
-                  isNotNull(table.return10Year)
-              ),
-              sql`${table.arMddRatio10Year} is null`
-          )
-      );
+      .from(table);
 
     if (companiesToUpdate.length === 0) {
-        console.log(`🎉 All companies in ${name} already have AR/MDD Ratios calculated. Nothing to do.`);
+        console.log(`🎉 No companies found in ${name}. Nothing to do.`);
         return;
     }
 

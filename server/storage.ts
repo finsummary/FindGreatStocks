@@ -90,6 +90,10 @@ export class DatabaseStorage implements IStorage {
         'arMddRatio5Year': sql`CASE WHEN "ar_mdd_ratio_5_year" IS NULL OR "ar_mdd_ratio_5_year"::text = '' THEN -99999 ELSE CAST("ar_mdd_ratio_5_year" AS NUMERIC) END`,
         'arMddRatio10Year': sql`CASE WHEN "ar_mdd_ratio_10_year" IS NULL OR "ar_mdd_ratio_10_year"::text = '' THEN -99999 ELSE CAST("ar_mdd_ratio_10_year" AS NUMERIC) END`,
         'freeCashFlow': sql`CASE WHEN "free_cash_flow" IS NULL OR "free_cash_flow"::text = '' THEN 0 ELSE CAST("free_cash_flow" AS BIGINT) END`,
+        'dcfEnterpriseValue': sql`CASE WHEN "dcf_enterprise_value" IS NULL OR "dcf_enterprise_value"::text = '' THEN 0 ELSE CAST("dcf_enterprise_value" AS BIGINT) END`,
+        'marginOfSafety': sql`CASE WHEN "margin_of_safety" IS NULL OR "margin_of_safety"::text = '' THEN -99999 ELSE CAST("margin_of_safety" AS NUMERIC) END`,
+        'dcfImpliedGrowth': sql`CASE WHEN "dcf_implied_growth" IS NULL OR "dcf_implied_growth"::text = '' THEN -99999 ELSE CAST("dcf_implied_growth" AS NUMERIC) END`,
+        'fcfGrowthRate': sql`CASE WHEN "fcf_growth_rate" IS NULL OR "fcf_growth_rate"::text = '' THEN -99999 ELSE CAST("fcf_growth_rate" AS NUMERIC) END`,
     };
     
     // Default to marketCap sorting if the key is invalid
@@ -166,7 +170,12 @@ export class DatabaseStorage implements IStorage {
         arMddRatio5Year: row.ar_mdd_ratio_5_year,
         arMddRatio3Year: row.ar_mdd_ratio_3_year,
         freeCashFlow: row.free_cash_flow,
-        returnDrawdownRatio10Year: row.return_drawdown_ratio_10_year
+        returnDrawdownRatio10Year: row.return_drawdown_ratio_10_year,
+        dcfEnterpriseValue: row.dcf_enterprise_value,
+        marginOfSafety: row.margin_of_safety,
+        dcfImpliedGrowth: row.dcf_implied_growth,
+        fcfGrowthRate: row.fcf_growth_rate,
+        fcfMedianGrowthRate: row.fcf_median_growth_rate,
     };
   }
 
@@ -273,6 +282,10 @@ export class DatabaseStorage implements IStorage {
         'arMddRatio5Year': sql`CASE WHEN "ar_mdd_ratio_5_year" IS NULL OR "ar_mdd_ratio_5_year"::text = '' THEN -99999 ELSE CAST("ar_mdd_ratio_5_year" AS NUMERIC) END`,
         'arMddRatio10Year': sql`CASE WHEN "ar_mdd_ratio_10_year" IS NULL OR "ar_mdd_ratio_10_year"::text = '' THEN -99999 ELSE CAST("ar_mdd_ratio_10_year" AS NUMERIC) END`,
         'freeCashFlow': sql`CASE WHEN "free_cash_flow" IS NULL OR "free_cash_flow"::text = '' THEN 0 ELSE CAST("free_cash_flow" AS BIGINT) END`,
+        'dcfEnterpriseValue': sql`CASE WHEN "dcf_enterprise_value" IS NULL OR "dcf_enterprise_value"::text = '' THEN 0 ELSE CAST("dcf_enterprise_value" AS BIGINT) END`,
+        'marginOfSafety': sql`CASE WHEN "margin_of_safety" IS NULL OR "margin_of_safety"::text = '' THEN -99999 ELSE CAST("margin_of_safety" AS NUMERIC) END`,
+        'dcfImpliedGrowth': sql`CASE WHEN "dcf_implied_growth" IS NULL OR "dcf_implied_growth"::text = '' THEN -99999 ELSE CAST("dcf_implied_growth" AS NUMERIC) END`,
+        'fcfGrowthRate': sql`CASE WHEN "fcf_growth_rate" IS NULL OR "fcf_growth_rate"::text = '' THEN -99999 ELSE CAST("fcf_growth_rate" AS NUMERIC) END`,
     };
     
     const sortColumn = sortColumnMap[sortBy] || sql`CASE WHEN "market_cap" IS NULL OR "market_cap" = '' THEN 0 ELSE CAST("market_cap" AS BIGINT) END`;
@@ -416,6 +429,10 @@ export class DatabaseStorage implements IStorage {
         'arMddRatio5Year': sql`CASE WHEN "ar_mdd_ratio_5_year" IS NULL OR "ar_mdd_ratio_5_year"::text = '' THEN -99999 ELSE CAST("ar_mdd_ratio_5_year" AS NUMERIC) END`,
         'arMddRatio10Year': sql`CASE WHEN "ar_mdd_ratio_10_year" IS NULL OR "ar_mdd_ratio_10_year"::text = '' THEN -99999 ELSE CAST("ar_mdd_ratio_10_year" AS NUMERIC) END`,
         'freeCashFlow': sql`CASE WHEN "free_cash_flow" IS NULL OR "free_cash_flow"::text = '' THEN 0 ELSE CAST("free_cash_flow" AS BIGINT) END`,
+        'dcfEnterpriseValue': sql`CASE WHEN "dcf_enterprise_value" IS NULL OR "dcf_enterprise_value"::text = '' THEN 0 ELSE CAST("dcf_enterprise_value" AS BIGINT) END`,
+        'marginOfSafety': sql`CASE WHEN "margin_of_safety" IS NULL OR "margin_of_safety"::text = '' THEN -99999 ELSE CAST("margin_of_safety" AS NUMERIC) END`,
+        'dcfImpliedGrowth': sql`CASE WHEN "dcf_implied_growth" IS NULL OR "dcf_implied_growth"::text = '' THEN -99999 ELSE CAST("dcf_implied_growth" AS NUMERIC) END`,
+        'fcfGrowthRate': sql`CASE WHEN "fcf_growth_rate" IS NULL OR "fcf_growth_rate"::text = '' THEN -99999 ELSE CAST("fcf_growth_rate" AS NUMERIC) END`,
     };
     return sortColumnMap[sortBy] || sql`CASE WHEN "market_cap" IS NULL OR "market_cap" = '' THEN 0 ELSE CAST("market_cap" AS BIGINT) END`;
   }
