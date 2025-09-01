@@ -16,6 +16,32 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import type { Company, Nasdaq100Company, Ftse100Company } from "@shared/schema";
 import { authFetch } from "@/lib/authFetch";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import React from "react";
+import { 
+  useReactTable, 
+  ColumnDef, 
+  VisibilityState,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+} from "@tanstack/react-table";
+import {
+  CaretSortIcon,
+  ChevronDownIcon,
+  DotsHorizontalIcon,
+} from "@radix-ui/react-icons"
+import { flexRender } from "@tanstack/react-table";
 
 interface ColumnConfig {
   id: keyof Company | 'rank' | 'name' | 'watchlist' | 'none'; // 'none' for the placeholder
@@ -26,20 +52,20 @@ interface ColumnConfig {
 
 const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'watchlist', label: 'Watchlist', width: 'w-[50px]', defaultVisible: true },
-  { id: 'rank', label: 'Rank', width: 'w-[60px]', defaultVisible: true },
-  { id: 'name', label: 'Company Name', width: 'w-[220px]', defaultVisible: true },
+  { id: 'rank', label: 'Rank', width: 'w-[30px]', defaultVisible: true },
+  { id: 'name', label: 'Company Name', width: 'w-[200px]', defaultVisible: true },
   { id: 'marketCap', label: 'Market Cap', width: 'w-[110px]', defaultVisible: true },
   { id: 'price', label: 'Price', width: 'w-[80px]', defaultVisible: true },
-  { id: 'revenue', label: 'Revenue', width: 'w-[90px]', defaultVisible: true },
+  { id: 'revenue', label: 'Revenue', width: 'w-[110px]', defaultVisible: true },
   { id: 'netIncome', label: 'Earnings', width: 'w-[90px]', defaultVisible: true },
-  { id: 'peRatio', label: 'P/E Ratio', width: 'w-[75px]', defaultVisible: true },
-  { id: 'priceToSalesRatio', label: 'P/S Ratio', width: 'w-[75px]', defaultVisible: true },
-  { id: 'dividendYield', label: 'Dividend Yield', width: 'w-[100px]', defaultVisible: true },
-  { id: 'netProfitMargin', label: 'Net Profit Margin', width: 'w-[120px]', defaultVisible: true },
+  { id: 'peRatio', label: 'P/E Ratio', width: 'w-[75px]', defaultVisible: false },
+  { id: 'priceToSalesRatio', label: 'P/S Ratio', width: 'w-[75px]', defaultVisible: false },
+  { id: 'dividendYield', label: 'Dividend Yield', width: 'w-[100px]', defaultVisible: false },
+  { id: 'netProfitMargin', label: 'Net Profit Margin', width: 'w-[120px]', defaultVisible: false },
   { id: 'freeCashFlow', label: 'Free Cash Flow', width: 'w-[120px]', defaultVisible: false },
   { id: 'revenueGrowth3Y', label: 'Rev G 3Y', width: 'w-[90px]', defaultVisible: false },
   { id: 'revenueGrowth5Y', label: 'Rev G 5Y', width: 'w-[90px]', defaultVisible: false },
-  { id: 'revenueGrowth10Y', label: 'Rev G 10Y', width: 'w-[90px]', defaultVisible: false },
+  { id: 'revenueGrowth10Y', label: 'Rev G 10Y', width: 'w-[90px]', defaultVisible: true },
   { id: 'return3Year', label: '3Y Return', width: 'w-[85px]', defaultVisible: false },
   { id: 'return5Year', label: '5Y Return', width: 'w-[85px]', defaultVisible: false },
   { id: 'return10Year', label: '10Y Return', width: 'w-[85px]', defaultVisible: true },
@@ -49,10 +75,21 @@ const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'arMddRatio3Year', label: '3Y AR/MDD Ratio', width: 'w-[120px]', defaultVisible: false },
   { id: 'arMddRatio5Year', label: '5Y AR/MDD Ratio', width: 'w-[120px]', defaultVisible: false },
   { id: 'arMddRatio10Year', label: '10Y AR/MDD Ratio', width: 'w-[120px]', defaultVisible: true },
-  { id: 'dcfEnterpriseValue', label: 'DCF Enterprise Value', width: 'w-[150px]', defaultVisible: false },
-  { id: 'marginOfSafety', label: 'Margin of Safety', width: 'w-[120px]', defaultVisible: false },
-  { id: 'dcfImpliedGrowth', label: 'DCF Implied Growth', width: 'w-[150px]', defaultVisible: false },
+  { id: 'dcfEnterpriseValue', label: 'DCF Enterprise Value', width: 'w-[130px]', defaultVisible: true },
+  { id: 'marginOfSafety', label: 'Margin of Safety', width: 'w-[110px]', defaultVisible: true },
+  { id: 'dcfImpliedGrowth', label: 'DCF Implied Growth', width: 'w-[130px]', defaultVisible: true },
 ];
+
+const PRESET_LAYOUTS = {
+  'returnOnRisk': {
+    name: 'Return on Risk (3, 5, 10 Years)',
+    columns: ['rank', 'name', 'ticker', 'marketCap', 'price', 'return10Y', 'maxDrawdown10Y', 'arMddRatio10Year', 'return5Y', 'maxDrawdown5Y', 'arMddRatio5Year', 'return3Y', 'maxDrawdown3Y', 'arMddRatio3Year'],
+  },
+  'dcfValuation': {
+    name: 'DCF Valuation',
+    columns: ['rank', 'name', 'ticker', 'marketCap', 'price', 'revenue', 'revenueGrowth10Y', 'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth'],
+  }
+};
 
 const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlist' | 'none', string>> = {
   watchlist: 'Add to your personal watchlist. Sign-in required.',
@@ -95,48 +132,17 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(0);
   const [limit] = useState(50);
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(
-    ALL_COLUMNS.reduce((acc, col) => {
-      acc[col.id] = col.defaultVisible;
-      return acc;
-    }, {} as Record<string, boolean>)
-  );
-  const queryClient = useQueryClient();
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>(
+      ALL_COLUMNS.reduce((acc, col) => {
+        acc[col.id] = col.defaultVisible;
+        return acc;
+      }, {} as VisibilityState)
+    )
+  const [rowSelection, setRowSelection] = React.useState({})
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
-
-  useEffect(() => {
-    // This effect syncs the generic dynamic columns (e.g., 'return') with the specific time-period columns (e.g., 'return10Year')
-    const newVisible: Record<string, boolean> = { ...visibleColumns };
-    let hasChanged = false;
-
-    ALL_COLUMNS.filter(c => c.id.includes('return') || c.id.includes('maxDrawdown') || c.id.includes('arMddRatio')).forEach(col => {
-      const isGenericVisible = visibleColumns[col.id];
-      ['3Year', '5Year', '10Year'].forEach(period => {
-        const specificId = `${col.id}${period}`;
-        const shouldBeVisible = (isGenericVisible && period === '10Year'); // Default to 10Y for dynamic columns
-        if (newVisible[specificId] !== shouldBeVisible) {
-          newVisible[specificId] = shouldBeVisible;
-          hasChanged = true;
-        }
-      });
-    });
-
-    if (hasChanged) {
-      setVisibleColumns(newVisible);
-    }
-    
-    setSortBy(currentSortBy => {
-        if (currentSortBy.includes('return')) {
-            return `return${'10Year'}`;
-        } else if (currentSortBy.includes('maxDrawdown')) {
-            return `maxDrawdown${'10Year'}`;
-        } else if (currentSortBy.includes('arMddRatio')) {
-            return `arMddRatio${'10Year'}`;
-        }
-        return currentSortBy;
-    });
-  }, [visibleColumns]);
 
   let apiEndpoint;
   switch (dataset) {
@@ -222,8 +228,6 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
     return watchlistData?.some((item: any) => item.companySymbol === symbol) || false;
   };
 
-  const companies = data?.companies || [];
-
   const handleWatchlistToggle = (symbol: string) => {
     if (!user) {
       // Prompt user to sign in for watchlist access
@@ -242,6 +246,225 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
     }
   };
 
+  const columns = React.useMemo<ColumnDef<Company>[]>(() => {
+    return ALL_COLUMNS.map(colConfig => {
+      const columnDef: ColumnDef<Company> = {
+        accessorKey: colConfig.id,
+        header: () => (
+          <TooltipProvider delayDuration={100}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className={`flex items-center ${colConfig.id === 'name' ? 'justify-start' : 'justify-center'} gap-1`}>
+                  {colConfig.id === 'watchlist' ? <Star className="h-4 w-4" /> : colConfig.label}
+                  {colConfig.id !== 'watchlist' && <SortIcon column={colConfig.id} />}
+                </div>
+              </TooltipTrigger>
+              {columnTooltips[colConfig.id] && (
+                <TooltipContent side="bottom" align="center" className="max-w-xs z-50">
+                  <p>{columnTooltips[colConfig.id]}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        ),
+        cell: (info) => {
+          const row = info.row.original;
+          let cellContent;
+          switch (colConfig.id) {
+            case 'watchlist':
+              cellContent = (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={`p-1 h-auto transition-colors ${
+                    isInWatchlist(row.symbol) 
+                      ? 'text-yellow-500 hover:text-yellow-600' 
+                      : 'text-muted-foreground hover:text-yellow-500'
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleWatchlistToggle(row.symbol);
+                  }}
+                  disabled={addToWatchlistMutation.isPending || removeFromWatchlistMutation.isPending}
+                >
+                  <Star className={`h-4 w-4 ${isInWatchlist(row.symbol) ? 'fill-current' : ''}`} />
+                </Button>
+              );
+              break;
+            case 'rank':
+              cellContent = <div className="font-medium">{(page * limit) + info.row.index + 1}</div>;
+              break;
+            case 'name':
+              cellContent = (
+                <div className="flex items-center gap-2">
+                  <img 
+                    src={row.logoUrl || `https://via.placeholder.com/32`}
+                    alt={`${row.symbol} logo`}
+                    className="h-6 w-6 rounded object-contain bg-white/80 border border-gray-100 dark:border-gray-800 dark:bg-gray-900/80 p-0.5 flex-shrink-0"
+                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/32'; }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium group-hover:text-primary transition-colors truncate text-sm">{row.name}</div>
+                    <div className="text-xs text-muted-foreground font-mono">{row.symbol}</div>
+                  </div>
+                </div>
+              );
+              break;
+            case 'marketCap':
+              cellContent = <div className="font-mono font-medium">{formatMarketCap(row.marketCap)}</div>;
+              break;
+            case 'price':
+              cellContent = <div className="font-mono">{formatPrice(row.price)}</div>;
+              break;
+            case 'revenue':
+              cellContent = <div className="font-mono">{row.revenue ? formatMarketCap(row.revenue) : <span className="text-muted-foreground">-</span>}</div>;
+              break;
+            case 'netIncome':
+                cellContent = <div className="font-mono">{formatEarnings(row.netIncome)}</div>;
+                break;
+            case 'peRatio':
+              cellContent = <div className="font-mono">{formatNumber(row.peRatio, 1)}</div>;
+              break;
+            case 'priceToSalesRatio':
+              cellContent = <div className="font-mono">{formatNumber(row.priceToSalesRatio, 1)}</div>;
+              break;
+            case 'dividendYield':
+              cellContent = <div className="font-mono">{formatPercentage(row.dividendYield, false, 2)}</div>;
+              break;
+            case 'netProfitMargin':
+              cellContent = <div className="font-mono">{formatPercentage(row.netProfitMargin, false, 1)}</div>;
+              break;
+            case 'freeCashFlow':
+              cellContent = <div className="font-mono">{row.freeCashFlow ? formatMarketCap(row.freeCashFlow) : <span className="text-muted-foreground">-</span>}</div>;
+              break;
+            case 'revenueGrowth3Y':
+              cellContent = <div className="font-mono">{formatPercentage(row.revenueGrowth3Y, false, 1)}</div>;
+              break;
+            case 'revenueGrowth5Y':
+              cellContent = <div className="font-mono">{formatPercentage(row.revenueGrowth5Y, false, 1)}</div>;
+              break;
+            case 'revenueGrowth10Y':
+              cellContent = <div className="font-mono">{formatPercentage(row.revenueGrowth10Y, false, 1)}</div>;
+              break;
+            case 'return3Year':
+            case 'return5Year':
+            case 'return10Year':
+              cellContent = row[colConfig.id] ? (
+                <Badge variant="outline" className={`font-mono ${parseFloat(row[colConfig.id] as string) >= 0 ? 'text-blue-600 border-blue-200 bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:bg-blue-950' : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'}`}>{formatPercentage(row[colConfig.id] as string, true)}</Badge>
+              ) : <span className="text-muted-foreground">-</span>;
+              break;
+            case 'maxDrawdown3Year':
+            case 'maxDrawdown5Year':
+            case 'maxDrawdown10Year':
+              cellContent = row[colConfig.id] ? (
+                <Badge variant="outline" className="font-mono text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950">-{formatPercentage(row[colConfig.id] as string, false, 2)}</Badge>
+              ) : <span className="text-muted-foreground">-</span>;
+              break;
+            case 'arMddRatio3Year':
+            case 'arMddRatio5Year':
+            case 'arMddRatio10Year':
+                cellContent = row[colConfig.id] ? (
+                  <Badge variant="outline" className={`font-mono ${parseFloat(row[colConfig.id] as string) >= 0.5 ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950' : parseFloat(row[colConfig.id] as string) >= 0.2 ? 'text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950' : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'}`}>{formatNumber(row[colConfig.id] as string, 2)}</Badge>
+                  ) : <span className="text-muted-foreground">-</span>;
+                  break;
+            case 'dcfEnterpriseValue':
+              cellContent = <div className="font-mono">{row.dcfEnterpriseValue ? formatMarketCap(row.dcfEnterpriseValue) : <span className="text-muted-foreground">-</span>}</div>;
+              break;
+            case 'marginOfSafety':
+              cellContent = row.marginOfSafety ? (
+                <Badge variant="outline" className={`font-mono ${
+                  parseFloat(row.marginOfSafety as string) >= 0.25 
+                    ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950' 
+                    : parseFloat(row.marginOfSafety as string) > 0
+                    ? 'text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950'
+                    : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'
+                }`}>{formatPercentageFromDecimal(row.marginOfSafety, true)}</Badge>
+              ) : <span className="text-muted-foreground">-</span>;
+              break;
+            case 'dcfImpliedGrowth':
+              const impliedGrowth = row.dcfImpliedGrowth ? parseFloat(row.dcfImpliedGrowth) : null;
+              const revenueGrowth10Y = row.revenueGrowth10Y ? parseFloat(row.revenueGrowth10Y) / 100 : null;
+              let badgeClass = '';
+              if (impliedGrowth !== null && revenueGrowth10Y !== null) {
+                if (impliedGrowth < revenueGrowth10Y) {
+                  badgeClass = 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950';
+                } else {
+                  badgeClass = 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950';
+                }
+              }
+              cellContent = row.dcfImpliedGrowth ? (
+                <Badge variant="outline" className={`font-mono ${badgeClass}`}>
+                  {formatPercentageFromDecimal(row.dcfImpliedGrowth, false)}
+                </Badge>
+              ) : <span className="text-muted-foreground">-</span>;
+              break;
+            default:
+                cellContent = <span className="text-muted-foreground">-</span>;
+              break;
+          }
+          return cellContent;
+        },
+        meta: {
+          columnConfig: colConfig,
+        },
+      };
+      return columnDef;
+    });
+  }, [page, limit, watchlistData, addToWatchlistMutation, removeFromWatchlistMutation]); // Dependencies for cell rendering logic
+
+  const table = useReactTable({
+    data: data?.companies || [],
+    columns,
+    state: {
+      sorting: [
+        {
+          id: sortBy,
+          desc: sortOrder === 'desc',
+        },
+      ],
+      columnVisibility,
+    },
+    onSortingChange: (updater) => {
+      if (typeof updater === 'function') {
+        const newSorting = updater(table.getState().sorting);
+        if (newSorting.length > 0) {
+          setSortBy(newSorting[0].id);
+          setSortOrder(newSorting[0].desc ? 'desc' : 'asc');
+        } else {
+          setSortBy('none');
+        }
+      } else {
+        const newSorting = updater;
+        if (newSorting.length > 0) {
+          setSortBy(newSorting[0].id);
+          setSortOrder(newSorting[0].desc ? 'desc' : 'asc');
+        } else {
+          setSortBy('none');
+        }
+      }
+    },
+    onColumnVisibilityChange: setColumnVisibility,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    manualPagination: true,
+    pageCount: data?.total ? Math.ceil(data.total / limit) : -1,
+    onPaginationChange: (updater) => {
+       if (typeof updater === 'function') {
+        setPage(updater(table.getState().pagination.pageIndex));
+      } else {
+        setPage(updater.pageIndex);
+      }
+    },
+    onRowSelectionChange: setRowSelection,
+    manualSorting: true,
+  });
+
+
+  // This effect is no longer needed with the correct react-table implementation
+  // useEffect(() => {
+  //   ...
+  // }, [columnVisibility]);
+
   const handleSort = (column: string) => {
     if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -250,12 +473,6 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
       setSortOrder('asc');
     }
     setPage(0); // Reset to first page when sorting changes
-  };
-
-  const currentVisibleColumns = ALL_COLUMNS.filter(col => visibleColumns[col.id]);
-
-  const handleExportCSV = () => {
-    window.open('/api/companies/export/csv', '_blank');
   };
 
   const SortIcon = ({ column }: { column: string }) => {
@@ -335,15 +552,15 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
                   {ALL_COLUMNS.filter(c => c.id !== 'watchlist' && c.id !== 'rank' && c.id !== 'name').map((column) => (
                     <Button
                       key={column.id}
-                      variant={visibleColumns[column.id] ? "secondary" : "outline"}
+                      variant={columnVisibility[column.id] !== false}
                       size="sm"
                       className={`transition-all ${
-                        visibleColumns[column.id]
+                        columnVisibility[column.id] !== false
                           ? 'border-sky-500 ring-2 ring-sky-500/20'
                           : 'border-border'
                       }`}
                       onClick={() =>
-                        setVisibleColumns((prev) => ({
+                        setColumnVisibility((prev) => ({
                           ...prev,
                           [column.id]: !prev[column.id],
                         }))
@@ -357,223 +574,99 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
             </PopoverContent>
           </Popover>
           
-          <Button variant="outline" size="sm" onClick={handleExportCSV} className="text-sm">
-            <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-            Export CSV
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="ml-2">
+                Choose Layout <ChevronDownIcon className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Table Layouts</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {Object.entries(PRESET_LAYOUTS).map(([key, layout]) => (
+                <DropdownMenuItem key={key} onSelect={() => {
+                  const newVisibility = ALL_COLUMNS.reduce((acc, col) => {
+                    acc[col.id] = layout.columns.includes(col.id);
+                    return acc;
+                  }, {} as VisibilityState);
+                  setColumnVisibility(newVisibility);
+                }}>
+                  {layout.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       {/* Table */}
       <Card className="overflow-hidden">
         <div className="w-full overflow-x-auto">
-          <Table className="w-full min-w-[1200px]">
+          <Table className="w-full min-w-[1200px] table-fixed">
             <TableHeader>
-              <TableRow className="bg-muted/50">
-                {currentVisibleColumns.map(column => (
-                  <TableHead
-                    key={column.id}
-                    className={`text-right cursor-pointer hover:bg-muted/80 transition-colors ${column.width} ${
-                      sortBy === column.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
-                    }`}
-                    onClick={() => handleSort(column.id)}
-                  >
-                    <TooltipProvider delayDuration={100}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className={`flex items-center ${column.id === 'name' ? 'justify-start' : 'justify-center'} gap-1`}>
-                            {column.id === 'watchlist' ? <Star className="h-4 w-4" /> : column.label}
-                            {column.id !== 'watchlist' && <SortIcon column={column.id} />}
-                          </div>
-                        </TooltipTrigger>
-                        {columnTooltips[column.id] && (
-                          <TooltipContent side="bottom" align="center" className="max-w-xs z-50">
-                            <p>{columnTooltips[column.id]}</p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    </TooltipProvider>
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                // Loading skeleton
-                Array.from({ length: 10 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {currentVisibleColumns.map(column => (
-                      <TableCell key={column.id} className={column.id !== 'name' && column.id !== 'rank' ? 'text-right' : ''}>
-                        <Skeleton className="h-6" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : data?.companies?.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={currentVisibleColumns.length} className="text-center py-12">
-                    <div className="text-muted-foreground">
-                      {searchQuery ? 
-                        'No companies found matching your search.' : 
-                        'No companies available.'
-                      }
-                    </div>
-                  </TableCell>
+              {table.getHeaderGroups().map(headerGroup => (
+                <TableRow key={headerGroup.id} className="bg-muted/50">
+                  {headerGroup.headers.map(header => (
+                    <TableHead
+                      key={header.id}
+                      className={`text-right cursor-pointer hover:bg-muted/80 transition-colors ${ (header.column.columnDef.meta as any)?.columnConfig.width } ${
+                        sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
+                      }`}
+                      onClick={header.column.getToggleSortingHandler()}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  ))}
                 </TableRow>
-              ) : (
-                data?.companies?.map((company: Company, index: number) => (
-                  <TableRow 
-                    key={company.id} 
-                    className="hover:bg-muted/50 cursor-pointer group transition-colors"
-                    onClick={() => console.log('Navigate to company:', company.symbol)}
-                  >
-                    {currentVisibleColumns.map(column => {
-                      let cellContent;
-                      switch (column.id) {
-                        case 'watchlist':
-                          cellContent = (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className={`p-1 h-auto transition-colors ${
-                                isInWatchlist(company.symbol) 
-                                  ? 'text-yellow-500 hover:text-yellow-600' 
-                                  : 'text-muted-foreground hover:text-yellow-500'
-                              }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleWatchlistToggle(company.symbol);
-                              }}
-                              disabled={addToWatchlistMutation.isPending || removeFromWatchlistMutation.isPending}
-                            >
-                              <Star className={`h-4 w-4 ${isInWatchlist(company.symbol) ? 'fill-current' : ''}`} />
-                            </Button>
-                          );
-                          break;
-                        case 'rank':
-                          cellContent = <div className="font-medium">{(page * limit) + index + 1}</div>;
-                          break;
-                        case 'name':
-                          cellContent = (
-                            <div className="flex items-center gap-2">
-                              <img 
-                                src={company.logoUrl || `https://via.placeholder.com/32`}
-                                alt={`${company.symbol} logo`}
-                                className="h-6 w-6 rounded object-contain bg-white/80 border border-gray-100 dark:border-gray-800 dark:bg-gray-900/80 p-0.5 flex-shrink-0"
-                                onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/32'; }}
-                              />
-                              <div className="min-w-0 flex-1">
-                                <div className="font-medium group-hover:text-primary transition-colors truncate text-sm">{company.name}</div>
-                                <div className="text-xs text-muted-foreground font-mono">{company.symbol}</div>
-                              </div>
-                            </div>
-                          );
-                          break;
-                        case 'marketCap':
-                          cellContent = <div className="font-mono font-medium">{formatMarketCap(company.marketCap)}</div>;
-                          break;
-                        case 'price':
-                          cellContent = <div className="font-mono">{formatPrice(company.price)}</div>;
-                          break;
-                        case 'revenue':
-                          cellContent = <div className="font-mono">{company.revenue ? formatMarketCap(company.revenue) : <span className="text-muted-foreground">-</span>}</div>;
-                          break;
-                        case 'netIncome':
-                            cellContent = <div className="font-mono">{formatEarnings(company.netIncome)}</div>;
-                            break;
-                        case 'peRatio':
-                          cellContent = <div className="font-mono">{formatNumber(company.peRatio, 1)}</div>;
-                          break;
-                        case 'priceToSalesRatio':
-                          cellContent = <div className="font-mono">{formatNumber(company.priceToSalesRatio, 1)}</div>;
-                          break;
-                        case 'dividendYield':
-                          cellContent = <div className="font-mono">{formatPercentage(company.dividendYield, false, 2)}</div>;
-                          break;
-                        case 'netProfitMargin':
-                          cellContent = <div className="font-mono">{formatPercentage(company.netProfitMargin, false, 1)}</div>;
-                          break;
-                        case 'freeCashFlow':
-                          cellContent = <div className="font-mono">{company.freeCashFlow ? formatMarketCap(company.freeCashFlow) : <span className="text-muted-foreground">-</span>}</div>;
-                          break;
-                        case 'revenueGrowth3Y':
-                          cellContent = <div className="font-mono">{formatPercentage(company.revenueGrowth3Y, false, 1)}</div>;
-                          break;
-                        case 'revenueGrowth5Y':
-                          cellContent = <div className="font-mono">{formatPercentage(company.revenueGrowth5Y, false, 1)}</div>;
-                          break;
-                        case 'revenueGrowth10Y':
-                          cellContent = <div className="font-mono">{formatPercentage(company.revenueGrowth10Y, false, 1)}</div>;
-                          break;
-                        case 'return3Year':
-                        case 'return5Year':
-                        case 'return10Year':
-                          cellContent = company[column.id] ? (
-                            <Badge variant="outline" className={`font-mono ${parseFloat(company[column.id] as string) >= 0 ? 'text-blue-600 border-blue-200 bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:bg-blue-950' : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'}`}>{formatPercentage(company[column.id] as string, true)}</Badge>
-                          ) : <span className="text-muted-foreground">-</span>;
-                          break;
-                        case 'maxDrawdown3Year':
-                        case 'maxDrawdown5Year':
-                        case 'maxDrawdown10Year':
-                          cellContent = company[column.id] ? (
-                            <Badge variant="outline" className="font-mono text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950">-{formatPercentage(company[column.id] as string, false, 2)}</Badge>
-                          ) : <span className="text-muted-foreground">-</span>;
-                          break;
-                        case 'arMddRatio3Year':
-                        case 'arMddRatio5Year':
-                        case 'arMddRatio10Year':
-                            cellContent = company[column.id] ? (
-                              <Badge variant="outline" className={`font-mono ${parseFloat(company[column.id] as string) >= 0.5 ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950' : parseFloat(company[column.id] as string) >= 0.2 ? 'text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950' : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'}`}>{formatNumber(company[column.id] as string, 2)}</Badge>
-                            ) : <span className="text-muted-foreground">-</span>;
-                            break;
-                        case 'dcfEnterpriseValue':
-                          cellContent = <div className="font-mono">{company.dcfEnterpriseValue ? formatMarketCap(company.dcfEnterpriseValue) : <span className="text-muted-foreground">-</span>}</div>;
-                          break;
-                        case 'marginOfSafety':
-                          cellContent = company.marginOfSafety ? (
-                            <Badge variant="outline" className={`font-mono ${
-                              parseFloat(company.marginOfSafety as string) >= 0.25 
-                                ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950' 
-                                : parseFloat(company.marginOfSafety as string) > 0
-                                ? 'text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950'
-                                : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'
-                            }`}>{formatPercentageFromDecimal(company.marginOfSafety, true)}</Badge>
-                          ) : <span className="text-muted-foreground">-</span>;
-                          break;
-                        case 'dcfImpliedGrowth':
-                          const impliedGrowth = company.dcfImpliedGrowth ? parseFloat(company.dcfImpliedGrowth) : null;
-                          const revenueGrowth10Y = company.revenueGrowth10Y ? parseFloat(company.revenueGrowth10Y) / 100 : null;
-                          let badgeClass = '';
-                          if (impliedGrowth !== null && revenueGrowth10Y !== null) {
-                            if (impliedGrowth < revenueGrowth10Y) {
-                              badgeClass = 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950';
-                            } else {
-                              badgeClass = 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950';
-                            }
-                          }
-                          cellContent = company.dcfImpliedGrowth ? (
-                            <Badge variant="outline" className={`font-mono ${badgeClass}`}>
-                              {formatPercentageFromDecimal(company.dcfImpliedGrowth, false)}
-                            </Badge>
-                          ) : <span className="text-muted-foreground">-</span>;
-                          break;
-                        default:
-                            cellContent = <span className="text-muted-foreground">-</span>;
-                          break;
-                      }
-                      return (
-                        <TableCell key={column.id} className={column.id !== 'name' && column.id !== 'rank' ? 'text-right' : ''}>
-                          {cellContent}
+              ))}
+            </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  // Loading skeleton
+                  Array.from({ length: 10 }).map((_, i) => (
+                    <TableRow key={i}>
+                      {table.getVisibleFlatColumns().map(column => (
+                        <TableCell key={column.id} className={(column.columnDef.meta as any)?.columnConfig.id !== 'name' && (column.columnDef.meta as any)?.columnConfig.id !== 'rank' ? 'text-right' : ''}>
+                          <Skeleton className="h-6" />
                         </TableCell>
-                      );
-                    })}
+                      ))}
+                    </TableRow>
+                  ))
+                ) : table.getRowModel().rows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={table.getVisibleFlatColumns().length} className="text-center py-12">
+                      <div className="text-muted-foreground">
+                        {searchQuery ? 
+                          'No companies found matching your search.' : 
+                          'No companies available.'
+                        }
+                      </div>
+                    </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </Card>
+                ) : (
+                  table.getRowModel().rows.map(row => (
+                    <TableRow 
+                      key={row.id} 
+                      className="hover:bg-muted/50 cursor-pointer group transition-colors"
+                      onClick={() => console.log('Navigate to company:', row.original.symbol)}
+                    >
+                      {row.getVisibleCells().map(cell => (
+                        <TableCell key={cell.id} className={(cell.column.columnDef.meta as any)?.columnConfig.id !== 'name' && (cell.column.columnDef.meta as any)?.columnConfig.id !== 'rank' ? 'text-right' : ''}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
 
       {/* Pagination */}
       {data && data.total > limit && (
