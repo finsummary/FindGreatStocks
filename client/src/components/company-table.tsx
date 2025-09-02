@@ -78,6 +78,9 @@ const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'dcfEnterpriseValue', label: 'DCF Enterprise Value', width: 'w-[130px]', defaultVisible: true },
   { id: 'marginOfSafety', label: 'Margin of Safety', width: 'w-[110px]', defaultVisible: true },
   { id: 'dcfImpliedGrowth', label: 'DCF Implied Growth', width: 'w-[130px]', defaultVisible: true },
+  { id: 'assetTurnover', label: 'Asset Turnover', width: 'w-[110px]', defaultVisible: false },
+  { id: 'financialLeverage', label: 'Financial Leverage', width: 'w-[110px]', defaultVisible: false },
+  { id: 'roe', label: 'ROE %', width: 'w-[110px]', defaultVisible: false },
 ];
 
 const PRESET_LAYOUTS = {
@@ -88,7 +91,11 @@ const PRESET_LAYOUTS = {
   'dcfValuation': {
     name: 'DCF Valuation',
     columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'revenue', 'revenueGrowth10Y', 'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth'],
-  }
+  },
+  'dupontRoe': {
+    name: 'DuPont ROE Decomposition',
+    columns: ['watchlist', 'rank', 'name', 'marketCap', 'revenue', 'netIncome', 'netProfitMargin', 'assetTurnover', 'financialLeverage', 'roe'],
+  },
 };
 
 const LAYOUT_DESCRIPTIONS: Record<string, { title: string; description: string }> = {
@@ -99,6 +106,10 @@ const LAYOUT_DESCRIPTIONS: Record<string, { title: string; description: string }
   'dcfValuation': {
     title: "DCF Valuation Analysis",
     description: "This layout focuses on a company's intrinsic value using a Discounted Cash Flow (DCF) model. It estimates the company's value today based on projections of its future free cash flow. The 'Margin of Safety' shows the difference between the estimated DCF value and the current market price, helping you identify potentially undervalued stocks. The 'DCF Implied Growth' shows the future growth rate required to justify the stock's current price. You can compare this to historical growth rates (like 10Y Revenue Growth) to gauge whether the market's expectations are realistic."
+  },
+  'dupontRoe': {
+      title: "DuPont ROE Decomposition",
+      description: "This layout breaks down Return on Equity (ROE) into its key components: Net Profit Margin (profitability), Asset Turnover (efficiency), and Financial Leverage (debt). It helps to understand the drivers behind a company's ROE."
   }
 };
 
@@ -130,6 +141,9 @@ const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlis
   dcfEnterpriseValue: 'The estimated total value of the company based on projected future free cash flows, discounted to their present value.',
   marginOfSafety: 'The percentage difference between the DCF Enterprise Value and the current Market Cap. A positive value suggests undervaluation.',
   dcfImpliedGrowth: 'The Free Cash Flow growth rate required to justify the current stock price. Compared visually to the 10Y Revenue Growth.',
+  assetTurnover: 'Measures how efficiently a company uses its assets to generate revenue. Calculated as Total Revenue / Total Assets.',
+  financialLeverage: 'Measures the extent to which a company uses debt to finance its assets. Calculated as Total Assets / Total Equity.',
+  roe: 'Return on Equity measures a company\'s profitability in relation to stockholders\' equity. Calculated as Net Income / Total Equity.',
 };
 
 
@@ -344,7 +358,18 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
               cellContent = <div className="font-mono">{formatPercentage(row.dividendYield, false, 2)}</div>;
               break;
             case 'netProfitMargin':
-              cellContent = <div className="font-mono">{formatPercentage(row.netProfitMargin, false, 1)}</div>;
+              const npmValue = row.netProfitMargin as number | null;
+              if (npmValue === null || npmValue === undefined) {
+                  cellContent = <Badge variant="outline" className="font-mono text-muted-foreground">N/A</Badge>;
+              } else {
+                  let badgeClass = "text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950";
+                  if (npmValue > 20) {
+                    badgeClass = "text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950";
+                  } else if (npmValue >= 5) {
+                    badgeClass = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
+                  }
+                  cellContent = <Badge variant="outline" className={`${badgeClass} font-mono`}>{formatPercentage(npmValue, false, 1)}</Badge>;
+              }
               break;
             case 'freeCashFlow':
               cellContent = <div className="font-mono">{row.freeCashFlow ? formatMarketCap(row.freeCashFlow) : <span className="text-muted-foreground">-</span>}</div>;
@@ -410,6 +435,49 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
                 </Badge>
               ) : <span className="text-muted-foreground">-</span>;
               break;
+            case 'assetTurnover':
+              const atValue = row.assetTurnover as number | null;
+              if (atValue === null || atValue === undefined) {
+                  cellContent = <Badge variant="outline" className="font-mono text-muted-foreground">N/A</Badge>;
+              } else {
+                  let badgeClass = "text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950";
+                  if (atValue > 1.0) {
+                    badgeClass = "text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950";
+                  } else if (atValue >= 0.5) {
+                    badgeClass = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
+                  }
+                  cellContent = <Badge variant="outline" className={`${badgeClass} font-mono`}>{formatNumber(atValue, 2)}</Badge>;
+              }
+              break;
+            case 'financialLeverage':
+              const flValue = row.financialLeverage as number | null;
+              if (flValue === null || flValue === undefined) {
+                  cellContent = <Badge variant="outline" className="font-mono text-muted-foreground">N/A</Badge>;
+              } else {
+                  let badgeClass = "text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950"; // Green is default (low leverage)
+                  if (flValue > 4.0) {
+                    badgeClass = "text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950";
+                  } else if (flValue >= 2.0) {
+                    badgeClass = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
+                  }
+                  cellContent = <Badge variant="outline" className={`${badgeClass} font-mono`}>{formatNumber(flValue, 2)}</Badge>;
+              }
+              break;
+            case 'roe':
+                const roeValue = row.roe as number | null;
+                if (roeValue === null || roeValue === undefined) {
+                    cellContent = <Badge variant="outline" className="font-mono text-muted-foreground">N/A</Badge>;
+                } else {
+                    const roe = roeValue * 100;
+                    let roeBadgeClass = "text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950";
+                    if (roe > 15) {
+                      roeBadgeClass = "text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950";
+                    } else if (roe >= 5) {
+                      roeBadgeClass = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
+                    }
+                    cellContent = <Badge variant="outline" className={`${roeBadgeClass} font-mono`}>{formatPercentageFromDecimal(roeValue, true, 1)}</Badge>;
+                }
+                break;
             default:
                 cellContent = <span className="text-muted-foreground">-</span>;
               break;
@@ -542,6 +610,9 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
               <SelectItem value="dcfEnterpriseValue">DCF Enterprise Value</SelectItem>
               <SelectItem value="marginOfSafety">Margin of Safety</SelectItem>
               <SelectItem value="dcfImpliedGrowth">DCF Implied Growth</SelectItem>
+              <SelectItem value="assetTurnover">Asset Turnover</SelectItem>
+              <SelectItem value="financialLeverage">Financial Leverage</SelectItem>
+              <SelectItem value="roe">ROE %</SelectItem>
             </SelectContent>
           </Select>
 
@@ -598,7 +669,12 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
               {Object.entries(PRESET_LAYOUTS).map(([key, layout]) => (
                 <DropdownMenuItem key={key} onSelect={() => {
                   const newVisibility = ALL_COLUMNS.reduce((acc, col) => {
-                    acc[col.id] = layout.columns.includes(col.id);
+                    // Always keep watchlist, rank, and name visible
+                    if (['watchlist', 'rank', 'name'].includes(col.id)) {
+                      acc[col.id] = true;
+                    } else {
+                      acc[col.id] = layout.columns.includes(col.id);
+                    }
                     return acc;
                   }, {} as VisibilityState);
                   setColumnVisibility(newVisibility);

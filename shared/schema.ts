@@ -1,4 +1,4 @@
-import { pgTable, text, serial, decimal, integer, boolean, bigint, varchar, timestamp, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, decimal, integer, boolean, bigint, varchar, timestamp, jsonb, index, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from 'drizzle-orm';
@@ -72,10 +72,12 @@ export const companies = pgTable("companies", {
   arMddRatio5Year: decimal("ar_mdd_ratio_5_year", { precision: 10, scale: 4 }),
   arMddRatio3Year: decimal("ar_mdd_ratio_3_year", { precision: 10, scale: 4 }),
 
-  // Growth metrics
-  revenueGrowth3Y: decimal("revenue_growth_3y", { precision: 8, scale: 2 }),
-  revenueGrowth5Y: decimal("revenue_growth_5y", { precision: 8, scale: 2 }),
-  revenueGrowth10Y: decimal("revenue_growth_10y", { precision: 8, scale: 2 }),
+  // DuPont Analysis
+  totalAssets: numeric('total_assets', { precision: 20, scale: 0 }),
+  totalEquity: numeric('total_equity', { precision: 20, scale: 0 }),
+  assetTurnover: decimal('asset_turnover', { precision: 10, scale: 4 }),
+  financialLeverage: decimal('financial_leverage', { precision: 10, scale: 4 }),
+  roe: decimal('roe', { precision: 10, scale: 4 }),
 });
 
 // Session storage table.
@@ -179,10 +181,12 @@ export const nasdaq100Companies = pgTable("nasdaq100_companies", {
   arMddRatio5Year: decimal("ar_mdd_ratio_5_year", { precision: 10, scale: 4 }),
   arMddRatio3Year: decimal("ar_mdd_ratio_3_year", { precision: 10, scale: 4 }),
 
-  // Growth metrics
-  revenueGrowth3Y: decimal("revenue_growth_3y", { precision: 8, scale: 2 }),
-  revenueGrowth5Y: decimal("revenue_growth_5y", { precision: 8, scale: 2 }),
-  revenueGrowth10Y: decimal("revenue_growth_10y", { precision: 8, scale: 2 }),
+  // DuPont Analysis
+  totalAssets: numeric('total_assets', { precision: 20, scale: 0 }),
+  totalEquity: numeric('total_equity', { precision: 20, scale: 0 }),
+  assetTurnover: decimal('asset_turnover', { precision: 10, scale: 4 }),
+  financialLeverage: decimal('financial_leverage', { precision: 10, scale: 4 }),
+  roe: decimal('roe', { precision: 10, scale: 4 }),
 });
 
 // Dow Jones companies table (mirrors the structure of the main 'companies' table)
@@ -247,14 +251,17 @@ export const dowJonesCompanies = pgTable("dow_jones_companies", {
   maxDrawdown3Year: decimal("max_drawdown_3_year", { precision: 8, scale: 2 }),
   
   // Risk-adjusted performance metrics
+  returnDrawdownRatio10Year: decimal("return_drawdown_ratio_10_year", { precision: 8, scale: 2 }),
   arMddRatio10Year: decimal("ar_mdd_ratio_10_year", { precision: 10, scale: 4 }),
   arMddRatio5Year: decimal("ar_mdd_ratio_5_year", { precision: 10, scale: 4 }),
   arMddRatio3Year: decimal("ar_mdd_ratio_3_year", { precision: 10, scale: 4 }),
-
-  // Growth metrics
-  revenueGrowth3Y: decimal("revenue_growth_3y", { precision: 8, scale: 2 }),
-  revenueGrowth5Y: decimal("revenue_growth_5y", { precision: 8, scale: 2 }),
-  revenueGrowth10Y: decimal("revenue_growth_10y", { precision: 8, scale: 2 }),
+  
+  // DuPont Analysis
+  totalAssets: numeric('total_assets', { precision: 20, scale: 0 }),
+  totalEquity: numeric('total_equity', { precision: 20, scale: 0 }),
+  assetTurnover: decimal('asset_turnover', { precision: 10, scale: 4 }),
+  financialLeverage: decimal('financial_leverage', { precision: 10, scale: 4 }),
+  roe: decimal('roe', { precision: 10, scale: 4 }),
 });
 
 

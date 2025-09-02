@@ -5,57 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1755797061862,
-      "tag": "0000_lean_oracle",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1755903928990,
-      "tag": "0001_chief_demogoblin",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1755948424192,
-      "tag": "0002_nifty_micromax",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1756678803125,
-      "tag": "0003_confused_silver_fox",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1756681840292,
-      "tag": "0004_lame_risque",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1756725260750,
-      "tag": "0005_charming_zodiak",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1756732564925,
-      "tag": "0006_messy_sway",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1756733404454,
-      "tag": "0007_condemned_robin_chapel",
+      "when": 1756770448596,
+      "tag": "0000_lying_hellion",
       "breakpoints": true
     }
   ]

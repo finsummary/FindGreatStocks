@@ -20,6 +20,7 @@
     "enhance:calculated-metrics": "tsx server/calculated-metrics-enhancer.ts",
     "enhance:fcf": "tsx server/fcf-enhancer.ts",
     "enhance:revenue-growth": "tsx server/revenue-growth-enhancer.ts",
+    "enhance:dupont": "tsx server/populate-dupont.ts",
     "verify:calculated-metrics": "tsx server/verify-calculated-metrics.ts",
     "import:nasdaq": "tsx server/nasdaq100-import.ts",
     "import:dowjones": "tsx server/dow-jones-import.ts",

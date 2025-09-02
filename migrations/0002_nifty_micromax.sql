@@ -1,1 +1,0 @@
-ALTER TABLE "companies" ADD COLUMN "ar_mdd_ratio" numeric(10, 4);

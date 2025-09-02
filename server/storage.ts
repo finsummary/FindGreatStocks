@@ -93,7 +93,9 @@ export class DatabaseStorage implements IStorage {
         'dcfEnterpriseValue': sql`CASE WHEN "dcf_enterprise_value" IS NULL OR "dcf_enterprise_value"::text = '' THEN 0 ELSE CAST("dcf_enterprise_value" AS BIGINT) END`,
         'marginOfSafety': sql`CASE WHEN "margin_of_safety" IS NULL OR "margin_of_safety"::text = '' THEN -99999 ELSE CAST("margin_of_safety" AS NUMERIC) END`,
         'dcfImpliedGrowth': sql`CASE WHEN "dcf_implied_growth" IS NULL OR "dcf_implied_growth"::text = '' THEN -99999 ELSE CAST("dcf_implied_growth" AS NUMERIC) END`,
-        'fcfGrowthRate': sql`CASE WHEN "fcf_growth_rate" IS NULL OR "fcf_growth_rate"::text = '' THEN -99999 ELSE CAST("fcf_growth_rate" AS NUMERIC) END`,
+        'roe': sql`CASE WHEN "roe" IS NULL OR "roe"::text = '' THEN -99999 ELSE CAST("roe" AS NUMERIC) END`,
+        'assetTurnover': sql`CASE WHEN "asset_turnover" IS NULL OR "asset_turnover"::text = '' THEN -99999 ELSE CAST("asset_turnover" AS NUMERIC) END`,
+        'financialLeverage': sql`CASE WHEN "financial_leverage" IS NULL OR "financial_leverage"::text = '' THEN -99999 ELSE CAST("financial_leverage" AS NUMERIC) END`,
     };
     
     // Default to marketCap sorting if the key is invalid
@@ -174,8 +176,12 @@ export class DatabaseStorage implements IStorage {
         dcfEnterpriseValue: row.dcf_enterprise_value,
         marginOfSafety: row.margin_of_safety,
         dcfImpliedGrowth: row.dcf_implied_growth,
-        fcfGrowthRate: row.fcf_growth_rate,
-        fcfMedianGrowthRate: row.fcf_median_growth_rate,
+        totalAssets: row.total_assets,
+        totalEquity: row.total_equity,
+        roe: row.roe,
+        assetTurnover: row.asset_turnover,
+        financialLeverage: row.financial_leverage,
+        // Note: Add any new fields here to ensure they are passed to the frontend
     };
   }
 
@@ -285,7 +291,9 @@ export class DatabaseStorage implements IStorage {
         'dcfEnterpriseValue': sql`CASE WHEN "dcf_enterprise_value" IS NULL OR "dcf_enterprise_value"::text = '' THEN 0 ELSE CAST("dcf_enterprise_value" AS BIGINT) END`,
         'marginOfSafety': sql`CASE WHEN "margin_of_safety" IS NULL OR "margin_of_safety"::text = '' THEN -99999 ELSE CAST("margin_of_safety" AS NUMERIC) END`,
         'dcfImpliedGrowth': sql`CASE WHEN "dcf_implied_growth" IS NULL OR "dcf_implied_growth"::text = '' THEN -99999 ELSE CAST("dcf_implied_growth" AS NUMERIC) END`,
-        'fcfGrowthRate': sql`CASE WHEN "fcf_growth_rate" IS NULL OR "fcf_growth_rate"::text = '' THEN -99999 ELSE CAST("fcf_growth_rate" AS NUMERIC) END`,
+        'roe': sql`CASE WHEN "roe" IS NULL OR "roe"::text = '' THEN -99999 ELSE CAST("roe" AS NUMERIC) END`,
+        'assetTurnover': sql`CASE WHEN "asset_turnover" IS NULL OR "asset_turnover"::text = '' THEN -99999 ELSE CAST("asset_turnover" AS NUMERIC) END`,
+        'financialLeverage': sql`CASE WHEN "financial_leverage" IS NULL OR "financial_leverage"::text = '' THEN -99999 ELSE CAST("financial_leverage" AS NUMERIC) END`,
     };
     
     const sortColumn = sortColumnMap[sortBy] || sql`CASE WHEN "market_cap" IS NULL OR "market_cap" = '' THEN 0 ELSE CAST("market_cap" AS BIGINT) END`;
@@ -432,7 +440,9 @@ export class DatabaseStorage implements IStorage {
         'dcfEnterpriseValue': sql`CASE WHEN "dcf_enterprise_value" IS NULL OR "dcf_enterprise_value"::text = '' THEN 0 ELSE CAST("dcf_enterprise_value" AS BIGINT) END`,
         'marginOfSafety': sql`CASE WHEN "margin_of_safety" IS NULL OR "margin_of_safety"::text = '' THEN -99999 ELSE CAST("margin_of_safety" AS NUMERIC) END`,
         'dcfImpliedGrowth': sql`CASE WHEN "dcf_implied_growth" IS NULL OR "dcf_implied_growth"::text = '' THEN -99999 ELSE CAST("dcf_implied_growth" AS NUMERIC) END`,
-        'fcfGrowthRate': sql`CASE WHEN "fcf_growth_rate" IS NULL OR "fcf_growth_rate"::text = '' THEN -99999 ELSE CAST("fcf_growth_rate" AS NUMERIC) END`,
+        'roe': sql`CASE WHEN "roe" IS NULL OR "roe"::text = '' THEN -99999 ELSE CAST("roe" AS NUMERIC) END`,
+        'assetTurnover': sql`CASE WHEN "asset_turnover" IS NULL OR "asset_turnover"::text = '' THEN -99999 ELSE CAST("asset_turnover" AS NUMERIC) END`,
+        'financialLeverage': sql`CASE WHEN "financial_leverage" IS NULL OR "financial_leverage"::text = '' THEN -99999 ELSE CAST("financial_leverage" AS NUMERIC) END`,
     };
     return sortColumnMap[sortBy] || sql`CASE WHEN "market_cap" IS NULL OR "market_cap" = '' THEN 0 ELSE CAST("market_cap" AS BIGINT) END`;
   }
