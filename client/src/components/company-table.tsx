@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronUp, ChevronDown, Star, Download, Search, Settings2, X } from "lucide-react";
+import { ChevronUp, ChevronDown, Star, Download, Search, Settings2, X, Lock } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,7 @@ import {
   ChevronDownIcon,
   DotsHorizontalIcon,
 } from "@radix-ui/react-icons"
+import { LockOpen } from "lucide-react";
 import { flexRender } from "@tanstack/react-table";
 
 interface ColumnConfig {
@@ -150,9 +151,10 @@ const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlis
 interface CompanyTableProps {
   searchQuery: string;
   dataset: 'sp500' | 'nasdaq100' | 'ftse100' | 'dowjones';
+  activeTab: 'sp500' | 'nasdaq100' | 'dowjones';
 }
 
-export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
+export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTableProps) {
   const [sortBy, setSortBy] = useState<string>('none'); // Default to 'none' for placeholder
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(0);
@@ -169,6 +171,11 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Simulate user state for now
+  const isPaid = activeTab === 'dowjones';
+  const isLoggedIn = true; // Assume user is logged in for watchlist feature
+
 
   let apiEndpoint;
   switch (dataset) {
@@ -589,102 +596,124 @@ export function CompanyTable({ searchQuery, dataset }: CompanyTableProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none" disabled>Rank by...</SelectItem>
-              <SelectItem value="marketCap">Market Cap</SelectItem>
-              <SelectItem value="revenue">Revenue</SelectItem>
-              <SelectItem value="freeCashFlow">Free Cash Flow</SelectItem>
-              <SelectItem value="return3Year">3Y Return</SelectItem>
-              <SelectItem value="return5Year">5Y Return</SelectItem>
-              <SelectItem value="return10Year">10Y Return</SelectItem>
-              <SelectItem value="maxDrawdown3Year">3Y Max Drawdown</SelectItem>
-              <SelectItem value="maxDrawdown5Year">5Y Max Drawdown</SelectItem>
-              <SelectItem value="maxDrawdown10Year">10Y Max Drawdown</SelectItem>
-              <SelectItem value="arMddRatio3Year">3Y AR/MDD Ratio</SelectItem>
-              <SelectItem value="arMddRatio5Year">5Y AR/MDD Ratio</SelectItem>
-              <SelectItem value="arMddRatio10Year">10Y AR/MDD Ratio</SelectItem>
-              <SelectItem value="peRatio">P/E Ratio</SelectItem>
-              <SelectItem value="priceToSalesRatio">P/S Ratio</SelectItem>
-              <SelectItem value="netProfitMargin">Net Profit Margin</SelectItem>
-              <SelectItem value="revenueGrowth3Y">Rev Growth 3Y</SelectItem>
-              <SelectItem value="revenueGrowth5Y">Rev Growth 5Y</SelectItem>
-              <SelectItem value="revenueGrowth10Y">Rev Growth 10Y</SelectItem>
-              <SelectItem value="dcfEnterpriseValue">DCF Enterprise Value</SelectItem>
-              <SelectItem value="marginOfSafety">Margin of Safety</SelectItem>
-              <SelectItem value="dcfImpliedGrowth">DCF Implied Growth</SelectItem>
-              <SelectItem value="assetTurnover">Asset Turnover</SelectItem>
-              <SelectItem value="financialLeverage">Financial Leverage</SelectItem>
-              <SelectItem value="roe">ROE %</SelectItem>
+              {ALL_COLUMNS
+                .filter(c => c.id !== 'watchlist' && c.id !== 'rank' && c.id !== 'name' && c.id !== 'none')
+                .map(col => {
+                  const lockedColumns = [
+                    'maxDrawdown5Year', 'maxDrawdown10Year',
+                    'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
+                    'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
+                    'assetTurnover', 'financialLeverage', 'roe'
+                  ];
+                  const isLocked = !isPaid && lockedColumns.includes(col.id);
+
+                  return (
+                    <SelectItem key={col.id} value={col.id} disabled={isLocked}>
+                      <div className="flex items-center justify-between w-full">
+                        <span>{col.label}</span>
+                        {isLocked && <Lock className="h-4 w-4 text-muted-foreground ml-2" />}
+                      </div>
+                    </SelectItem>
+                  );
+              })}
             </SelectContent>
           </Select>
 
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="text-sm">
-                <Settings2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                Columns
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <h4 className="font-medium leading-none">Visible Columns</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Select the metrics to display in the table.
-                  </p>
+          <div className="flex-1 flex justify-end items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full sm:w-auto text-sm">
+                  <Settings2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                  Visible Columns
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="max-h-80 overflow-y-auto">
+                  {ALL_COLUMNS
+                    .filter(c => !['watchlist', 'rank', 'name'].includes(c.id))
+                    .map((colConfig) => {
+                      const column = table.getColumn(colConfig.id);
+                      if (!column) return null;
+
+                      const lockedColumns = [
+                        'maxDrawdown5Year', 'maxDrawdown10Year',
+                        'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
+                        'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
+                        'assetTurnover', 'financialLeverage', 'roe'
+                      ];
+
+                      const isLocked = !isPaid && lockedColumns.includes(colConfig.id);
+
+                      return (
+                        <DropdownMenuCheckboxItem
+                          key={colConfig.id}
+                          className="capitalize"
+                          checked={column.getIsVisible()}
+                          onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                          disabled={isLocked}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <span>{colConfig.label}</span>
+                            {isLocked && <Lock className="h-4 w-4 text-muted-foreground" />}
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                      );
+                    })}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {ALL_COLUMNS.filter(c => c.id !== 'watchlist' && c.id !== 'rank' && c.id !== 'name').map((column) => (
-                    <Button
-                      key={column.id}
-                      variant={columnVisibility[column.id] !== false}
-                      size="sm"
-                      className={`transition-all ${
-                        columnVisibility[column.id] !== false
-                          ? 'border-sky-500 ring-2 ring-sky-500/20'
-                          : 'border-border'
-                      }`}
-                      onClick={() =>
-                        setColumnVisibility((prev) => ({
-                          ...prev,
-                          [column.id]: !prev[column.id],
-                        }))
-                      }
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full sm:w-auto">
+                  <span className="flex items-center">
+                    Choose Layout
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Table Layouts</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {Object.entries(PRESET_LAYOUTS).map(([key, layout]) => {
+                  const isPaidLayout = key === 'dcfValuation' || key === 'dupontRoe' || key === 'returnOnRisk';
+                  const isLocked = !isPaid && isPaidLayout;
+                  return (
+                    <DropdownMenuItem
+                      key={key}
+                      disabled={isLocked}
+                      onSelect={() => {
+                        if (isLocked) return;
+                        const newVisibility = ALL_COLUMNS.reduce((acc, col) => {
+                          if (['watchlist', 'rank', 'name'].includes(col.id)) {
+                            acc[col.id] = true;
+                          } else {
+                            acc[col.id] = layout.columns.includes(col.id);
+                          }
+                          return acc;
+                        }, {} as VisibilityState);
+                        setColumnVisibility(newVisibility);
+                        setSelectedLayout(key);
+                      }}
                     >
-                      {column.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-2">
-                Choose Layout <ChevronDownIcon className="ml-2 h-4 w-4" />
+                      <div className="flex items-center justify-between w-full">
+                        <span>{layout.name}</span>
+                        {isLocked && <Lock className="h-4 w-4 text-muted-foreground ml-2" />}
+                      </div>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {!isPaid && (
+              <Button>
+                <LockOpen className="mr-2 h-4 w-4" />
+                Upgrade
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Table Layouts</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {Object.entries(PRESET_LAYOUTS).map(([key, layout]) => (
-                <DropdownMenuItem key={key} onSelect={() => {
-                  const newVisibility = ALL_COLUMNS.reduce((acc, col) => {
-                    // Always keep watchlist, rank, and name visible
-                    if (['watchlist', 'rank', 'name'].includes(col.id)) {
-                      acc[col.id] = true;
-                    } else {
-                      acc[col.id] = layout.columns.includes(col.id);
-                    }
-                    return acc;
-                  }, {} as VisibilityState);
-                  setColumnVisibility(newVisibility);
-                  setSelectedLayout(key);
-                }}>
-                  {layout.name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            )}
+          </div>
         </div>
       </div>
 
