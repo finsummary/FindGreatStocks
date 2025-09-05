@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input"
 import { CompanyTable } from "@/components/company-table";
-import { Header } from "@/components/header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 
@@ -20,7 +19,7 @@ export function HomePage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-950">
-      <Header />
+      
       <main className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">

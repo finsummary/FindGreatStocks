@@ -1,4 +1,4 @@
-import { pgTable, text, serial, decimal, integer, boolean, bigint, varchar, timestamp, jsonb, index, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, decimal, integer, boolean, bigint, varchar, timestamp, jsonb, index, numeric, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from 'drizzle-orm';
@@ -48,7 +48,6 @@ export const companies = pgTable("companies", {
   grossProfit: decimal("gross_profit", { precision: 20, scale: 0 }),
   operatingIncome: decimal("operating_income", { precision: 20, scale: 0 }),
   netIncome: decimal("net_income", { precision: 20, scale: 0 }),
-  totalAssets: decimal("total_assets", { precision: 20, scale: 0 }),
   totalDebt: decimal("total_debt", { precision: 20, scale: 0 }),
   cashAndEquivalents: decimal("cash_and_equivalents", { precision: 20, scale: 0 }),
   freeCashFlow: decimal("free_cash_flow", { precision: 20, scale: 0 }),
@@ -72,8 +71,12 @@ export const companies = pgTable("companies", {
   arMddRatio5Year: decimal("ar_mdd_ratio_5_year", { precision: 10, scale: 4 }),
   arMddRatio3Year: decimal("ar_mdd_ratio_3_year", { precision: 10, scale: 4 }),
 
+  // Growth rates
+  revenueGrowth3Y: decimal("revenue_growth_3y", { precision: 10, scale: 4 }),
+  revenueGrowth5Y: decimal("revenue_growth_5y", { precision: 10, scale: 4 }),
+  revenueGrowth10Y: decimal("revenue_growth_10y", { precision: 10, scale: 4 }),
+
   // DuPont Analysis
-  totalAssets: numeric('total_assets', { precision: 20, scale: 0 }),
   totalEquity: numeric('total_equity', { precision: 20, scale: 0 }),
   assetTurnover: decimal('asset_turnover', { precision: 10, scale: 4 }),
   financialLeverage: decimal('financial_leverage', { precision: 10, scale: 4 }),
@@ -95,20 +98,25 @@ export const sessions = pgTable(
 // User storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id").primaryKey(),
   email: varchar("email").unique(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  subscriptionTier: varchar("subscription_tier", { enum: ["free", "paid"] }).default("free").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const watchlist = pgTable("watchlist", {
   id: serial("id").primaryKey(),
-  companySymbol: text("company_symbol").notNull(),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  addedAt: timestamp("added_at").defaultNow(),
+  companySymbol: varchar("company_symbol").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => {
+  return {
+    uniqueConstraint: unique("watchlist_user_company_unique").on(table.userId, table.companySymbol),
+  }
 });
 
 // Nasdaq 100 companies table (mirrors the structure of the main 'companies' table)
@@ -157,7 +165,6 @@ export const nasdaq100Companies = pgTable("nasdaq100_companies", {
   grossProfit: decimal("gross_profit", { precision: 20, scale: 0 }),
   operatingIncome: decimal("operating_income", { precision: 20, scale: 0 }),
   netIncome: decimal("net_income", { precision: 20, scale: 0 }),
-  totalAssets: decimal("total_assets", { precision: 20, scale: 0 }),
   totalDebt: decimal("total_debt", { precision: 20, scale: 0 }),
   cashAndEquivalents: decimal("cash_and_equivalents", { precision: 20, scale: 0 }),
   freeCashFlow: decimal("free_cash_flow", { precision: 20, scale: 0 }),
@@ -181,8 +188,12 @@ export const nasdaq100Companies = pgTable("nasdaq100_companies", {
   arMddRatio5Year: decimal("ar_mdd_ratio_5_year", { precision: 10, scale: 4 }),
   arMddRatio3Year: decimal("ar_mdd_ratio_3_year", { precision: 10, scale: 4 }),
 
+  // Growth rates
+  revenueGrowth3Y: decimal("revenue_growth_3y", { precision: 10, scale: 4 }),
+  revenueGrowth5Y: decimal("revenue_growth_5y", { precision: 10, scale: 4 }),
+  revenueGrowth10Y: decimal("revenue_growth_10y", { precision: 10, scale: 4 }),
+
   // DuPont Analysis
-  totalAssets: numeric('total_assets', { precision: 20, scale: 0 }),
   totalEquity: numeric('total_equity', { precision: 20, scale: 0 }),
   assetTurnover: decimal('asset_turnover', { precision: 10, scale: 4 }),
   financialLeverage: decimal('financial_leverage', { precision: 10, scale: 4 }),
@@ -232,7 +243,6 @@ export const dowJonesCompanies = pgTable("dow_jones_companies", {
   grossProfit: decimal("gross_profit", { precision: 20, scale: 0 }),
   operatingIncome: decimal("operating_income", { precision: 20, scale: 0 }),
   netIncome: decimal("net_income", { precision: 20, scale: 0 }),
-  totalAssets: decimal("total_assets", { precision: 20, scale: 0 }),
   totalDebt: decimal("total_debt", { precision: 20, scale: 0 }),
   cashAndEquivalents: decimal("cash_and_equivalents", { precision: 20, scale: 0 }),
   freeCashFlow: decimal("free_cash_flow", { precision: 20, scale: 0 }),
@@ -256,8 +266,12 @@ export const dowJonesCompanies = pgTable("dow_jones_companies", {
   arMddRatio5Year: decimal("ar_mdd_ratio_5_year", { precision: 10, scale: 4 }),
   arMddRatio3Year: decimal("ar_mdd_ratio_3_year", { precision: 10, scale: 4 }),
   
+  // Growth rates
+  revenueGrowth3Y: decimal("revenue_growth_3y", { precision: 10, scale: 4 }),
+  revenueGrowth5Y: decimal("revenue_growth_5y", { precision: 10, scale: 4 }),
+  revenueGrowth10Y: decimal("revenue_growth_10y", { precision: 10, scale: 4 }),
+
   // DuPont Analysis
-  totalAssets: numeric('total_assets', { precision: 20, scale: 0 }),
   totalEquity: numeric('total_equity', { precision: 20, scale: 0 }),
   assetTurnover: decimal('asset_turnover', { precision: 10, scale: 4 }),
   financialLeverage: decimal('financial_leverage', { precision: 10, scale: 4 }),

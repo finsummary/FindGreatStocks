@@ -1,145 +1,52 @@
-import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { useLocation } from "wouter";
 import { ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function Privacy() {
-  const [, setLocation] = useLocation();
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" onClick={() => setLocation('/')}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Home
-              </Button>
-              <h1 className="text-xl font-bold text-primary">FindGreatStocks.com</h1>
-            </div>
-          </div>
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-950">
+      
+      <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
+        <div className="mb-4">
+          <Link to="/" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
+          </Link>
         </div>
-      </header>
+        <article className="prose dark:prose-invert max-w-4xl mx-auto">
+          <h1>Privacy Policy</h1>
+          <p>Last updated: August 19, 2024</p>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold mb-6">Privacy Policy</h1>
-          <p className="text-sm text-muted-foreground mb-8">Last updated: {new Date().toLocaleDateString()}</p>
+          <p>This Privacy Policy describes Our policies and procedures on the collection, use and disclosure of Your information when You use the Service and tells You about Your privacy rights and how the law protects You.</p>
           
-          <div className="prose prose-lg max-w-none dark:prose-invert space-y-6">
-            <section>
-              <h2 className="text-2xl font-bold mb-4">1. Information We Collect</h2>
-              <p className="text-muted-foreground mb-4">We collect information you provide directly to us, such as when you:</p>
-              <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                <li>Create an account and log in to our service</li>
-                <li>Add stocks to your watchlist</li>
-                <li>Contact us for support</li>
-                <li>Use our website and interact with our features</li>
-              </ul>
-              <p className="text-muted-foreground mt-4">
-                This information may include your name, email address, profile information, and usage data related to your interactions with our platform.
-              </p>
-            </section>
+          <h2>Collecting and Using Your Personal Data</h2>
+          <h3>Types of Data Collected</h3>
+          <h4>Personal Data</h4>
+          <p>While using Our Service, We may ask You to provide Us with certain personally identifiable information that can be used to contact or identify You. Personally identifiable information may include, but is not limited to, Email address.</p>
+          
+          <h4>Usage Data</h4>
+          <p>Usage Data is collected automatically when using the Service. Usage Data may include information such as Your Device's Internet Protocol address (e.g. IP address), browser type, browser version, the pages of our Service that You visit, the time and date of Your visit, the time spent on those pages, unique device identifiers and other diagnostic data.</p>
+          
+          <h2>Use of Your Personal Data</h2>
+          <p>The Company may use Personal Data for the following purposes:</p>
+          <ul>
+            <li>To provide and maintain our Service, including to monitor the usage of our Service.</li>
+            <li>To manage Your Account: to manage Your registration as a user of the Service.</li>
+            <li>For the performance of a contract: the development, compliance and undertaking of the purchase contract for the products, items or services You have purchased or of any other contract with Us through the Service.</li>
+            <li>To contact You: To contact You by email, telephone calls, SMS, or other equivalent forms of electronic communication.</li>
+          </ul>
 
-            <section>
-              <h2 className="text-2xl font-bold mb-4">2. How We Use Your Information</h2>
-              <p className="text-muted-foreground mb-4">We use the information we collect to:</p>
-              <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                <li>Provide, maintain, and improve our services</li>
-                <li>Process transactions and send related information</li>
-                <li>Send technical notices, updates, security alerts, and support messages</li>
-                <li>Respond to your comments, questions, and customer service requests</li>
-                <li>Monitor and analyze trends, usage, and activities in connection with our services</li>
-                <li>Personalize and improve your experience</li>
-              </ul>
-            </section>
+          <h2>Disclosure of Your Personal Data</h2>
+          <p>We may share Your personal information in the following situations: with Service Providers, for business transfers, with affiliates, with business partners, and with other users.</p>
 
-            <section>
-              <h2 className="text-2xl font-bold mb-4">3. Information Sharing</h2>
-              <p className="text-muted-foreground">
-                We do not sell, trade, or otherwise transfer your personal information to third parties without your consent, except as described in this policy. 
-                We may share your information in the following circumstances:
-              </p>
-              <ul className="list-disc list-inside space-y-2 text-muted-foreground mt-4">
-                <li>With your consent or at your direction</li>
-                <li>For legal reasons, such as to comply with a subpoena or similar legal process</li>
-                <li>To protect the rights, property, and safety of FindGreatStocks.com, our users, or others</li>
-                <li>In connection with a business transaction, such as a merger or acquisition</li>
-              </ul>
-            </section>
+          <h2>Security of Your Personal Data</h2>
+          <p>The security of Your Personal Data is important to Us, but remember that no method of transmission over the Internet, or method of electronic storage is 100% secure. While We strive to use commercially acceptable means to protect Your Personal Data, We cannot guarantee its absolute security.</p>
 
-            <section>
-              <h2 className="text-2xl font-bold mb-4">4. Data Security</h2>
-              <p className="text-muted-foreground">
-                We implement appropriate technical and organizational security measures to protect your personal information against unauthorized access, 
-                alteration, disclosure, or destruction. However, no method of transmission over the internet or electronic storage is 100% secure, 
-                so we cannot guarantee absolute security.
-              </p>
-            </section>
+          <h2>Changes to this Privacy Policy</h2>
+          <p>We may update Our Privacy Policy from time to time. We will notify You of any changes by posting the new Privacy Policy on this page.</p>
 
-            <section>
-              <h2 className="text-2xl font-bold mb-4">5. Cookies and Analytics</h2>
-              <p className="text-muted-foreground">
-                We use cookies and similar tracking technologies to collect and track information about your use of our service and to improve our services. 
-                We may also use Google Analytics to analyze website traffic and user behavior. You can control cookies through your browser settings.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-bold mb-4">6. Third-Party Services</h2>
-              <p className="text-muted-foreground">
-                Our service may contain links to third-party websites or services. We are not responsible for the privacy practices of these third parties. 
-                We encourage you to read the privacy policies of any third-party services you visit.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-bold mb-4">7. Data Retention</h2>
-              <p className="text-muted-foreground">
-                We retain your personal information for as long as necessary to provide our services, comply with our legal obligations, 
-                resolve disputes, and enforce our agreements. When we no longer need your personal information, we will securely delete or anonymize it.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-bold mb-4">8. Your Rights</h2>
-              <p className="text-muted-foreground mb-4">Depending on your location, you may have certain rights regarding your personal information, including:</p>
-              <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                <li>The right to access and receive a copy of your personal information</li>
-                <li>The right to rectify or update your personal information</li>
-                <li>The right to delete your personal information</li>
-                <li>The right to restrict or object to our processing of your personal information</li>
-                <li>The right to data portability</li>
-              </ul>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-bold mb-4">9. Children's Privacy</h2>
-              <p className="text-muted-foreground">
-                Our service is not intended for children under the age of 13. We do not knowingly collect personal information from children under 13. 
-                If we become aware that we have collected personal information from a child under 13, we will take steps to delete such information.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-bold mb-4">10. Changes to This Policy</h2>
-              <p className="text-muted-foreground">
-                We may update this privacy policy from time to time. We will notify you of any changes by posting the new privacy policy on this page 
-                and updating the "Last updated" date at the top of this policy.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-bold mb-4">11. Contact Us</h2>
-              <p className="text-muted-foreground">
-                If you have any questions about this Privacy Policy, please contact us at hello@FindGreatStocks.com
-              </p>
-            </section>
-          </div>
-        </div>
+          <h2>Contact Us</h2>
+          <p>If you have any questions about this Privacy Policy, You can contact us.</p>
+        </article>
       </main>
     </div>
   );

@@ -1,76 +1,65 @@
-import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { ThemeProvider } from "@/components/theme-provider";
+import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import { HomePage as Home } from "./pages/home";
-import About from "./pages/about";
-import Contact from "./pages/contact";
-import Disclaimer from "./pages/disclaimer";
-import Privacy from "./pages/privacy";
-import Terms from "./pages/terms";
-import NotFound from "./pages/not-found";
-import Landing from "./pages/landing";
+import { LoginPage } from "./pages/login";
 import { WatchlistPage as Watchlist } from "./pages/watchlist";
-import { LoginPage } from './pages/login';
-import { useEffect } from "react";
-import { initGA } from "./lib/analytics";
-import { useAnalytics } from "./hooks/use-analytics";
-import { initGoogleAds } from "./components/google-ads-banner";
-
-function Router() {
-  // Track page views when routes change
-  useAnalytics();
-
-  return (
-    <Switch>
-      {/* Public stock scanner available to all users */}
-      <Route path="/" component={Home} />
-      
-      {/* Protected watchlist page */}
-      <Route path="/watchlist" component={Watchlist} />
-      
-      {/* Landing page now optional/marketing page */}
-      <Route path="/welcome" component={Landing} />
-      
-      {/* Public pages available to all users */}
-      <Route path="/about" component={About} />
-      <Route path="/terms" component={Terms} />
-      <Route path="/privacy" component={Privacy} />
-      <Route path="/disclaimer" component={Disclaimer} />
-      <Route path="/contact" component={Contact} />
-      <Route path="/login" component={LoginPage} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
+import { useAuth } from "@/providers/AuthProvider";
+import { Button } from "./components/ui/button";
+import { supabase } from "./lib/supabaseClient";
 
 function App() {
-  // Initialize Google Analytics when app loads
-  useEffect(() => {
-    // Verify required environment variable is present
-    if (!import.meta.env.VITE_GA_MEASUREMENT_ID) {
-      console.warn('Missing required Google Analytics key: VITE_GA_MEASUREMENT_ID');
-    } else {
-      initGA();
-    }
-    
-    // Initialize Google Ads only if AdSense publisher ID is available
-    if (import.meta.env.VITE_ADSENSE_PUBLISHER_ID) {
-      initGoogleAds();
-    }
-  }, []);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/'); // Redirect to home after logout
+  };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light">
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <div className="flex flex-col min-h-screen">
+      <header className="px-4 lg:px-6 h-14 flex items-center shadow-sm">
+        <Link className="flex items-center justify-center" to="/">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-6 w-6"
+          >
+            <line x1="12" x2="12" y1="2" y2="22" />
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+          <span className="ml-2 text-lg font-semibold">FindGreatStocks</span>
+        </Link>
+        <nav className="ml-auto flex gap-4 sm:gap-6">
+          <Link
+            className="text-sm font-medium hover:underline underline-offset-4"
+            to="/watchlist"
+          >
+            Watchlist
+          </Link>
+          {user ? (
+            <Button variant="outline" onClick={handleLogout}>Logout</Button>
+          ) : (
+            <Button asChild>
+              <Link to="/login">Login</Link>
+            </Button>
+          )}
+        </nav>
+      </header>
+      <main className="flex-1 p-4">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/watchlist" element={<Watchlist />} />
+        </Routes>
+      </main>
+    </div>
   );
 }
 

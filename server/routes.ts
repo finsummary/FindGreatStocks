@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { financialDataService } from "./financial-data";
-import { isAuthenticated } from "./authMiddleware"; // Use the new middleware
+import { createIsAuthenticatedMiddleware } from "./authMiddleware";
 import { z } from "zod";
 import { db } from "./db";
 import { companies, nasdaq100Companies, ftse100Companies, watchlist } from "@shared/schema";
@@ -10,8 +10,16 @@ import { eq, sql, desc, asc, and, or, ilike } from "drizzle-orm";
 import { dataScheduler } from "./scheduler";
 import { getCompanies, getCompanyCount, getNasdaq100Companies, getNasdaq100CompanyCount } from './storage';
 import { z } from 'zod';
+import { SupabaseClient } from "@supabase/supabase-js";
+import { type SupabaseClient } from '@supabase/supabase-js';
 
-export function setupRoutes(app: Express) {
+export function setupRoutes(app: Express, supabase: SupabaseClient) {
+  const isAuthenticated = createIsAuthenticatedMiddleware(supabase);
+
+  app.get('/api/auth/me', isAuthenticated, (req: any, res) => {
+    res.json(req.user);
+  });
+
   // Auth middleware
   // await setupAuth(app);
 
@@ -796,19 +804,41 @@ export function setupRoutes(app: Express) {
     }
   });
 
+  app.get('/api/watchlist/companies', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const companies = await storage.getWatchlistCompanies(userId);
+      res.json(companies);
+    } catch (error) {
+      console.error("Error fetching watchlist companies:", error);
+      res.status(500).json({ message: "Failed to fetch watchlist companies" });
+    }
+  });
+
   app.post('/api/watchlist', isAuthenticated, async (req: any, res) => {
+    console.log('[/api/watchlist POST] Received request');
     try {
       const { companySymbol } = req.body;
-      const userId = req.user.id; // Get user ID from Supabase user object
+      const userId = req.user?.id;
+      
+      console.log(`[/api/watchlist POST] User ID: ${userId}, Symbol: ${companySymbol}`);
+
+      if (!userId) {
+        console.error('[/api/watchlist POST] Error: User ID is missing from request.');
+        return res.status(401).json({ message: "Authentication error: User ID not found." });
+      }
       
       if (!companySymbol) {
+        console.error('[/api/watchlist POST] Error: Company symbol is missing.');
         return res.status(400).json({ message: "Company symbol is required" });
       }
 
+      console.log(`[/api/watchlist POST] Calling storage.addToWatchlist for user ${userId}`);
       const watchlistItem = await storage.addToWatchlist(companySymbol, userId);
+      console.log(`[/api/watchlist POST] Successfully added to watchlist. Item ID: ${watchlistItem?.id}`);
       res.json(watchlistItem);
     } catch (error) {
-      console.error("Error adding to watchlist:", error);
+      console.error("!!! FATAL ERROR in [/api/watchlist POST]:", error);
       res.status(500).json({ message: "Failed to add to watchlist" });
     }
   });

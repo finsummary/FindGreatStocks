@@ -1,108 +1,77 @@
-import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { useLocation } from "wouter";
-import { ArrowLeft, BarChart3, TrendingUp, Shield, Users } from "lucide-react";
+import { Users, Target, BarChart2, TrendingUp, CheckCircle, Shield, ArrowLeft } from 'lucide-react';
+import { Link } from "react-router-dom";
 
 export default function About() {
-  const [, setLocation] = useLocation();
-  const { isAuthenticated } = useAuth();
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" onClick={() => setLocation('/')}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Home
-              </Button>
-              <h1 className="text-xl font-bold text-primary">FindGreatStocks.com</h1>
-            </div>
-          </div>
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-950">
+      
+      <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8">
+        <div className="mb-4">
+          <Link to="/" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
+          </Link>
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold mb-6">About FindGreatStocks.com</h1>
-          
-          <div className="prose prose-lg max-w-none dark:prose-invert">
-            <p className="text-xl text-muted-foreground mb-8">
-              Your comprehensive platform for discovering exceptional investment opportunities across global markets.
+        <article className="prose dark:prose-invert max-w-4xl mx-auto">
+          <h1>About Us</h1>
+          <p>
+            Welcome to FindGreatStocks, your premier destination for simplified stock analysis.
+          </p>
+          <section className="text-center mb-12">
+            <h1 className="text-4xl font-bold mb-4">About FindGreatStocks.com</h1>
+            <p className="text-xl text-muted-foreground">
+              Empowering investors with data-driven insights for smarter decision-making.
             </p>
+          </section>
 
-            <div className="grid md:grid-cols-2 gap-8 mb-12">
-              <div className="bg-card p-6 rounded-lg border">
-                <BarChart3 className="h-8 w-8 text-primary mb-4" />
-                <h3 className="text-xl font-semibold mb-3">Real-Time Market Data</h3>
-                <p className="text-muted-foreground">
-                  Access authentic, real-time financial data for S&P 500, Nasdaq 100, and FTSE 100 companies powered by Financial Modeling Prep API.
-                </p>
+          <section className="mb-12">
+            <h2 className="text-3xl font-bold text-center mb-8">Our Mission</h2>
+            <div className="flex flex-col md:flex-row items-center gap-8">
+              <div className="md:w-1/2">
+                <Target className="h-24 w-24 text-primary mx-auto mb-4" />
               </div>
-              
-              <div className="bg-card p-6 rounded-lg border">
-                <TrendingUp className="h-8 w-8 text-primary mb-4" />
-                <h3 className="text-xl font-semibold mb-3">Advanced Analytics</h3>
-                <p className="text-muted-foreground">
-                  Comprehensive financial metrics including market cap, revenue, earnings, P/E ratios, returns analysis, and risk-adjusted performance indicators.
-                </p>
-              </div>
-              
-              <div className="bg-card p-6 rounded-lg border">
-                <Shield className="h-8 w-8 text-primary mb-4" />
-                <h3 className="text-xl font-semibold mb-3">Reliable & Secure</h3>
-                <p className="text-muted-foreground">
-                  Built with modern security practices, automated daily updates, and enterprise-grade data integrity to ensure accurate investment insights.
-                </p>
-              </div>
-              
-              <div className="bg-card p-6 rounded-lg border">
-                <Users className="h-8 w-8 text-primary mb-4" />
-                <h3 className="text-xl font-semibold mb-3">Personal Watchlists</h3>
-                <p className="text-muted-foreground">
-                  Create and manage personalized watchlists to track your favorite stocks across multiple indices with secure user authentication.
+              <div className="md:w-1/2">
+                <p className="text-lg text-muted-foreground">
+                  Our mission is to simplify the process of stock analysis by providing a powerful, intuitive, and accessible platform. We believe that every investor, from beginners to seasoned experts, should have access to high-quality financial data and sophisticated tools to make informed decisions. We are committed to transparency, accuracy, and continuous improvement to help you navigate the complexities of the stock market with confidence.
                 </p>
               </div>
             </div>
+          </section>
 
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold mb-4">Our Mission</h2>
-              <p className="text-muted-foreground mb-4">
-                FindGreatStocks.com democratizes access to professional-grade financial analysis tools. We believe every investor deserves access to comprehensive, accurate, and timely market data to make informed investment decisions.
-              </p>
-              <p className="text-muted-foreground">
-                Our platform combines cutting-edge technology with reliable data sources to deliver insights that were once available only to institutional investors.
-              </p>
-            </section>
+          <section className="bg-card p-8 rounded-lg border mb-12">
+            <h2 className="text-3xl font-bold text-center mb-8">Key Features</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="flex items-start space-x-4">
+                <BarChart2 className="h-8 w-8 text-primary mt-1" />
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Comprehensive Data</h3>
+                  <p className="text-muted-foreground">Access a wide range of fundamental and technical metrics for hundreds of stocks across major indices like the S&P 500 and Nasdaq 100.</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-4">
+                <TrendingUp className="h-8 w-8 text-primary mt-1" />
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Advanced Analytics</h3>
+                  <p className="text-muted-foreground">Utilize powerful tools like DCF valuation, DuPont analysis, and risk-adjusted return metrics to gain deeper insights into company performance.</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-4">
+                <CheckCircle className="h-8 w-8 text-primary mt-1" />
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Customizable Watchlist</h3>
+                  <p className="text-muted-foreground">Create and manage your personal watchlist to track the stocks that matter most to you, with all your key data points in one place.</p>
+                </div>
+              </div>
+            </div>
+          </section>
 
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold mb-4">Key Features</h2>
-              <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                <li>Complete coverage of 703 companies across S&P 500, Nasdaq 100, and FTSE 100 indices</li>
-                <li>Real-time price updates and market capitalizations</li>
-                <li>Comprehensive fundamental analysis with revenue, earnings, and P/E ratios</li>
-                <li>Multi-year performance tracking (3Y, 5Y, 10Y annualized returns)</li>
-                <li>Risk analysis with maximum drawdown and AR/MDD ratios</li>
-                <li>Advanced sorting and filtering capabilities</li>
-                <li>Secure user authentication and persistent watchlists</li>
-                <li>Mobile-responsive design for on-the-go analysis</li>
-                <li>Daily automated data updates after market close</li>
-              </ul>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-bold mb-4">Data Sources</h2>
-              <p className="text-muted-foreground">
-                All financial data is sourced from Financial Modeling Prep, a trusted provider of real-time and historical financial data. 
-                Our system automatically updates stock prices, market capitalizations, and financial metrics daily after market close 
-                to ensure you always have access to the most current information.
-              </p>
-            </section>
-          </div>
-        </div>
+          <section className="text-center">
+            <h2 className="text-3xl font-bold mb-4">Our Commitment to You</h2>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              We are dedicated to providing a reliable and user-friendly platform. Our data is sourced from trusted financial providers and updated regularly to ensure you have the most current information at your fingertips. Your success as an investor is our top priority.
+            </p>
+          </section>
+        </article>
       </main>
     </div>
   );

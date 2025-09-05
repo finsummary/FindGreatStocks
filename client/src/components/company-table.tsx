@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronUp, ChevronDown, Star, Download, Search, Settings2, X, Lock } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,12 +9,17 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { formatCurrency, formatMarketCap, formatPercentage, formatPrice, formatEarnings, formatNumber, formatPercentageFromDecimal } from "@/lib/format";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { formatMarketCap, formatPercentage, formatPrice, formatEarnings, formatNumber, formatPercentageFromDecimal } from "@/lib/format";
 import { apiRequest } from "@/lib/queryClient";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/providers/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
-import type { Company, Nasdaq100Company, Ftse100Company } from "@shared/schema";
+import type { Company, Nasdaq100Company } from "@shared/schema";
 import { authFetch } from "@/lib/authFetch";
 import {
   DropdownMenu,
@@ -35,6 +40,8 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   getFilteredRowModel,
+  SortingState,
+  ColumnFiltersState,
 } from "@tanstack/react-table";
 import {
   CaretSortIcon,
@@ -44,6 +51,8 @@ import {
 import { LockOpen } from "lucide-react";
 import { flexRender } from "@tanstack/react-table";
 
+type DisplayCompany = Company & { isWatched?: boolean };
+
 interface ColumnConfig {
   id: keyof Company | 'rank' | 'name' | 'watchlist' | 'none'; // 'none' for the placeholder
   label: string;
@@ -51,7 +60,7 @@ interface ColumnConfig {
   defaultVisible: boolean;
 }
 
-const ALL_COLUMNS: ColumnConfig[] = [
+export const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'watchlist', label: 'Watchlist', width: 'w-[50px]', defaultVisible: true },
   { id: 'rank', label: 'Rank', width: 'w-[30px]', defaultVisible: true },
   { id: 'name', label: 'Company Name', width: 'w-[200px]', defaultVisible: true },
@@ -167,16 +176,80 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         return acc;
       }, {} as VisibilityState)
     )
-  const [rowSelection, setRowSelection] = React.useState({})
+  const [rowSelection, setRowSelection] = React.useState({});
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Simulate user state for now
-  const isPaid = activeTab === 'dowjones';
-  const isLoggedIn = true; // Assume user is logged in for watchlist feature
+  const isLoggedIn = !!user;
+  const isPaidUser = user?.subscriptionTier === 'paid';
 
+  // Watchlist mutations (only fetch if authenticated)
+  const { data: watchlistData } = useQuery<Array<{ companySymbol: string }>>({
+    queryKey: ['/api/watchlist'],
+    queryFn: async () => {
+      const response = await authFetch('/api/watchlist');
+      if (!response.ok) {
+        throw new Error('Failed to fetch watchlist');
+      }
+      return response.json();
+    },
+    enabled: !!isLoggedIn,
+  });
 
+  const { mutate: addToWatchlist, isPending: isAddingToWatchlist } = useMutation({
+    mutationFn: (companySymbol: string) => authFetch('/api/watchlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ companySymbol }),
+    }),
+    onSuccess: (data, companySymbol) => {
+      // Manually update the cache to reflect the change immediately
+      queryClient.setQueryData<Array<{ companySymbol: string }>>(['/api/watchlist'], (oldData) => {
+        if (!oldData) return [{ companySymbol }];
+        if (oldData.some(item => item.companySymbol === companySymbol)) return oldData;
+        return [...oldData, { companySymbol }];
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
+      toast({ title: "Success", description: `${companySymbol} added to watchlist.` });
+    },
+    onError: (error, companySymbol) => {
+      toast({ title: "Error", description: `Failed to add ${companySymbol} to watchlist.`, variant: "destructive" });
+    },
+  });
+
+  const { mutate: removeFromWatchlist, isPending: isRemovingFromWatchlist } = useMutation({
+    mutationFn: (companySymbol: string) => authFetch(`/api/watchlist/${companySymbol}`, { method: 'DELETE' }),
+    onSuccess: (data, companySymbol) => {
+      // Manually update the cache
+      queryClient.setQueryData<Array<{ companySymbol: string }>>(['/api/watchlist'], (oldData) => {
+        return oldData ? oldData.filter(item => item.companySymbol !== companySymbol) : [];
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
+      toast({ title: "Success", description: `${companySymbol} removed from watchlist.` });
+    },
+    onError: (error, companySymbol) => {
+      toast({ title: "Error", description: `Failed to remove ${companySymbol} from watchlist.`, variant: "destructive" });
+    },
+  });
+
+  const handleWatchlistToggle = (symbol: string, isCurrentlyWatched: boolean) => {
+    if (!isLoggedIn) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to add stocks to your personal watchlist",
+        variant: "default",
+      });
+      return;
+    }
+    
+    if (isCurrentlyWatched) {
+      removeFromWatchlist(symbol);
+    } else {
+      addToWatchlist(symbol);
+    }
+  };
+  
   let apiEndpoint;
   switch (dataset) {
     case 'sp500':
@@ -192,7 +265,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       apiEndpoint = '/api/companies';
   }
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error } = useQuery<{ companies: Company[], total: number, hasMore: boolean }>({
     queryKey: [apiEndpoint, page, sortBy, sortOrder, searchQuery],
     queryFn: async ({ queryKey }) => {
       const [url, page, currentSortBy, sortOrder, search] = queryKey as [
@@ -228,60 +301,20 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     },
   });
 
-  // Watchlist mutations (only fetch if authenticated)
-  const { data: watchlistData } = useQuery({
-    queryKey: ['/api/watchlist'],
-    queryFn: async () => {
-      const response = await authFetch('/api/watchlist');
-      if (!response.ok) throw new Error('Failed to fetch watchlist');
-      return response.json();
-    },
-    enabled: !!user, // Only fetch watchlist if user is authenticated
-  });
-
-  const addToWatchlistMutation = useMutation({
-    mutationFn: async (companySymbol: string) => {
-      return await apiRequest('POST', '/api/watchlist', { companySymbol });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
-    },
-  });
-
-  const removeFromWatchlistMutation = useMutation({
-    mutationFn: async (companySymbol: string) => {
-      return await apiRequest('DELETE', `/api/watchlist/${companySymbol}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
-    },
-  });
-
-  const isInWatchlist = (symbol: string): boolean => {
-    return watchlistData?.some((item: any) => item.companySymbol === symbol) || false;
-  };
-
-  const handleWatchlistToggle = (symbol: string) => {
-    if (!user) {
-      // Prompt user to sign in for watchlist access
-      toast({
-        title: "Sign In Required",
-        description: "Please sign in to add stocks to your personal watchlist",
-        variant: "default",
-      });
-      return;
+  const tableData = useMemo(() => {
+    if (data?.companies) {
+      const watchlistSymbols = new Set(watchlistData?.map((item) => item.companySymbol) || []);
+      return data.companies.map(company => ({
+        ...company,
+        isWatched: watchlistSymbols.has(company.symbol)
+      }));
     }
+    return [];
+  }, [data, watchlistData]);
 
-    if (isInWatchlist(symbol)) {
-      removeFromWatchlistMutation.mutate(symbol);
-    } else {
-      addToWatchlistMutation.mutate(symbol);
-    }
-  };
-
-  const columns = React.useMemo<ColumnDef<Company>[]>(() => {
+  const columns = useMemo<ColumnDef<DisplayCompany>[]>(() => {
     return ALL_COLUMNS.map(colConfig => {
-      const columnDef: ColumnDef<Company> = {
+      const columnDef: ColumnDef<DisplayCompany> = {
         accessorKey: colConfig.id,
         header: () => (
           <TooltipProvider delayDuration={100}>
@@ -305,22 +338,23 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           let cellContent;
           switch (colConfig.id) {
             case 'watchlist':
+              const isWatched = row.isWatched || false;
               cellContent = (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className={`p-1 h-auto transition-colors ${
-                    isInWatchlist(row.symbol) 
-                      ? 'text-yellow-500 hover:text-yellow-600' 
+                    isWatched
+                      ? 'text-yellow-500 hover:text-yellow-600'
                       : 'text-muted-foreground hover:text-yellow-500'
                   }`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleWatchlistToggle(row.symbol);
+                    handleWatchlistToggle(row.symbol, isWatched);
                   }}
-                  disabled={addToWatchlistMutation.isPending || removeFromWatchlistMutation.isPending}
+                  disabled={!isLoggedIn || isAddingToWatchlist || isRemovingFromWatchlist}
                 >
-                  <Star className={`h-4 w-4 ${isInWatchlist(row.symbol) ? 'fill-current' : ''}`} />
+                  <Star className={`h-4 w-4 ${isWatched ? 'fill-current' : ''}`} />
                 </Button>
               );
               break;
@@ -379,7 +413,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
               }
               break;
             case 'freeCashFlow':
-              cellContent = <div className="font-mono">{row.freeCashFlow ? formatMarketCap(row.freeCashFlow) : <span className="text-muted-foreground">-</span>}</div>;
+              cellContent = <div className="font-mono">{formatMarketCap(row.freeCashFlow)}</div>;
               break;
             case 'revenueGrowth3Y':
               cellContent = <div className="font-mono">{formatPercentage(row.revenueGrowth3Y, false, 1)}</div>;
@@ -482,7 +516,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                     } else if (roe >= 5) {
                       roeBadgeClass = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
                     }
-                    cellContent = <Badge variant="outline" className={`${roeBadgeClass} font-mono`}>{formatPercentageFromDecimal(roeValue, true, 1)}</Badge>;
+                    cellContent = <Badge variant="outline" className={`${roeBadgeClass} font-mono`}>{formatPercentage(roe, true, 1)}</Badge>;
                 }
                 break;
             default:
@@ -497,10 +531,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       };
       return columnDef;
     });
-  }, [page, limit, watchlistData, addToWatchlistMutation, removeFromWatchlistMutation]); // Dependencies for cell rendering logic
+  }, [page, limit, watchlistData]); 
 
   const table = useReactTable({
-    data: data?.companies || [],
+    data: tableData,
     columns,
     state: {
       sorting: [
@@ -510,6 +544,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         },
       ],
       columnVisibility,
+      pagination: {
+        pageIndex: page,
+        pageSize: limit,
+      },
     },
     onSortingChange: (updater) => {
       if (typeof updater === 'function') {
@@ -535,13 +573,6 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     getPaginationRowModel: getPaginationRowModel(),
     manualPagination: true,
     pageCount: data?.total ? Math.ceil(data.total / limit) : -1,
-    onPaginationChange: (updater) => {
-       if (typeof updater === 'function') {
-        setPage(updater(table.getState().pagination.pageIndex));
-      } else {
-        setPage(updater.pageIndex);
-      }
-    },
     onRowSelectionChange: setRowSelection,
     manualSorting: true,
   });
@@ -580,6 +611,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     );
   }
 
+  const showSkeletons = isLoading;
+
   return (
     <div className="space-y-6">
       {/* Controls */}
@@ -605,7 +638,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                     'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
                     'assetTurnover', 'financialLeverage', 'roe'
                   ];
-                  const isLocked = !isPaid && lockedColumns.includes(col.id);
+                  const isLocked = !isPaidUser && lockedColumns.includes(col.id);
 
                   return (
                     <SelectItem key={col.id} value={col.id} disabled={isLocked}>
@@ -644,7 +677,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                         'assetTurnover', 'financialLeverage', 'roe'
                       ];
 
-                      const isLocked = !isPaid && lockedColumns.includes(colConfig.id);
+                      const isLocked = !isPaidUser && lockedColumns.includes(colConfig.id);
 
                       return (
                         <DropdownMenuCheckboxItem
@@ -679,7 +712,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                 <DropdownMenuSeparator />
                 {Object.entries(PRESET_LAYOUTS).map(([key, layout]) => {
                   const isPaidLayout = key === 'dcfValuation' || key === 'dupontRoe' || key === 'returnOnRisk';
-                  const isLocked = !isPaid && isPaidLayout;
+                  const isLocked = !isPaidUser && isPaidLayout;
                   return (
                     <DropdownMenuItem
                       key={key}
@@ -707,7 +740,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                 })}
               </DropdownMenuContent>
             </DropdownMenu>
-            {!isPaid && (
+            {!isPaidUser && (
               <Button>
                 <LockOpen className="mr-2 h-4 w-4" />
                 Upgrade
@@ -761,7 +794,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
               ))}
             </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {showSkeletons ? (
                   // Loading skeleton
                   Array.from({ length: 10 }).map((_, i) => (
                     <TableRow key={i}>
@@ -794,7 +827,6 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                     <TableRow 
                       key={row.id} 
                       className="hover:bg-muted/50 cursor-pointer group transition-colors"
-                      onClick={() => console.log('Navigate to company:', row.original.symbol)}
                     >
                       {row.getVisibleCells().map(cell => (
                         <TableCell key={cell.id} className={

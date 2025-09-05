@@ -6,80 +6,63 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatMarketCap, formatPrice, formatPercentage, formatEarnings } from "@/lib/format";
 import { apiRequest } from "@/lib/queryClient";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/providers/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { authFetch } from "@/lib/authFetch";
 import type { Company, Watchlist } from "@shared/schema";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 
 export function WatchlistPage() {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
-  // Redirect to home if not authenticated
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
+    if (!user) {
       toast({
         title: "Unauthorized",
         description: "You need to sign in to access your watchlist. Redirecting...",
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/login";
       }, 500);
-      return;
     }
-  }, [isAuthenticated, authLoading, toast]);
+  }, [user, toast]);
 
-  // Fetch watchlist items
-  const { data: watchlistData, isLoading: watchlistLoading } = useQuery({
-    queryKey: ['/api/watchlist'],
-    queryFn: async () => {
-      const response = await fetch('/api/watchlist');
-      if (!response.ok) throw new Error('Failed to fetch watchlist');
-      return response.json();
+  const { data: watchlistCompanies, isLoading, error } = useQuery<Company[]>({
+    queryKey: ['/api/watchlist/companies'],
+    queryFn: () => authFetch('/api/watchlist/companies'),
+    enabled: !!user,
+    retry: (failureCount, error) => {
+      if (isUnauthorizedError(error)) return false;
+      return failureCount < 3;
     },
-  });
-
-  // Fetch company details for watchlist items
-  const { data: companiesData, isLoading: companiesLoading } = useQuery({
-    queryKey: ['/api/companies', { limit: 1000 }], // Get more companies to find watchlist matches
-    queryFn: async ({ queryKey }) => {
-      const [url, params] = queryKey as [string, any];
-      const searchParams = new URLSearchParams();
-      
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined) {
-          searchParams.append(key, String(value));
-        }
-      });
-      
-      const response = await fetch(`${url}?${searchParams}`);
-      if (!response.ok) throw new Error('Failed to fetch companies');
-      return response.json();
-    },
-    enabled: !!watchlistData?.length,
   });
 
   const removeFromWatchlistMutation = useMutation({
-    mutationFn: async (companySymbol: string) => {
-      return await apiRequest('DELETE', `/api/watchlist/${companySymbol}`);
-    },
+    mutationFn: (companySymbol: string) => authFetch(`/api/watchlist/${companySymbol}`, { method: 'DELETE' }),
     onSuccess: () => {
+      // Invalidate both watchlist queries to ensure UI consistency
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
+      toast({
+        title: "Success",
+        description: "Removed from watchlist.",
+      });
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
+          description: "You are logged out. Please sign in again.",
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/login";
         }, 500);
         return;
       }
@@ -95,43 +78,7 @@ export function WatchlistPage() {
     removeFromWatchlistMutation.mutate(symbol);
   };
 
-  const handleExportWatchlist = () => {
-    if (!watchlistCompanies?.length) return;
-    
-    const csvContent = [
-      ['Company', 'Symbol', 'Market Cap', 'Price', 'Revenue', 'Earnings', 'P/E Ratio', '3Y Return', '5Y Return', '10Y Return', 'Today Change'].join(','),
-      ...watchlistCompanies.map((company: Company) => [
-        `"${company.name}"`,
-        company.symbol,
-        company.marketCap ? formatMarketCap(company.marketCap) : '',
-        company.price ? formatPrice(company.price) : '',
-        company.revenue ? formatMarketCap(company.revenue) : '',
-        company.netIncome ? formatEarnings(company.netIncome) : '',
-        company.peRatio || '',
-        company.return3Year ? `${company.return3Year}%` : '',
-        company.return5Year ? `${company.return5Year}%` : '',
-        company.return10Year ? `${company.return10Year}%` : '',
-        company.dailyChangePercent ? `${company.dailyChangePercent}%` : ''
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'watchlist.csv';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-  };
-
-  // Filter companies that are in the watchlist
-  const watchlistCompanies = companiesData?.companies?.filter((company: Company) =>
-    watchlistData?.some((item: Watchlist) => item.companySymbol === company.symbol)
-  ) || [];
-
-  const isDataLoading = watchlistLoading || companiesLoading;
+  const watchlistCompaniesToDisplay = watchlistCompanies || [];
 
   return (
     <div className="space-y-6">
@@ -140,7 +87,7 @@ export function WatchlistPage() {
         <div className="flex items-center gap-4">
           <Button 
             variant="ghost" 
-            onClick={() => setLocation('/')}
+            onClick={() => navigate('/')}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -149,27 +96,21 @@ export function WatchlistPage() {
           <div>
             <h1 className="text-2xl font-bold">My Watchlist</h1>
             <p className="text-muted-foreground">
-              {watchlistData?.length || 0} companies in your watchlist
+              {watchlistCompaniesToDisplay?.length || 0} companies in your watchlist
             </p>
           </div>
         </div>
         
-        {watchlistCompanies.length > 0 && (
-          <Button onClick={handleExportWatchlist} className="flex items-center gap-2">
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
-        )}
       </div>
 
       {/* Watchlist Content */}
-      {isDataLoading ? (
+      {isLoading ? (
         <Card>
           <CardContent className="p-8 text-center">
             <p>Loading your watchlist...</p>
           </CardContent>
         </Card>
-      ) : watchlistData?.length === 0 ? (
+      ) : watchlistCompaniesToDisplay.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
             <Star className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -177,7 +118,7 @@ export function WatchlistPage() {
             <p className="text-muted-foreground mb-4">
               Start building your watchlist by clicking the star icon next to companies you want to track.
             </p>
-            <Button onClick={() => setLocation('/')}>
+            <Button onClick={() => navigate('/')}>
               Browse Companies
             </Button>
           </CardContent>
@@ -207,7 +148,7 @@ export function WatchlistPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {watchlistCompanies.map((company: Company) => (
+                  {watchlistCompaniesToDisplay.map((company: Company, index) => (
                     <TableRow 
                       key={company.id} 
                       className="hover:bg-muted/50 cursor-pointer group transition-colors"
@@ -226,7 +167,7 @@ export function WatchlistPage() {
                           <Star className="h-4 w-4 fill-current" />
                         </Button>
                       </TableCell>
-                      <TableCell className="font-medium">{company.rank}</TableCell>
+                      <TableCell className="font-medium">{index + 1}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <img 

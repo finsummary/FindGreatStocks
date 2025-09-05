@@ -1,12 +1,12 @@
-import { companies, nasdaq100Companies, watchlist, users, type User, type UpsertUser, type Company, type Nasdaq100Company, type InsertCompany, type InsertNasdaq100Company, type Watchlist, type InsertWatchlist, type DowJonesCompany, type InsertDowJonesCompany } from "@shared/schema";
+import { companies, nasdaq100Companies, watchlist, users, type User, type UpsertUser, type Company, type Nasdaq100Company, type InsertCompany, type InsertNasdaq100Company, type Watchlist, type InsertWatchlist, type DowJonesCompany, type InsertDowJonesCompany, dowJonesCompanies } from "@shared/schema";
 import { db } from "./db";
-import { eq, sql, desc, asc, and, or, ilike } from "drizzle-orm";
+import { eq, sql, desc, asc, and, or, ilike, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
   // (IMPORTANT) these user operations are mandatory for Replit Auth.
   getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  upsertUser(user: UpsertUser): Promise<void>;
   
   // Company methods
   getCompanies(limit?: number, offset?: number, sortBy?: string, sortOrder?: 'asc' | 'desc', search?: string, country?: string): Promise<Company[]>;
@@ -33,6 +33,7 @@ export interface IStorage {
   
   // Watchlist methods
   getWatchlist(userId: string): Promise<Watchlist[]>;
+  getWatchlistCompanies(userId: string): Promise<Company[]>;
   addToWatchlist(companySymbol: string, userId: string): Promise<Watchlist>;
   removeFromWatchlist(companySymbol: string, userId: string): Promise<void>;
   isInWatchlist(companySymbol: string, userId: string): Promise<boolean>;
@@ -47,19 +48,24 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
+  async upsertUser(user: UpsertUser): Promise<void> {
+    console.log(`Upserting user: ${user.id} (${user.email})`);
+    await db
       .insert(users)
-      .values(userData)
+      .values({
+        id: user.id,
+        email: user.email,
+        updatedAt: new Date(),
+        subscriptionTier: user.subscriptionTier || 'free',
+      })
       .onConflictDoUpdate({
         target: users.id,
         set: {
-          ...userData,
+          email: user.email,
           updatedAt: new Date(),
         },
-      })
-      .returning();
-    return user;
+      });
+    console.log(`Upsert successful for user: ${user.id}`);
   }
 
   async getCompanies(limit = 50, offset = 0, sortBy = 'rank', sortOrder: 'asc' | 'desc' = 'asc', search?: string): Promise<Company[]> {
@@ -391,14 +397,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addToWatchlist(companySymbol: string, userId: string): Promise<Watchlist> {
-    const [watchlistItem] = await db
+    // First, check if the item already exists
+    const existingItems = await db.select().from(watchlist).where(
+      and(
+        eq(watchlist.userId, userId),
+        eq(watchlist.companySymbol, companySymbol)
+      )
+    );
+
+    if (existingItems.length > 0) {
+      console.log(`[addToWatchlist] Item ${companySymbol} already exists for user ${userId}. Returning existing.`);
+      return existingItems[0];
+    }
+
+    // If it doesn't exist, insert it
+    console.log(`[addToWatchlist] Item ${companySymbol} does not exist for user ${userId}. Inserting new.`);
+    const [newWatchlistItem] = await db
       .insert(watchlist)
       .values({ 
         companySymbol, 
         userId
       })
       .returning();
-    return watchlistItem;
+      
+    console.log(`[addToWatchlist] Successfully inserted. New ID: ${newWatchlistItem.id}`);
+    return newWatchlistItem;
   }
 
   async removeFromWatchlist(companySymbol: string, userId: string): Promise<void> {
@@ -412,7 +435,51 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(watchlist.companySymbol, companySymbol), eq(watchlist.userId, userId)));
     return result.length > 0;
   }
-  
+ 
+  async getWatchlistCompanies(userId: string): Promise<Company[]> {
+    // First, get all the symbols from the user's watchlist
+    const watchlistItems = await this.getWatchlist(userId);
+    const symbols = watchlistItems.map(item => item.companySymbol);
+ 
+    if (symbols.length === 0) {
+      return [];
+    }
+ 
+    // This is a bit complex. We need to find the full company data for each symbol.
+    // The company could be in the S&P 500 table, Nasdaq 100, or Dow Jones.
+    // We'll query all of them and merge the results. A UNION query is good for this.
+    // Note: We are assuming a symbol is unique across all tables.
+ 
+    const sp500Query = db.select().from(companies).where(inArray(companies.symbol, symbols));
+    const nasdaqQuery = db.select().from(nasdaq100Companies).where(inArray(nasdaq100Companies.symbol, symbols));
+    const dowJonesQuery = db.select().from(dowJonesCompanies).where(inArray(dowJonesCompanies.symbol, symbols));
+ 
+    // Drizzle doesn't have a built-in UNION for different table types, so we execute them
+    // in parallel and merge the results in code.
+    const [sp500Results, nasdaqResults, dowJonesResults] = await Promise.all([
+      sp500Query,
+      nasdaqQuery,
+      dowJonesQuery,
+    ]);
+ 
+    const allCompanies = [
+      ...sp500Results,
+      ...nasdaqResults,
+      ...dowJonesResults,
+    ];
+ 
+    // It's possible for a company to be in multiple lists (e.g., S&P 500 and Nasdaq 100).
+    // We'll create a map to ensure each symbol appears only once in the final result.
+    const companyMap = new Map<string, Company>();
+    allCompanies.forEach(company => {
+      if (company.symbol && !companyMap.has(company.symbol)) {
+        companyMap.set(company.symbol, company as Company);
+      }
+    });
+ 
+    return Array.from(companyMap.values());
+  }
+ 
   private buildOrderByClause(sortBy: string): SQL {
     const sortColumnMap: Record<string, SQL> = {
         'rank': sql`CASE WHEN "rank" IS NULL THEN 0 ELSE "rank" END`,
