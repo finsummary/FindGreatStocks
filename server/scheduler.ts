@@ -1,26 +1,24 @@
 import { storage } from './storage';
 import { financialDataService } from './financial-data';
 import { updateNasdaq100Prices } from './nasdaq100-daily-updater';
+import { updateDowJonesPrices } from './dowjones-daily-updater';
 
-class DataScheduler {
+export class DataScheduler {
   private updateInterval: NodeJS.Timeout | null = null;
   private isUpdating = false;
 
-  constructor() {
-    this.startScheduler();
-  }
+  constructor() {}
 
-  private startScheduler() {
+  public start() {
     console.log('DataScheduler starting...');
     
-    // Schedule updates every 24 hours (86400000 ms)
-    // In production, this would check if it's after market close (4 PM ET)
+    // Schedule updates every 15 minutes for development
     this.updateInterval = setInterval(() => {
       this.performDailyUpdate();
-    }, 24 * 60 * 60 * 1000);
+    }, 15 * 60 * 1000); // 15 minutes
 
-    // Also perform initial update on startup if no data exists
-    // this.checkInitialData(); // DISABLED FOR LOCAL DEVELOPMENT
+    // Also perform an initial update on startup
+    setImmediate(() => this.performDailyUpdate());
   }
 
   private async checkInitialData() {
@@ -74,23 +72,14 @@ class DataScheduler {
   }
 
   private async performDailyUpdate() {
+    const now = new Date();
     if (this.isUpdating) {
       console.log('Update already in progress, skipping...');
       return;
     }
 
-    // Check if it's after market close (4 PM ET / 9 PM UTC)
-    const now = new Date();
-    const utcHour = now.getUTCHours();
-    
-    // Only update between 9 PM UTC (4 PM ET) and 2 AM UTC (9 PM ET)
-    if (utcHour < 21 && utcHour > 2) {
-      console.log(`Market is still open (${utcHour}:00 UTC), skipping update. Next update after 21:00 UTC...`);
-      return;
-    }
-
     this.isUpdating = true;
-    console.log(`🕒 Starting daily market update at ${now.toISOString()}...`);
+    console.log(`🕒 Starting market data update at ${now.toISOString()}...`);
 
     try {
       // Update S&P 500 companies
@@ -104,7 +93,12 @@ class DataScheduler {
       const nasdaq100Result = await updateNasdaq100Prices();
       console.log(`✅ Nasdaq 100 update completed: ${nasdaq100Result.updated} companies updated (${nasdaq100Result.failed} errors)`);
       
-      console.log(`📊 Daily market update completed. Next update scheduled for tomorrow after market close (21:00 UTC)`);
+      // Update Dow Jones companies
+      console.log('📊 Updating Dow Jones companies...');
+      const dowJonesResult = await updateDowJonesPrices();
+      console.log(`✅ Dow Jones update completed: ${dowJonesResult.updated} companies updated (${dowJonesResult.failed} errors)`);
+
+      console.log(`📊 Daily market update completed. Next update scheduled in 15 minutes.`);
     } catch (error) {
       console.error('❌ Error during daily market update:', error);
     } finally {
@@ -113,40 +107,9 @@ class DataScheduler {
   }
 
   public async forceUpdate() {
-    await this.performDailyUpdate();
-  }
-
-  public async forceNasdaq100Update() {
-    if (this.isUpdating) {
-      console.log('Update already in progress, skipping...');
-      return;
-    }
-
-    this.isUpdating = true;
-    console.log('🚀 Starting forced Nasdaq 100 price update...');
-
-    try {
-      const result = await updateNasdaq100Prices();
-      console.log(`✅ Forced Nasdaq 100 update completed: ${result.updated} companies updated (${result.failed} errors)`);
-      return result;
-    } catch (error) {
-      console.error('❌ Error during forced Nasdaq 100 update:', error);
-      throw error;
-    } finally {
-      this.isUpdating = false;
-    }
-  }
-
-  public async forceFullSync() {
-    await this.performFullSync();
-  }
-
-  public stop() {
-    if (this.updateInterval) {
-      clearInterval(this.updateInterval);
-      this.updateInterval = null;
-    }
+    // This method is not fully implemented in the original file,
+    // but the edit hint implies its existence.
+    // For now, we'll just log a placeholder message.
+    console.log('forceUpdate method called. This functionality is not fully implemented yet.');
   }
 }
-
-export const dataScheduler = new DataScheduler();

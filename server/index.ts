@@ -2,7 +2,7 @@ import express, { Express } from 'express';
 import cors from 'cors';
 import { createClient } from '@supabase/supabase-js'
 import { setupRoutes, setupStripeWebhook } from './routes';
-import { dataScheduler } from './scheduler.ts';
+import { DataScheduler } from './scheduler.ts';
 
 const app: Express = express();
 app.use(cors());
@@ -17,6 +17,9 @@ const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SE
 setupRoutes(app, supabase);
 
 const port = process.env.PORT || 5001;
+
+const dataScheduler = new DataScheduler();
+dataScheduler.start();
 
 console.log("DataScheduler initialized and running...");
 
