@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import { Express, Request, Response, NextFunction } from 'express';
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { financialDataService } from "./financial-data";
@@ -12,6 +12,53 @@ import { getCompanies, getCompanyCount, getNasdaq100Companies, getNasdaq100Compa
 import { z } from 'zod';
 import { SupabaseClient } from "@supabase/supabase-js";
 import { type SupabaseClient } from '@supabase/supabase-js';
+import { authFetch } from '@/lib/authFetch';
+import { db } from './db';
+import { users } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+import Stripe from 'stripe';
+import express from 'express';
+import { isAuthenticated, User } from './authMiddleware';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-04-10',
+});
+
+export function setupStripeWebhook(app: Express) {
+  // Stripe Webhook Handler
+  app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig!, process.env.STRIPE_WEBHOOK_SECRET!);
+    } catch (err) {
+      console.error('Webhook signature verification failed.', err);
+      return res.status(400).send(`Webhook Error: ${(err as Error).message}`);
+    }
+
+    // Handle the event
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const userId = session.metadata?.userId;
+
+      if (userId) {
+        console.log(`Payment successful for user ${userId}. Updating subscription tier.`);
+        try {
+          await db
+            .update(users)
+            .set({ subscriptionTier: 'paid' })
+            .where(eq(users.id, userId));
+          console.log(`User ${userId} subscription tier updated to 'paid'.`);
+        } catch (dbError) {
+          console.error(`Failed to update subscription for user ${userId}:`, dbError);
+        }
+      }
+    }
+
+    res.json({ received: true });
+  });
+}
 
 export function setupRoutes(app: Express, supabase: SupabaseClient) {
   const isAuthenticated = createIsAuthenticatedMiddleware(supabase);
@@ -868,6 +915,73 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
       res.status(500).json({ message: "Failed to check watchlist" });
     }
   });
+
+  // Stripe Checkout Session Route
+  app.post('/api/stripe/create-checkout-session', isAuthenticated, async (req, res) => {
+    const user = req.user as User;
+    const { priceId } = req.body;
+
+    if (!priceId) {
+      return res.status(400).json({ error: { message: 'Price ID is required' } });
+    }
+
+    try {
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        success_url: `${process.env.CLIENT_URL}/payment-success`,
+        cancel_url: `${process.env.CLIENT_URL}/payment-cancelled`,
+        metadata: {
+          userId: user.id,
+        },
+      });
+
+      res.json({ sessionId: session.id });
+    } catch (error) {
+      console.error('Error creating Stripe session:', error);
+      res.status(500).json({ error: { message: 'Failed to create checkout session' } });
+    }
+  });
+
+  // Stripe Webhook Handler
+  // app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  //   const sig = req.headers['stripe-signature'];
+  //   let event;
+
+  //   try {
+  //     event = stripe.webhooks.constructEvent(req.body, sig!, process.env.STRIPE_WEBHOOK_SECRET!);
+  //   } catch (err) {
+  //     console.error('Webhook signature verification failed.', err);
+  //     return res.status(400).send(`Webhook Error: ${(err as Error).message}`);
+  //   }
+
+  //   // Handle the event
+  //   if (event.type === 'checkout.session.completed') {
+  //     const session = event.data.object as Stripe.Checkout.Session;
+  //     const userId = session.metadata?.userId;
+
+  //     if (userId) {
+  //       console.log(`Payment successful for user ${userId}. Updating subscription tier.`);
+  //       try {
+  //         await db
+  //           .update(users)
+  //           .set({ subscriptionTier: 'paid' })
+  //           .where(eq(users.id, userId));
+  //         console.log(`User ${userId} subscription tier updated to 'paid'.`);
+  //       } catch (dbError) {
+  //         console.error(`Failed to update subscription for user ${userId}:`, dbError);
+  //       }
+  //     }
+  //   }
+
+  //   res.json({ received: true });
+  // });
 }
 
 function formatMarketCap(value: number): string {

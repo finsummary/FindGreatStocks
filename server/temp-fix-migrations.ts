@@ -1,44 +1,51 @@
-import { Client } from 'pg';
-import 'dotenv/config';
-
-const MIGRATION_TABLE = '__drizzle_migrations';
-const MIGRATION_FILE_TO_SKIP = '0000_lying_hellion.sql';
+import { db } from './db';
+import { sql } from 'drizzle-orm';
 
 async function fixMigrations() {
-  console.log('Connecting to the database to fix migration state...');
-  const connectionString = `${process.env.POSTGRES_URL}?sslmode=require`;
-  const client = new Client({
-    connectionString: connectionString,
-  });
-
+  console.log('Attempting to manually fix migrations...');
   try {
-    await client.connect();
-    console.log('Connection successful.');
-
-    // Check if the entry already exists
-    const res = await client.query(`SELECT hash FROM "${MIGRATION_TABLE}" WHERE hash = $1`, [MIGRATION_FILE_TO_SKIP]);
+    // Manually insert the migration records into Drizzle's internal table
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "hash" text NOT NULL,
+        "created_at" bigint
+      );
+    `);
     
-    if (res.rows.length > 0) {
-      console.log(`Migration "${MIGRATION_FILE_TO_SKIP}" already marked as applied.`);
-    } else {
-      // Insert the record to skip the first migration
-      await client.query(`INSERT INTO "${MIGRATION_TABLE}" (hash, created_at) VALUES ($1, $2)`, [MIGRATION_FILE_TO_SKIP, Date.now()]);
-      console.log(`Successfully marked migration "${MIGRATION_FILE_TO_SKIP}" as applied.`);
+    console.log('Ensured __drizzle_migrations table exists.');
+
+    // Add entries for the migrations that have already been applied
+    // These hashes can be found in the migrations/meta/_journal.json file
+    const migrationsToInsert = [
+      '0000_lying_hellion',
+      '0001_mixed_bloodscream'
+    ];
+
+    for (const migration of migrationsToInsert) {
+        // A simple hash function for the migration name
+        const hash = migration.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0).toString();
+        const createdAt = Date.now();
+        
+        // Check if the migration already exists to avoid errors on re-run
+        const existing = await db.execute(sql`SELECT "hash" FROM "__drizzle_migrations" WHERE "hash" = ${migration + ':' + hash}`);
+
+        if (existing.rows.length === 0) {
+            await db.execute(sql`
+            INSERT INTO "__drizzle_migrations" ("hash", "created_at") VALUES (${migration + ':' + hash}, ${createdAt});
+            `);
+            console.log(`Manually inserted migration record for: ${migration}`);
+        } else {
+            console.log(`Migration record for ${migration} already exists. Skipping.`);
+        }
     }
+
+    console.log('Successfully fixed migration records.');
+    process.exit(0);
   } catch (error) {
-    // If the table doesn't exist, we can ignore, the migrator will create it
-    // @ts-ignore
-    if (error.code === '42P01') { 
-        console.log(`Migration table "${MIGRATION_TABLE}" does not exist, assuming fresh start.`);
-    } else {
-      console.error('Failed to fix migration state:', error);
-      process.exit(1);
-    }
-  } finally {
-    await client.end();
-    console.log('Connection closed.');
+    console.error('Failed to fix migrations:', error);
+    process.exit(1);
   }
-  process.exit(0);
 }
 
 fixMigrations();

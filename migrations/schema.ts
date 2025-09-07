@@ -3,7 +3,6 @@ import { sql } from "drizzle-orm"
 
 
 
-
 export const drizzleMigrations = pgTable("__drizzle_migrations", {
 	hash: varchar({ length: 255 }).primaryKey().notNull(),
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
@@ -69,11 +68,9 @@ export const dowJonesCompanies = pgTable("dow_jones_companies", {
 	dupontRoe: numeric("dupont_roe", { precision: 10, scale:  4 }),
 	roe: numeric({ precision: 10, scale:  4 }),
 	returnDrawdownRatio10Year: doublePrecision("return_drawdown_ratio_10_year"),
-}, (table) => {
-	return {
-		dowJonesCompaniesSymbolUnique: unique("dow_jones_companies_symbol_unique").on(table.symbol),
-	}
-});
+}, (table) => [
+	unique("dow_jones_companies_symbol_unique").on(table.symbol),
+]);
 
 export const companies = pgTable("companies", {
 	id: serial().primaryKey().notNull(),
@@ -137,36 +134,35 @@ export const companies = pgTable("companies", {
 	financialLeverage: numeric("financial_leverage", { precision: 10, scale:  4 }),
 	dupontRoe: numeric("dupont_roe", { precision: 10, scale:  4 }),
 	roe: numeric({ precision: 10, scale:  4 }),
-}, (table) => {
-	return {
-		companiesSymbolUnique: unique("companies_symbol_unique").on(table.symbol),
-	}
-});
+}, (table) => [
+	unique("companies_symbol_unique").on(table.symbol),
+]);
 
 export const sessions = pgTable("sessions", {
 	sid: varchar().primaryKey().notNull(),
 	sess: jsonb().notNull(),
 	expire: timestamp({ mode: 'string' }).notNull(),
-}, (table) => {
-	return {
-		iDxSessionExpire: index("IDX_session_expire").on(table.expire),
-	}
-});
+}, (table) => [
+	index("IDX_session_expire").using("btree", table.expire.asc().nullsLast().op("timestamp_ops")),
+]);
 
 export const watchlist = pgTable("watchlist", {
 	id: serial().primaryKey().notNull(),
 	companySymbol: text("company_symbol").notNull(),
-	userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" } ),
+	userId: varchar("user_id").notNull(),
 	addedAt: timestamp("added_at", { mode: 'string' }).defaultNow(),
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
-}, (table) => {
-	return {
-		watchlistUserCompanyUnique: unique("watchlist_user_company_unique").on(table.companySymbol, table.userId),
-	}
-});
+}, (table) => [
+	foreignKey({
+			columns: [table.userId],
+			foreignColumns: [users.id],
+			name: "watchlist_user_id_users_id_fk"
+		}).onDelete("cascade"),
+	unique("watchlist_user_company_unique").on(table.companySymbol, table.userId),
+]);
 
 export const users = pgTable("users", {
-	id: varchar().primaryKey().notNull(),
+	id: varchar().default(gen_random_uuid()).primaryKey().notNull(),
 	email: varchar(),
 	firstName: varchar("first_name"),
 	lastName: varchar("last_name"),
@@ -174,11 +170,9 @@ export const users = pgTable("users", {
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
 	subscriptionTier: varchar("subscription_tier", { length: 255 }).default('free').notNull(),
-}, (table) => {
-	return {
-		usersEmailUnique: unique("users_email_unique").on(table.email),
-	}
-});
+}, (table) => [
+	unique("users_email_unique").on(table.email),
+]);
 
 export const nasdaq100Companies = pgTable("nasdaq100_companies", {
 	id: serial().primaryKey().notNull(),
@@ -242,8 +236,6 @@ export const nasdaq100Companies = pgTable("nasdaq100_companies", {
 	financialLeverage: numeric("financial_leverage", { precision: 10, scale:  4 }),
 	dupontRoe: numeric("dupont_roe", { precision: 10, scale:  4 }),
 	roe: numeric({ precision: 10, scale:  4 }),
-}, (table) => {
-	return {
-		nasdaq100CompaniesSymbolUnique: unique("nasdaq100_companies_symbol_unique").on(table.symbol),
-	}
-});
+}, (table) => [
+	unique("nasdaq100_companies_symbol_unique").on(table.symbol),
+]);

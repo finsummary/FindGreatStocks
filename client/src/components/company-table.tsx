@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronUp, ChevronDown, Star, Download, Search, Settings2, X, Lock } from "lucide-react";
+import { ChevronUp, ChevronDown, Star, Download, Search, Settings2, X, Lock, LockOpen } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { UpgradeModal } from './UpgradeModal';
 import {
   Tooltip,
   TooltipContent,
@@ -21,6 +23,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import type { Company, Nasdaq100Company } from "@shared/schema";
 import { authFetch } from "@/lib/authFetch";
+import { loadStripe } from '@stripe/stripe-js';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -30,28 +33,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import React from "react";
-import { 
-  useReactTable, 
-  ColumnDef, 
+import {
+  ColumnDef,
+  ColumnFiltersState,
+  SortingState,
   VisibilityState,
+  flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  getFilteredRowModel,
-  SortingState,
-  ColumnFiltersState,
-} from "@tanstack/react-table";
-import {
-  CaretSortIcon,
-  ChevronDownIcon,
-  DotsHorizontalIcon,
-} from "@radix-ui/react-icons"
-import { LockOpen } from "lucide-react";
-import { flexRender } from "@tanstack/react-table";
+  useReactTable,
+} from "@tanstack/react-table"
 
-type DisplayCompany = Company & { isWatched?: boolean };
+// Load Stripe.js outside of the component to avoid recreating it on every render
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 interface ColumnConfig {
   id: keyof Company | 'rank' | 'name' | 'watchlist' | 'none'; // 'none' for the placeholder
@@ -169,20 +165,120 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   const [page, setPage] = useState(0);
   const [limit] = useState(50);
   const [selectedLayout, setSelectedLayout] = useState<string | null>(null);
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>(
-      ALL_COLUMNS.reduce((acc, col) => {
-        acc[col.id] = col.defaultVisible;
-        return acc;
-      }, {} as VisibilityState)
-    )
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const { user } = useAuth();
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const { user, session, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const isLoggedIn = !!user;
   const isPaidUser = user?.subscriptionTier === 'paid';
+
+  useEffect(() => {
+    setSelectedLayout(null);
+  }, [dataset]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (selectedLayout) return;
+
+    const lockedColumns = [
+      'maxDrawdown5Year', 'maxDrawdown10Year',
+      'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
+      'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
+      'assetTurnover', 'financialLeverage', 'roe'
+    ];
+
+    const defaultVisibility = ALL_COLUMNS.reduce((acc, col) => {
+      const isLocked = !isPaidUser && dataset !== 'dowjones' && lockedColumns.includes(col.id as string);
+      acc[col.id] = isLocked ? false : col.defaultVisible;
+      return acc;
+    }, {} as VisibilityState);
+
+    setColumnVisibility(defaultVisibility);
+  }, [authLoading, isPaidUser, dataset, selectedLayout]);
+
+  console.log('[Auth Debug] In CompanyTable:', {
+    authLoading,
+    user,
+    isLoggedIn,
+    isPaidUser,
+    showUpgradeButton: !authLoading && !isPaidUser
+  });
+
+  const handleUpgradeClick = async (priceId: string) => {
+    console.log(`[1/5] handleUpgradeClick triggered with priceId: ${priceId}`);
+
+    if (!session) {
+      console.error("[FAIL] Aborted: No user session found in auth context.");
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to upgrade. Please log in and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!priceId) {
+      console.error("[FAIL] Aborted: priceId is missing or undefined.");
+      toast({
+        title: "Configuration Error",
+        description: "Price ID is missing. Please contact support.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log("[2/5] Closing the upgrade modal.");
+    setIsUpgradeModalOpen(false);
+
+    try {
+      console.log("[3/5] Calling authFetch to create Stripe session...");
+      const response = await authFetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ priceId }),
+      }, session.access_token);
+
+      console.log("[4/5] Received response from authFetch:", response);
+
+      if (!response || !response.sessionId) {
+        console.error("[FAIL] Invalid session data received from server:", response);
+        throw new Error("Failed to create checkout session. Server response was invalid.");
+      }
+
+      const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+      const stripe = await stripePromise;
+
+      if (stripe) {
+        console.log("[5/5] Redirecting to Stripe checkout...");
+        const result = await stripe.redirectToCheckout({
+            sessionId: response.sessionId,
+        });
+
+        if (result.error) {
+          console.error('[FAIL] Stripe redirect error:', result.error);
+          toast({
+            title: "Payment Error",
+            description: result.error.message,
+            variant: "destructive",
+          });
+        }
+      } else {
+        console.error("[FAIL] Stripe.js failed to load.");
+      }
+    } catch (error) {
+      console.error("[FAIL] Upgrade process error:", error);
+      toast({
+        title: "Upgrade Failed",
+        description: (error as Error).message || "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Watchlist mutations (only fetch if authenticated)
   const { data: watchlistData } = useQuery<Array<{ companySymbol: string }>>({
@@ -242,14 +338,14 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       });
       return;
     }
-    
+
     if (isCurrentlyWatched) {
       removeFromWatchlist(symbol);
     } else {
       addToWatchlist(symbol);
     }
   };
-  
+
   let apiEndpoint;
   switch (dataset) {
     case 'sp500':
@@ -286,7 +382,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         params.append("sortBy", currentSortBy);
         params.append("sortOrder", sortOrder);
       }
-      
+
       if (search) {
         params.append("search", search);
       }
@@ -364,7 +460,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
             case 'name':
               cellContent = (
                 <div className="flex items-center gap-2">
-                  <img 
+                  <img
                     src={row.logoUrl || `https://via.placeholder.com/32`}
                     alt={`${row.symbol} logo`}
                     className="h-6 w-6 rounded object-contain bg-white/80 border border-gray-100 dark:border-gray-800 dark:bg-gray-900/80 p-0.5 flex-shrink-0"
@@ -451,8 +547,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
             case 'marginOfSafety':
               cellContent = row.marginOfSafety ? (
                 <Badge variant="outline" className={`font-mono ${
-                  parseFloat(row.marginOfSafety as string) >= 0.25 
-                    ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950' 
+                  parseFloat(row.marginOfSafety as string) >= 0.25
+                    ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950'
                     : parseFloat(row.marginOfSafety as string) > 0
                     ? 'text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950'
                     : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'
@@ -531,7 +627,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       };
       return columnDef;
     });
-  }, [page, limit, watchlistData]); 
+  }, [page, limit, watchlistData]);
 
   const table = useReactTable({
     data: tableData,
@@ -595,8 +691,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
 
   const SortIcon = ({ column }: { column: string }) => {
     if (sortBy !== column) return <ChevronUp className="h-4 w-4 opacity-30" />;
-    return sortOrder === 'asc' ? 
-      <ChevronUp className="h-4 w-4" /> : 
+    return sortOrder === 'asc' ?
+      <ChevronUp className="h-4 w-4" /> :
       <ChevronDown className="h-4 w-4" />;
   };
 
@@ -611,7 +707,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     );
   }
 
-  const showSkeletons = isLoading;
+  const showSkeletons = isLoading || authLoading;
 
   return (
     <div className="space-y-6">
@@ -638,7 +734,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                     'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
                     'assetTurnover', 'financialLeverage', 'roe'
                   ];
-                  const isLocked = !isPaidUser && lockedColumns.includes(col.id);
+                  const isLocked = !isPaidUser && dataset !== 'dowjones' && lockedColumns.includes(col.id);
 
                   return (
                     <SelectItem key={col.id} value={col.id} disabled={isLocked}>
@@ -677,7 +773,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                         'assetTurnover', 'financialLeverage', 'roe'
                       ];
 
-                      const isLocked = !isPaidUser && lockedColumns.includes(colConfig.id);
+                      const isLocked = !isPaidUser && dataset !== 'dowjones' && lockedColumns.includes(colConfig.id);
 
                       return (
                         <DropdownMenuCheckboxItem
@@ -712,7 +808,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                 <DropdownMenuSeparator />
                 {Object.entries(PRESET_LAYOUTS).map(([key, layout]) => {
                   const isPaidLayout = key === 'dcfValuation' || key === 'dupontRoe' || key === 'returnOnRisk';
-                  const isLocked = !isPaidUser && isPaidLayout;
+                  const isLocked = !isPaidUser && dataset !== 'dowjones' && isPaidLayout;
                   return (
                     <DropdownMenuItem
                       key={key}
@@ -740,8 +836,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                 })}
               </DropdownMenuContent>
             </DropdownMenu>
-            {!isPaidUser && (
-              <Button>
+            {!authLoading && !isPaidUser && (
+               <Button onClick={() => setIsUpgradeModalOpen(true)}>
                 <LockOpen className="mr-2 h-4 w-4" />
                 Upgrade
               </Button>
@@ -815,8 +911,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                   <TableRow>
                     <TableCell colSpan={table.getVisibleFlatColumns().length} className="text-center py-12">
                       <div className="text-muted-foreground">
-                        {searchQuery ? 
-                          'No companies found matching your search.' : 
+                        {searchQuery ?
+                          'No companies found matching your search.' :
                           'No companies available.'
                         }
                       </div>
@@ -824,8 +920,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                   </TableRow>
                 ) : (
                   table.getRowModel().rows.map(row => (
-                    <TableRow 
-                      key={row.id} 
+                    <TableRow
+                      key={row.id}
                       className="hover:bg-muted/50 cursor-pointer group transition-colors"
                     >
                       {row.getVisibleCells().map(cell => (
@@ -854,17 +950,17 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
             Showing {page * limit + 1} to {Math.min((page + 1) * limit, data.total)} of {data.total} companies
           </div>
           <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               disabled={page === 0}
               onClick={() => setPage(p => Math.max(0, p - 1))}
             >
               Previous
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               disabled={!data.hasMore}
               onClick={() => setPage(p => p + 1)}
             >
@@ -873,6 +969,12 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           </div>
         </div>
       )}
+
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        onUpgrade={handleUpgradeClick}
+      />
     </div>
   );
 }

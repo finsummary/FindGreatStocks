@@ -7,7 +7,7 @@ import type { User as DbUser } from '@shared/schema';
 interface AuthContextType {
   user: DbUser | null;
   session: Session | null;
-  loading: boolean;
+  loading: boolean; // Keep loading for spinners etc.
   signOut: () => Promise<void>;
 }
 
@@ -28,46 +28,37 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
-        
-        setSession(session);
-        if (session) {
-          const dbUser = await authFetch('/api/auth/me', {}, session.access_token);
-          setUser(dbUser);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error("Error fetching initial session:", error);
-        setUser(null);
-        setSession(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSession();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        setLoading(true);
         setSession(session);
         if (session) {
           try {
+            // Explicitly pass the token from the session object
             const dbUser = await authFetch('/api/auth/me', {}, session.access_token);
             setUser(dbUser);
           } catch (error) {
             console.error("Error fetching user on auth state change:", error);
             setUser(null);
+            // In case of error fetching profile, sign out to clear corrupted state
+            await supabase.auth.signOut();
           }
         } else {
           setUser(null);
         }
-        // No loading state change here, initial load is what matters
+        setLoading(false);
       }
     );
+
+    // Initial check to prevent blank screen on load
+    const initializeSession = async () => {
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        if (!initialSession) {
+            setLoading(false);
+        }
+    };
+    initializeSession();
+
 
     return () => {
       subscription.unsubscribe();
@@ -85,6 +76,7 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Render children unconditionally to avoid unmounting/remounting issues
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 

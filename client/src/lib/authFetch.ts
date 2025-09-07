@@ -1,6 +1,6 @@
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from './supabaseClient';
 
-export const authFetch = async (url: string, options: RequestInit = {}, token?: string | null) => {
+export async function authFetch(url: string, options: RequestInit = {}, token?: string | null) {
   let sessionToken = token;
 
   if (!sessionToken) {
@@ -11,39 +11,30 @@ export const authFetch = async (url: string, options: RequestInit = {}, token?: 
   }
 
   if (!sessionToken) {
-    // Deliberately throw an error that our logic can catch
-    const error = new Error("User is not authenticated");
-    (error as any).status = 401;
-    throw error;
+    console.error('authFetch error: No session token available.');
+    throw new Error('User is not authenticated. Please log in again.');
   }
 
   const headers = new Headers(options.headers || {});
-  headers.set('Authorization', `Bearer ${sessionToken}`);
-
-  if (options.body && !(options.body instanceof FormData)) {
-      headers.set('Content-Type', 'application/json');
-  }
+  headers.append('Authorization', `Bearer ${sessionToken}`);
 
   const response = await fetch(url, { ...options, headers });
 
-  if (!response.ok) {
-    const error = new Error('An error occurred while fetching the data.');
-    try {
-      (error as any).info = await response.json();
-    } catch (e) {
-      (error as any).info = { message: 'Response was not valid JSON.' };
+  if (response.ok) {
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return response.json();
     }
-    (error as any).status = response.status;
-    throw error;
+    return response;
   }
 
-  // Handle cases where response might be empty
-  const text = await response.text();
   try {
-    return JSON.parse(text);
+    const errorBody = await response.json();
+    const errorMessage = errorBody.error?.message || errorBody.message || `Request failed with status ${response.status}`;
+    throw new Error(errorMessage);
   } catch (e) {
-    return text; // Return text if it's not JSON
+    throw new Error(`Request failed with status ${response.status}`);
   }
-};
+}
 
 

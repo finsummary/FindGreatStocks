@@ -2,6 +2,8 @@ import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import { HomePage as Home } from "./pages/home";
 import { LoginPage } from "./pages/login";
 import { WatchlistPage as Watchlist } from "./pages/watchlist";
+import { PaymentSuccessPage } from './pages/payment-success';
+import { PaymentCancelledPage } from './pages/payment-cancelled';
 import { useAuth } from "@/providers/AuthProvider";
 import { Button } from "./components/ui/button";
 import { supabase } from "./lib/supabaseClient";
@@ -36,13 +38,10 @@ function App() {
           </svg>
           <span className="ml-2 text-lg font-semibold">FindGreatStocks</span>
         </Link>
-        <nav className="ml-auto flex gap-4 sm:gap-6">
-          <Link
-            className="text-sm font-medium hover:underline underline-offset-4"
-            to="/watchlist"
-          >
-            Watchlist
-          </Link>
+        <nav className="ml-auto flex items-center gap-4 sm:gap-6">
+          <Button asChild variant="outline">
+            <Link to="/watchlist">Watchlist</Link>
+          </Button>
           {user ? (
             <Button variant="outline" onClick={handleLogout}>Logout</Button>
           ) : (
@@ -57,6 +56,8 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/watchlist" element={<Watchlist />} />
+          <Route path="/payment-success" element={<PaymentSuccessPage />} />
+          <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
         </Routes>
       </main>
     </div>
