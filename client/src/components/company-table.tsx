@@ -96,7 +96,11 @@ const PRESET_LAYOUTS = {
   },
   'dcfValuation': {
     name: 'DCF Valuation',
-    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'revenue', 'revenueGrowth10Y', 'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth'],
+    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'revenue', 'revenueGrowth10Y', 'dcfEnterpriseValue', 'marginOfSafety'],
+  },
+  'reverseDcf': {
+    name: 'Reverse DCF',
+    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'revenue', 'revenueGrowth10Y', 'dcfImpliedGrowth'],
   },
   'dupontRoe': {
     name: 'DuPont ROE Decomposition',
@@ -111,7 +115,11 @@ const LAYOUT_DESCRIPTIONS: Record<string, { title: string; description: string }
   },
   'dcfValuation': {
     title: "DCF Valuation Analysis",
-    description: "This layout focuses on a company's intrinsic value using a Discounted Cash Flow (DCF) model. It estimates the company's value today based on projections of its future free cash flow. The 'Margin of Safety' shows the difference between the estimated DCF value and the current market price, helping you identify potentially undervalued stocks. The 'DCF Implied Growth' shows the future growth rate required to justify the stock's current price. You can compare this to historical growth rates (like 10Y Revenue Growth) to gauge whether the market's expectations are realistic."
+    description: "This layout focuses on a company's intrinsic value using a Discounted Cash Flow (DCF) model. It estimates the company's value today based on projections of its future free cash flow. The 'Margin of Safety' shows the difference between the estimated DCF value and the current market price, helping you identify potentially undervalued stocks."
+  },
+  'reverseDcf': {
+    title: "Reverse DCF Analysis",
+    description: "This layout uses a Reverse DCF model to determine the growth expectations priced into a stock. The 'DCF Implied Growth' shows the future free cash flow growth rate required to justify the stock's current market price. You can compare this to historical growth rates (like 10Y Revenue Growth) to gauge whether the market's expectations are realistic."
   },
   'dupontRoe': {
       title: "DuPont ROE Decomposition",
@@ -807,7 +815,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                 <DropdownMenuLabel>Table Layouts</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {Object.entries(PRESET_LAYOUTS).map(([key, layout]) => {
-                  const isPaidLayout = key === 'dcfValuation' || key === 'dupontRoe' || key === 'returnOnRisk';
+                  const isPaidLayout = ['dcfValuation', 'dupontRoe', 'returnOnRisk', 'reverseDcf'].includes(key);
                   const isLocked = !isPaidUser && dataset !== 'dowjones' && isPaidLayout;
                   return (
                     <DropdownMenuItem
