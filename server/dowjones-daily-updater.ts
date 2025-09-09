@@ -1,8 +1,9 @@
 import { db } from './db';
 import { dowJonesCompanies } from '@shared/schema';
-import { financialDataService } from './financial-data';
 import { eq } from 'drizzle-orm';
-import { batcher } from './utils/batcher.ts';
+import { batcher } from './utils/batcher';
+import { FinancialDataService } from "./financial-data.ts";
+import { updateDcfMetricsForCompany } from "./dcf-daily-updater"; // Import the new function
 
 async function updateDowJonesPrices() {
   const BATCH_SIZE = 100;
@@ -20,23 +21,32 @@ async function updateDowJonesPrices() {
     for (const batch of batches) {
       try {
         const symbolsString = batch.join(',');
-        const quotes = await (financialDataService as any).makeRequest(`/quote/${symbolsString}`);
+        const quotes = await (FinancialDataService as any).makeRequest(`/quote/${symbolsString}`);
         
-        for (const quote of quotes) {
-          if (quote.symbol && quote.price != null && quote.marketCap != null) {
-            await db.update(dowJonesCompanies)
-              .set({
-                price: quote.price.toString(),
-                marketCap: quote.marketCap.toString(),
-                dailyChange: (quote.change ?? 0).toString(),
-                dailyChangePercent: (quote.changesPercentage ?? 0).toString(),
-                volume: (quote.volume ?? 0).toString(),
-              })
-              .where(eq(dowJonesCompanies.symbol, quote.symbol));
-            updatedCount++;
-          } else {
-            failedCount++;
-          }
+        if (quotes && quotes.length > 0) {
+            for (const quote of quotes) {
+                if (quote.symbol && quote.price && quote.marketCap) {
+                    try {
+                        await db.update(dowJonesCompanies)
+                            .set({
+                                price: quote.price,
+                                marketCap: String(quote.marketCap),
+                                updatedAt: new Date(),
+                            })
+                            .where(eq(dowJonesCompanies.symbol, quote.symbol));
+                        
+                        console.log(`[${quote.symbol}] 💾 Price & MCap updated to ${quote.price} / ${quote.marketCap}`);
+
+                        // Now, trigger the DCF metrics update
+                        await updateDcfMetricsForCompany(dowJonesCompanies, quote.symbol, quote.marketCap);
+
+                    } catch (error) {
+                        console.error(`[${quote.symbol}] Error updating price in DB:`, error);
+                    }
+                }
+            }
+        } else {
+            failedCount += batch.length;
         }
       } catch (batchError) {
         console.error(`Error updating batch for Dow Jones:`, batchError);

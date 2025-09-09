@@ -7,6 +7,11 @@
 import { db } from "./db";
 import { nasdaq100Companies } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { batcher } from "./utils/batcher";
+import { FinancialDataService } from "./financial-data.ts";
+import { updateDcfMetricsForCompany } from "./dcf-daily-updater"; // Import the new function
+
+const BATCH_SIZE = 100;
 
 if (!process.env.FMP_API_KEY) {
   throw new Error('FMP_API_KEY environment variable is required');
