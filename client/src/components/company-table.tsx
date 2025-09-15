@@ -176,11 +176,13 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [watchlistPending, setWatchlistPending] = useState<Record<string, boolean>>({});
+  const [watchOverrides, setWatchOverrides] = useState<Record<string, boolean>>({});
   const { user, session, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const isLoggedIn = !!user;
+  const isLoggedIn = !!user || !!session;
   const isPaidUser = user?.subscriptionTier === 'paid';
 
   useEffect(() => {
@@ -291,64 +293,83 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   // Watchlist mutations (only fetch if authenticated)
   const { data: watchlistData } = useQuery<Array<{ companySymbol: string }>>({
     queryKey: ['/api/watchlist'],
-    queryFn: async () => {
-      const response = await authFetch('/api/watchlist');
-      if (!response.ok) {
-        throw new Error('Failed to fetch watchlist');
-      }
-      return response.json();
-    },
+    queryFn: () => authFetch('/api/watchlist'),
     enabled: !!isLoggedIn,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
+    staleTime: 0,
   });
 
-  const { mutate: addToWatchlist, isPending: isAddingToWatchlist } = useMutation({
+  const { mutate: addToWatchlist } = useMutation({
     mutationFn: (companySymbol: string) => authFetch('/api/watchlist', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ companySymbol }),
     }),
-    onSuccess: (data, companySymbol) => {
-      // Manually update the cache to reflect the change immediately
-      queryClient.setQueryData<Array<{ companySymbol: string }>>(['/api/watchlist'], (oldData) => {
-        if (!oldData) return [{ companySymbol }];
-        if (oldData.some(item => item.companySymbol === companySymbol)) return oldData;
-        return [...oldData, { companySymbol }];
+    onMutate: async (companySymbol: string) => {
+      setWatchlistPending(prev => ({ ...prev, [companySymbol]: true }));
+      setWatchOverrides(prev => ({ ...prev, [companySymbol]: true }));
+      // Snapshot previous values (для возможного отката)
+      const prevList = queryClient.getQueryData<Array<{ companySymbol: string }>>(['/api/watchlist']);
+      const prevCompanies = queryClient.getQueryData<{ companies: any[], total: number, hasMore: boolean }>([apiEndpoint, page, sortBy, sortOrder, searchQuery]);
+      // Optimistic update
+      queryClient.setQueryData<Array<{ companySymbol: string }>>(['/api/watchlist'], (old) => {
+        const curr = old || [];
+        if (curr.some(i => i.companySymbol === companySymbol)) return curr;
+        return [...curr, { companySymbol }];
       });
-      // Also reflect in companies query cache
       queryClient.setQueryData<{ companies: any[], total: number, hasMore: boolean }>([apiEndpoint, page, sortBy, sortOrder, searchQuery], (old) => {
         if (!old) return old as any;
-        return {
-          ...old,
-          companies: old.companies.map(c => c.symbol === companySymbol ? { ...c, isWatched: true } : c)
-        };
+        return { ...old, companies: old.companies.map(c => c.symbol === companySymbol ? { ...c, isWatched: true } : c) };
       });
-      toast({ title: "Success", description: `${companySymbol} added to watchlist.` });
+      return { prevList, prevCompanies };
     },
-    onError: (error, companySymbol) => {
+    onError: (_err, companySymbol, ctx) => {
+      // Rollback on error
+      if (ctx?.prevList) queryClient.setQueryData(['/api/watchlist'], ctx.prevList);
+      if (ctx?.prevCompanies) queryClient.setQueryData([apiEndpoint, page, sortBy, sortOrder, searchQuery], ctx.prevCompanies);
+      setWatchOverrides(prev => ({ ...prev, [companySymbol]: false }));
       toast({ title: "Error", description: `Failed to add ${companySymbol} to watchlist.`, variant: "destructive" });
     },
+    onSuccess: (_data, companySymbol) => {
+      // Keep cache consistent
+      queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
+      toast({ title: "Success", description: `${companySymbol} added to watchlist.` });
+    },
+    onSettled: (_data, _err, companySymbol) => {
+      if (companySymbol) setWatchlistPending(prev => ({ ...prev, [companySymbol]: false }));
+    }
   });
 
-  const { mutate: removeFromWatchlist, isPending: isRemovingFromWatchlist } = useMutation({
+  const { mutate: removeFromWatchlist } = useMutation({
     mutationFn: (companySymbol: string) => authFetch(`/api/watchlist/${companySymbol}`, { method: 'DELETE' }),
-    onSuccess: (data, companySymbol) => {
-      // Manually update the cache
-      queryClient.setQueryData<Array<{ companySymbol: string }>>(['/api/watchlist'], (oldData) => {
-        return oldData ? oldData.filter(item => item.companySymbol !== companySymbol) : [];
-      });
-      // Also reflect in companies query cache
+    onMutate: async (companySymbol: string) => {
+      setWatchlistPending(prev => ({ ...prev, [companySymbol]: true }));
+      setWatchOverrides(prev => ({ ...prev, [companySymbol]: false }));
+      const prevList = queryClient.getQueryData<Array<{ companySymbol: string }>>(['/api/watchlist']);
+      const prevCompanies = queryClient.getQueryData<{ companies: any[], total: number, hasMore: boolean }>([apiEndpoint, page, sortBy, sortOrder, searchQuery]);
+      queryClient.setQueryData<Array<{ companySymbol: string }>>(['/api/watchlist'], (old) => (old || []).filter(i => i.companySymbol !== companySymbol));
       queryClient.setQueryData<{ companies: any[], total: number, hasMore: boolean }>([apiEndpoint, page, sortBy, sortOrder, searchQuery], (old) => {
         if (!old) return old as any;
-        return {
-          ...old,
-          companies: old.companies.map(c => c.symbol === companySymbol ? { ...c, isWatched: false } : c)
-        };
+        return { ...old, companies: old.companies.map(c => c.symbol === companySymbol ? { ...c, isWatched: false } : c) };
       });
-      toast({ title: "Success", description: `${companySymbol} removed from watchlist.` });
+      return { prevList, prevCompanies };
     },
-    onError: (error, companySymbol) => {
+    onError: (_err, companySymbol, ctx) => {
+      if (ctx?.prevList) queryClient.setQueryData(['/api/watchlist'], ctx.prevList);
+      if (ctx?.prevCompanies) queryClient.setQueryData([apiEndpoint, page, sortBy, sortOrder, searchQuery], ctx.prevCompanies);
+      setWatchOverrides(prev => ({ ...prev, [companySymbol]: true }));
       toast({ title: "Error", description: `Failed to remove ${companySymbol} from watchlist.`, variant: "destructive" });
     },
+    onSuccess: (_data, companySymbol) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
+      toast({ title: "Success", description: `${companySymbol} removed from watchlist.` });
+    },
+    onSettled: (_data, _err, companySymbol) => {
+      if (companySymbol) setWatchlistPending(prev => ({ ...prev, [companySymbol]: false }));
+    }
   });
 
   const handleWatchlistToggle = (symbol: string, isCurrentlyWatched: boolean) => {
@@ -417,18 +438,32 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       }
       return response.json();
     },
+    // Кэширование и моментальная отдача данных без скелетонов
+    placeholderData: (prev) => prev,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const tableData = useMemo(() => {
     if (data?.companies) {
       const watchlistSymbols = new Set(watchlistData?.map((item) => item.companySymbol) || []);
-      return data.companies.map(company => ({
-        ...company,
-        isWatched: watchlistSymbols.has(company.symbol)
-      }));
+      return data.companies.map(company => {
+        const override = watchOverrides[company.symbol];
+        const explicit = (company as any).isWatched;
+        const base = typeof explicit === 'boolean' ? explicit : watchlistSymbols.has(company.symbol);
+        const isWatched = typeof override === 'boolean' ? override : base;
+        return { ...company, isWatched } as any;
+      });
     }
     return [];
-  }, [data, watchlistData]);
+  }, [data, watchlistData, watchOverrides]);
+
+  // Синхронизация: при изменении серверного списка Watchlist сбрасываем локальные overrides,
+  // чтобы звезды отражали актуальное состояние (например, после удаления во вкладке Watchlist)
+  useEffect(() => {
+    setWatchOverrides({});
+  }, [watchlistData]);
 
   const columns = useMemo<ColumnDef<DisplayCompany>[]>(() => {
     return ALL_COLUMNS.map(colConfig => {
@@ -470,7 +505,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                     e.stopPropagation();
                     handleWatchlistToggle(row.symbol, isWatched);
                   }}
-                  disabled={!isLoggedIn || isAddingToWatchlist || isRemovingFromWatchlist}
+                  disabled={!isLoggedIn || !!watchlistPending[row.symbol]}
                 >
                   <Star className={`h-4 w-4 ${isWatched ? 'fill-current' : ''}`} />
                 </Button>
@@ -694,6 +729,54 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     onRowSelectionChange: setRowSelection,
     manualSorting: true,
   });
+
+  // Prefetch данных для соседних вкладок, чтобы переключение было мгновенным
+  useEffect(() => {
+    const datasets: Array<{ key: CompanyTableProps['dataset']; endpoint: string }> = [
+      { key: 'sp500', endpoint: '/api/sp500' },
+      { key: 'nasdaq100', endpoint: '/api/nasdaq100' },
+      { key: 'dowjones', endpoint: '/api/dowjones' },
+    ];
+    // Prefetch для текущего датасета: следующие страницы (page+1, page+2)
+    const current = datasets.find(d => d.key === dataset)!;
+    const pagesToPrefetchCurrent = [page + 1, page + 2].filter(p => p >= 0);
+    for (const p of pagesToPrefetchCurrent) {
+      const params = new URLSearchParams({ offset: String(p * limit), limit: String(limit) });
+      if (sortBy && sortBy !== 'none') { params.append('sortBy', sortBy); params.append('sortOrder', sortOrder); }
+      if (searchQuery) params.append('search', searchQuery);
+      const qk = [current.endpoint, p, sortBy, sortOrder, searchQuery] as const;
+      queryClient.prefetchQuery({
+        queryKey: qk as any,
+        queryFn: async () => {
+          const res = await fetch(`${current.endpoint}?${params.toString()}`);
+          if (!res.ok) throw new Error('Failed to prefetch companies');
+          return res.json();
+        },
+        staleTime: 5 * 60 * 1000,
+      });
+    }
+
+    // Prefetch для соседних датасетов: первые 3 страницы (0..2)
+    const others = datasets.filter(d => d.key !== dataset);
+    for (const d of others) {
+      for (const p of [0, 1, 2]) {
+        const params = new URLSearchParams({ offset: String(p * limit), limit: String(limit) });
+        if (sortBy && sortBy !== 'none') { params.append('sortBy', sortBy); params.append('sortOrder', sortOrder); }
+        if (searchQuery) params.append('search', searchQuery);
+        const qk = [d.endpoint, p, sortBy, sortOrder, searchQuery] as const;
+        queryClient.prefetchQuery({
+          queryKey: qk as any,
+          queryFn: async () => {
+            const res = await fetch(`${d.endpoint}?${params.toString()}`);
+            if (!res.ok) throw new Error('Failed to prefetch companies');
+            return res.json();
+          },
+          staleTime: 5 * 60 * 1000,
+        });
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataset, sortBy, sortOrder, searchQuery]);
 
 
   // This effect is no longer needed with the correct react-table implementation

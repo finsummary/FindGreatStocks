@@ -41,7 +41,21 @@ export function WatchlistPage() {
       if (isUnauthorizedError(error)) return false;
       return failureCount < 3;
     },
+    placeholderData: (prev) => prev,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
+
+  // Prefetch watchlist upfront for faster open
+  useEffect(() => {
+    if (!user) return;
+    queryClient.prefetchQuery({
+      queryKey: ['/api/watchlist/companies'],
+      queryFn: () => authFetch('/api/watchlist/companies'),
+      staleTime: 5 * 60 * 1000,
+    });
+  }, [user, queryClient]);
 
   const removeFromWatchlistMutation = useMutation({
     mutationFn: (companySymbol: string) => authFetch(`/api/watchlist/${companySymbol}`, { method: 'DELETE' }),
@@ -49,6 +63,8 @@ export function WatchlistPage() {
       // Invalidate both watchlist queries to ensure UI consistency
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
+      // Также инвалидируем активную таблицу, чтобы звезда на главной стала белой
+      queryClient.invalidateQueries({ predicate: (q) => Array.isArray(q.queryKey) && typeof q.queryKey[0] === 'string' && q.queryKey[0].toString().startsWith('/api/') && q.queryKey[0] !== '/api/watchlist' });
       toast({
         title: "Success",
         description: "Removed from watchlist.",
