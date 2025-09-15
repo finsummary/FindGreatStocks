@@ -39,12 +39,31 @@ export async function updateSp500Prices() {
                     for (const quote of quotes) {
                         if (quote.symbol && quote.price && quote.marketCap) {
                             try {
+                                const updateData: any = {
+                                    price: quote.price,
+                                    marketCap: String(quote.marketCap),
+                                };
+                                if (quote.change !== undefined) updateData.dailyChange = String(quote.change);
+                                if (quote.changesPercentage !== undefined) updateData.dailyChangePercent = String(quote.changesPercentage);
+                                if (quote.yield !== undefined) updateData.dividendYield = String(quote.yield);
+                                if (quote.pe !== undefined) updateData.peRatio = String(quote.pe);
+                                if (quote.eps !== undefined) updateData.eps = String(quote.eps);
+
+                                // Fallback to ratios-ttm dividend yield (TTM)
+                                if (!updateData.dividendYield) {
+                                    try {
+                                        const apiKey = process.env.FMP_API_KEY;
+                                        const ttm = await fetch(`https://financialmodelingprep.com/api/v3/ratios-ttm/${quote.symbol}?apikey=${apiKey}`).then((r: any) => r.ok ? r.json() : null);
+                                        const raw = Array.isArray(ttm) && ttm.length ? ttm[0] : null;
+                                        const dy = raw && (raw.dividendYieldTTM ?? raw.dividendYielTTM);
+                                        if (dy !== null && dy !== undefined) {
+                                            updateData.dividendYield = String(Number(dy) * 100); // percentage
+                                        }
+                                    } catch {}
+                                }
+
                                 await db.update(schema.sp500Companies)
-                                    .set({
-                                        price: quote.price,
-                                        marketCap: String(quote.marketCap),
-                                        updatedAt: new Date(),
-                                    })
+                                    .set(updateData)
                                     .where(eq(schema.sp500Companies.symbol, quote.symbol));
 
                                 console.log(`[${quote.symbol}] 💾 Price & MCap updated to ${quote.price} / ${quote.marketCap}`);

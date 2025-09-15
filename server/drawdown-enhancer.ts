@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { db } from "./db";
-import { companies, nasdaq100Companies, dowJonesCompanies } from "@shared/schema";
+import { companies, nasdaq100Companies, dowJonesCompanies, sp500Companies } from "@shared/schema";
 import { PgTable } from "drizzle-orm/pg-core";
 import { eq, sql } from "drizzle-orm";
 
@@ -283,7 +283,7 @@ const isMainModule = resolve(process.argv[1]) === resolve(fileURLToPath(import.m
 
 if (isMainModule) {
   (async () => {
-    await enhanceAllDrawdowns(companies, "S&P 500");
+    await enhanceAllDrawdowns(sp500Companies, "S&P 500");
     await enhanceAllDrawdowns(nasdaq100Companies, "Nasdaq 100");
     await enhanceAllDrawdowns(dowJonesCompanies, "Dow Jones");
     console.log("\nAll drawdown enhancements complete.");

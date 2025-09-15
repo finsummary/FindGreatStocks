@@ -22,17 +22,16 @@ export async function updateDcfMetricsForCompany(table: PgTable<any>, symbol: st
         return;
     }
 
-    const company = await db.query[table[Symbol.for('drizzle:BaseName')]].findFirst({
-        where: eq(table.symbol, symbol),
-    });
+    const company = await db.select().from(table).where(eq(table.symbol, symbol)).limit(1);
 
-    if (!company || !company.latestFcf || company.latestFcf <= 0 || company.revenueGrowth10Y === null) {
+    if (!company || company.length === 0 || !company[0].latestFcf || company[0].latestFcf <= 0 || company[0].revenueGrowth10Y === null) {
         console.log(`[${symbol}] Missing required data (FCF, 10Y Revenue Growth) for DCF calculation. Skipping.`);
         return;
     }
 
-    const latestFcf = Number(company.latestFcf);
-    const revenueGrowth10Y = Number(company.revenueGrowth10Y);
+    const companyData = company[0];
+    const latestFcf = Number(companyData.latestFcf);
+    const revenueGrowth10Y = Number(companyData.revenueGrowth10Y);
 
     // Use 10-year revenue growth as a proxy for FCF growth, capped at a reasonable range.
     const baseGrowth = revenueGrowth10Y / 100;
@@ -42,11 +41,10 @@ export async function updateDcfMetricsForCompany(table: PgTable<any>, symbol: st
     const marginOfSafety = calculateMarginOfSafety(enterpriseValue, marketCap);
     const impliedGrowth = calculateReverseDcfGrowth(marketCap, latestFcf);
 
-    const updates = {
+    const updates: any = {
         dcfEnterpriseValue: enterpriseValue !== null ? String(enterpriseValue.toFixed(0)) : null,
         marginOfSafety: marginOfSafety !== null ? marginOfSafety.toFixed(4) : null,
         dcfImpliedGrowth: impliedGrowth !== null ? impliedGrowth.toFixed(4) : null,
-        updatedAt: new Date(),
     };
 
     try {

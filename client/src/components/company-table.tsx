@@ -64,16 +64,16 @@ export const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'price', label: 'Price', width: 'w-[80px]', defaultVisible: true },
   { id: 'revenue', label: 'Revenue', width: 'w-[110px]', defaultVisible: true },
   { id: 'netIncome', label: 'Earnings', width: 'w-[90px]', defaultVisible: true },
-  { id: 'peRatio', label: 'P/E Ratio', width: 'w-[75px]', defaultVisible: false },
+  { id: 'peRatio', label: 'P/E Ratio', width: 'w-[75px]', defaultVisible: true },
   { id: 'priceToSalesRatio', label: 'P/S Ratio', width: 'w-[75px]', defaultVisible: false },
-  { id: 'dividendYield', label: 'Dividend Yield', width: 'w-[100px]', defaultVisible: false },
+  { id: 'dividendYield', label: 'Dividend Yield', width: 'w-[100px]', defaultVisible: true },
   { id: 'netProfitMargin', label: 'Net Profit Margin', width: 'w-[120px]', defaultVisible: false },
-  { id: 'freeCashFlow', label: 'Free Cash Flow', width: 'w-[120px]', defaultVisible: false },
+  { id: 'freeCashFlow', label: 'Free Cash Flow', width: 'w-[120px]', defaultVisible: true },
   { id: 'revenueGrowth3Y', label: 'Rev G 3Y', width: 'w-[90px]', defaultVisible: false },
   { id: 'revenueGrowth5Y', label: 'Rev G 5Y', width: 'w-[90px]', defaultVisible: false },
   { id: 'revenueGrowth10Y', label: 'Rev G 10Y', width: 'w-[90px]', defaultVisible: true },
-  { id: 'return3Year', label: '3Y Return', width: 'w-[85px]', defaultVisible: false },
-  { id: 'return5Year', label: '5Y Return', width: 'w-[85px]', defaultVisible: false },
+  { id: 'return3Year', label: '3Y Return', width: 'w-[85px]', defaultVisible: true },
+  { id: 'return5Year', label: '5Y Return', width: 'w-[85px]', defaultVisible: true },
   { id: 'return10Year', label: '10Y Return', width: 'w-[85px]', defaultVisible: true },
   { id: 'maxDrawdown3Year', label: '3Y Max Drawdown', width: 'w-[120px]', defaultVisible: false },
   { id: 'maxDrawdown5Year', label: '5Y Max Drawdown', width: 'w-[120px]', defaultVisible: false },
@@ -84,9 +84,9 @@ export const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'dcfEnterpriseValue', label: 'DCF Enterprise Value', width: 'w-[130px]', defaultVisible: true },
   { id: 'marginOfSafety', label: 'Margin of Safety', width: 'w-[110px]', defaultVisible: true },
   { id: 'dcfImpliedGrowth', label: 'DCF Implied Growth', width: 'w-[130px]', defaultVisible: true },
-  { id: 'assetTurnover', label: 'Asset Turnover', width: 'w-[110px]', defaultVisible: false },
-  { id: 'financialLeverage', label: 'Financial Leverage', width: 'w-[110px]', defaultVisible: false },
-  { id: 'roe', label: 'ROE %', width: 'w-[110px]', defaultVisible: false },
+  { id: 'assetTurnover', label: 'Asset Turnover', width: 'w-[110px]', defaultVisible: true },
+  { id: 'financialLeverage', label: 'Financial Leverage', width: 'w-[110px]', defaultVisible: true },
+  { id: 'roe', label: 'ROE %', width: 'w-[110px]', defaultVisible: true },
 ];
 
 const PRESET_LAYOUTS = {
@@ -314,7 +314,14 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         if (oldData.some(item => item.companySymbol === companySymbol)) return oldData;
         return [...oldData, { companySymbol }];
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
+      // Also reflect in companies query cache
+      queryClient.setQueryData<{ companies: any[], total: number, hasMore: boolean }>([apiEndpoint, page, sortBy, sortOrder, searchQuery], (old) => {
+        if (!old) return old as any;
+        return {
+          ...old,
+          companies: old.companies.map(c => c.symbol === companySymbol ? { ...c, isWatched: true } : c)
+        };
+      });
       toast({ title: "Success", description: `${companySymbol} added to watchlist.` });
     },
     onError: (error, companySymbol) => {
@@ -329,7 +336,14 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       queryClient.setQueryData<Array<{ companySymbol: string }>>(['/api/watchlist'], (oldData) => {
         return oldData ? oldData.filter(item => item.companySymbol !== companySymbol) : [];
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
+      // Also reflect in companies query cache
+      queryClient.setQueryData<{ companies: any[], total: number, hasMore: boolean }>([apiEndpoint, page, sortBy, sortOrder, searchQuery], (old) => {
+        if (!old) return old as any;
+        return {
+          ...old,
+          companies: old.companies.map(c => c.symbol === companySymbol ? { ...c, isWatched: false } : c)
+        };
+      });
       toast({ title: "Success", description: `${companySymbol} removed from watchlist.` });
     },
     onError: (error, companySymbol) => {
@@ -357,7 +371,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   let apiEndpoint;
   switch (dataset) {
     case 'sp500':
-      apiEndpoint = '/api/companies';
+      apiEndpoint = '/api/sp500';
       break;
     case 'nasdaq100':
       apiEndpoint = '/api/nasdaq100';
@@ -469,7 +483,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
               cellContent = (
                 <div className="flex items-center gap-2">
                   <img
-                    src={row.logoUrl || `https://via.placeholder.com/32`}
+                    src={(row.logoUrl && String(row.logoUrl).trim() !== '') ? row.logoUrl : `https://financialmodelingprep.com/image-stock/${row.symbol.replace('-', '.')}.png`}
                     alt={`${row.symbol} logo`}
                     className="h-6 w-6 rounded object-contain bg-white/80 border border-gray-100 dark:border-gray-800 dark:bg-gray-900/80 p-0.5 flex-shrink-0"
                     onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/32'; }}

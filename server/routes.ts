@@ -1,24 +1,13 @@
-import { Express, Request, Response, NextFunction } from 'express';
-import { createServer, type Server } from "http";
+import { Express } from 'express';
 import { storage } from "./storage";
 import { financialDataService } from "./financial-data";
-import { createIsAuthenticatedMiddleware } from "./authMiddleware";
-import { z } from "zod";
-import { db } from "./db";
-import { companies, nasdaq100Companies, ftse100Companies, watchlist } from "@shared/schema";
-import { eq, sql, desc, asc, and, or, ilike } from "drizzle-orm";
-import { dataScheduler } from "./scheduler";
-import { getCompanies, getCompanyCount, getNasdaq100Companies, getNasdaq100CompanyCount } from './storage';
-import { z } from 'zod';
+import { createIsAuthenticatedMiddleware, type User } from "./authMiddleware";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { type SupabaseClient } from '@supabase/supabase-js';
-import { authFetch } from '@/lib/authFetch';
 import { db } from './db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 import express from 'express';
-import { isAuthenticated, User } from './authMiddleware';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-04-10',
@@ -63,8 +52,29 @@ export function setupStripeWebhook(app: Express) {
 export function setupRoutes(app: Express, supabase: SupabaseClient) {
   const isAuthenticated = createIsAuthenticatedMiddleware(supabase);
 
-  app.get('/api/auth/me', isAuthenticated, (req: any, res) => {
-    res.json(req.user);
+  app.get('/api/auth/me', isAuthenticated, async (req: any, res) => {
+    try {
+      const supabaseUser = req.user;
+      const userId = supabaseUser?.id || supabaseUser?.claims?.sub || supabaseUser?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      // Fetch DB user to get subscriptionTier and other app-specific fields
+      const dbUsers = await db.select().from(users).where(eq(users.id, userId));
+      const dbUser = dbUsers[0];
+
+      if (!dbUser) {
+        // If not present yet, create a basic record with free tier
+        await db.insert(users).values({ id: userId, email: supabaseUser?.email || null }).onConflictDoNothing();
+        return res.json({ id: userId, email: supabaseUser?.email || null, subscriptionTier: 'free' });
+      }
+
+      return res.json(dbUser);
+    } catch (error) {
+      console.error('Error in /api/auth/me:', error);
+      return res.status(500).json({ message: 'Failed to fetch user profile' });
+    }
   });
 
   // Auth middleware
@@ -110,6 +120,37 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
       });
     } catch (error) {
       console.error('Error fetching Nasdaq 100 companies:', error);
+      res.status(500).json({ message: 'Failed to fetch companies' });
+    }
+  });
+
+  app.get('/api/sp500', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const sortBy = (req.query.sortBy as string) || 'marketCap';
+      const sortOrder = (req.query.sortOrder as 'asc' | 'desc') || 'desc';
+      const search = req.query.search as string;
+      
+      const companies = await storage.getSp500Companies(
+        limit,
+        offset,
+        sortBy,
+        sortOrder,
+        search
+      );
+      
+      const totalCount = await storage.getSp500CompanyCount(search);
+      
+      res.json({
+        companies,
+        total: totalCount,
+        limit,
+        offset,
+        hasMore: offset + limit < totalCount
+      });
+    } catch (error) {
+      console.error('Error fetching S&P 500 companies:', error);
       res.status(500).json({ message: 'Failed to fetch companies' });
     }
   });
@@ -353,30 +394,27 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
     }
   });
 
-  // Manual Nasdaq 100 price update endpoint
+  app.post("/api/sp500/update-prices", async (req, res) => {
+    try {
+      console.log("🔄 Manual S&P 500 price update requested...");
+      const { updateSp500Prices } = await import('./sp500-daily-updater');
+      await updateSp500Prices();
+      res.json({ message: "S&P 500 prices updated" });
+    } catch (error) {
+      console.error("Error updating S&P 500 prices:", error);
+      res.status(500).json({ message: "Failed to update S&P 500 prices" });
+    }
+  });
+
   app.post("/api/nasdaq100/update-prices", async (req, res) => {
     try {
       console.log("🔄 Manual Nasdaq 100 price update requested...");
       const { updateNasdaq100Prices } = await import('./nasdaq100-daily-updater');
       const result = await updateNasdaq100Prices();
-      
-      res.json({
-        message: "Nasdaq 100 prices updated successfully",
-        updated: result.updated,
-        failed: result.failed,
-        timestamp: new Date().toISOString(),
-        details: {
-          totalCompanies: result.updated + result.failed,
-          successRate: `${((result.updated / (result.updated + result.failed)) * 100).toFixed(1)}%`,
-          duration: `${result.duration}s`
-        }
-      });
+      res.json({ message: "Nasdaq 100 prices updated", updated: result.updated, failed: result.failed });
     } catch (error) {
       console.error("Error updating Nasdaq 100 prices:", error);
-      res.status(500).json({
-        message: "Failed to update Nasdaq 100 prices",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
+      res.status(500).json({ message: "Failed to update Nasdaq 100 prices" });
     }
   });
 
@@ -935,7 +973,7 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
           },
         ],
         mode: 'subscription',
-        success_url: `${process.env.CLIENT_URL}/payment-success`,
+        success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.CLIENT_URL}/payment-cancelled`,
         metadata: {
           userId: user.id,
@@ -946,6 +984,36 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
     } catch (error) {
       console.error('Error creating Stripe session:', error);
       res.status(500).json({ error: { message: 'Failed to create checkout session' } });
+    }
+  });
+
+  // Confirm checkout session and update subscription tier (fallback if webhook isn't available)
+  app.post('/api/stripe/confirm', isAuthenticated, async (req: any, res) => {
+    try {
+      const { sessionId } = req.body || {};
+      if (!sessionId) {
+        return res.status(400).json({ message: 'sessionId is required' });
+      }
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: 'Session not found' });
+      }
+
+      if (session.payment_status !== 'paid' && session.status !== 'complete') {
+        return res.status(400).json({ message: 'Payment not completed yet' });
+      }
+
+      const userId = (session.metadata as any)?.userId || req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: 'User ID missing in session metadata' });
+      }
+
+      // Update to paid tier
+      await db.update(users).set({ subscriptionTier: 'paid', updatedAt: new Date() }).where(eq(users.id, userId));
+      return res.json({ success: true });
+    } catch (error) {
+      console.error('Error confirming stripe session:', error);
+      return res.status(500).json({ message: 'Failed to confirm session' });
     }
   });
 
@@ -982,6 +1050,23 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
 
   //   res.json({ received: true });
   // });
+
+  app.post("/api/dowjones/update-prices", async (req, res) => {
+    try {
+      console.log("🔄 Manual Dow Jones price update requested...");
+      const { updateDowJonesPrices } = await import('./dowjones-daily-updater');
+      const result = await updateDowJonesPrices();
+      res.json({
+        message: "Dow Jones prices updated successfully",
+        updated: result.updated,
+        failed: result.failed,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error updating Dow Jones prices:", error);
+      res.status(500).json({ message: "Failed to update Dow Jones prices" });
+    }
+  });
 }
 
 function formatMarketCap(value: number): string {

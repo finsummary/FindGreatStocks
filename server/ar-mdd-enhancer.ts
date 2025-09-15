@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { db } from "./db";
-import { companies, nasdaq100Companies, dowJonesCompanies } from "@shared/schema";
+import { sp500Companies, nasdaq100Companies, dowJonesCompanies } from "@shared/schema";
 import { PgTable } from "drizzle-orm/pg-core";
 import { eq, isNotNull, and, or, sql } from "drizzle-orm";
 
@@ -37,15 +37,13 @@ async function calculateAndStoreArMddRatiosForTable(
 
     for (const company of companiesToUpdate) {
         const calculateRatio = (retStr: string | null, mddStr: string | null): number | null => {
-            // Ensure both values are not null and are valid numbers.
             if (retStr === null || mddStr === null) {
                 return null;
             }
 
-            const returnVal = parseFloat(retStr);
-            const maxDrawdownVal = parseFloat(mddStr);
+            const returnVal = Math.abs(parseFloat(retStr));
+            const maxDrawdownVal = Math.abs(parseFloat(mddStr));
 
-            // Ensure parsing was successful and maxDrawdown is a positive number to avoid division by zero or invalid logic.
             if (!isNaN(returnVal) && !isNaN(maxDrawdownVal) && maxDrawdownVal > 0) {
                 return parseFloat((returnVal / maxDrawdownVal).toFixed(4));
             }
@@ -76,7 +74,7 @@ async function calculateAndStoreArMddRatiosForTable(
 }
 
 async function main() {
-    await calculateAndStoreArMddRatiosForTable(companies, "S&P 500");
+    await calculateAndStoreArMddRatiosForTable(sp500Companies as unknown as any, "S&P 500");
     await calculateAndStoreArMddRatiosForTable(nasdaq100Companies, "Nasdaq 100");
     await calculateAndStoreArMddRatiosForTable(dowJonesCompanies, "Dow Jones");
     console.log("\nAll AR/MDD Ratio calculations complete.");

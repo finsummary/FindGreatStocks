@@ -3,15 +3,18 @@ export function formatMarketCap(value: number | string | null | undefined): stri
   const num = typeof value === 'string' ? parseFloat(value) : value;
 
   if (isNaN(num)) return '-';
+
+  const sign = num < 0 ? '-' : '';
+  const abs = Math.abs(num);
   
-  if (num >= 1e12) {
-    return `$${(num / 1e12).toFixed(2)} T`;
-  } else if (num >= 1e9) {
-    return `$${(num / 1e9).toFixed(2)} B`;
-  } else if (num >= 1e6) {
-    return `$${(num / 1e6).toFixed(2)} M`;
+  if (abs >= 1e12) {
+    return `${sign}$${(abs / 1e12).toFixed(2)} T`;
+  } else if (abs >= 1e9) {
+    return `${sign}$${(abs / 1e9).toFixed(2)} B`;
+  } else if (abs >= 1e6) {
+    return `${sign}$${(abs / 1e6).toFixed(2)} M`;
   } else {
-    return `$${num.toLocaleString()}`;
+    return `${sign}$${abs.toLocaleString()}`;
   }
 }
 
@@ -57,15 +60,17 @@ export function formatEarnings(value: number | string | null | undefined): strin
     return '-';
   }
   
-  const billions = num / 1e9;
+  const sign = num < 0 ? '-' : '';
+  const abs = Math.abs(num);
+  const billions = abs / 1e9;
   
-  if (Math.abs(billions) >= 10) {
-    return `$${billions.toFixed(1)} B`;
-  } else if (Math.abs(billions) >= 1) {
-    return `$${billions.toFixed(2)} B`;
+  if (billions >= 10) {
+    return `${sign}$${billions.toFixed(1)} B`;
+  } else if (billions >= 1) {
+    return `${sign}$${billions.toFixed(2)} B`;
   } else {
-    const millions = num / 1e6;
-    return `$${millions.toFixed(1)} M`;
+    const millions = abs / 1e6;
+    return `${sign}$${millions.toFixed(1)} M`;
   }
 }
 

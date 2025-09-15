@@ -84,6 +84,23 @@ async function updateCompanyPrice(symbol: string) {
     if (quoteData.pe && quoteData.pe > 0) updateData.peRatio = quoteData.pe.toString();
     if (quoteData.eps) updateData.eps = quoteData.eps.toString();
 
+    // Some FMP responses include yield as 'yield' or 'dividendYield'
+    const anyYield: any = (quoteData as any);
+    if (anyYield?.yield !== undefined) updateData.dividendYield = String(anyYield.yield);
+    if (anyYield?.dividendYield !== undefined) updateData.dividendYield = String(anyYield.dividendYield);
+
+    // Fallback to ratios-ttm dividend yield (TTM)
+    if (!updateData.dividendYield) {
+      try {
+        const ttm = await fetch(`${BASE_URL}/ratios-ttm/${symbol}?apikey=${API_KEY}`).then(r => r.ok ? r.json() : null);
+        const raw = Array.isArray(ttm) && ttm.length ? (ttm as any[])[0] : null;
+        const dy = raw && (raw.dividendYieldTTM ?? raw.dividendYielTTM);
+        if (dy !== null && dy !== undefined) {
+          updateData.dividendYield = String(Number(dy) * 100);
+        }
+      } catch {}
+    }
+
     // Update database
     await db
       .update(nasdaq100Companies)
@@ -91,6 +108,16 @@ async function updateCompanyPrice(symbol: string) {
       .where(eq(nasdaq100Companies.symbol, symbol));
     
     console.log(`✅ Updated ${symbol}: $${quoteData.price} (${quoteData.changesPercentage > 0 ? '+' : ''}${quoteData.changesPercentage.toFixed(2)}%)`);
+
+    // Trigger DCF recomputation when we have fresh market cap
+    if (quoteData.marketCap) {
+      try {
+        const { updateDcfMetricsForCompany } = await import('./dcf-daily-updater');
+        await updateDcfMetricsForCompany(nasdaq100Companies as any, symbol, quoteData.marketCap);
+      } catch (e) {
+        console.warn(`[${symbol}] DCF update skipped:`, e);
+      }
+    }
 
   } catch (error) {
     console.error(`❌ Error updating ${symbol}:`, error);

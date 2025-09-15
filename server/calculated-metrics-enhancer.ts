@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { db } from "./db";
-import { companies, nasdaq100Companies, dowJonesCompanies } from "@shared/schema";
+import { companies, nasdaq100Companies, dowJonesCompanies, sp500Companies } from "@shared/schema";
 import { sql, isNotNull, and, eq, or, isNull } from "drizzle-orm";
 import { PgTable } from "drizzle-orm/pg-core";
 
@@ -76,9 +76,11 @@ async function enhanceMetricsForTable(table: PgTable, name: string) {
 }
 
 async function main() {
-    await enhanceMetricsForTable(companies, "S&P 500");
+    await enhanceMetricsForTable(sp500Companies, "S&P 500");
     await enhanceMetricsForTable(nasdaq100Companies, "Nasdaq 100");
     await enhanceMetricsForTable(dowJonesCompanies, "Dow Jones");
+    // Keep legacy global table if used elsewhere
+    await enhanceMetricsForTable(companies, "Companies (legacy)");
     console.log("\nAll metric enhancements complete.");
     process.exit(0);
 }

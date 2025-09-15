@@ -255,6 +255,50 @@ export class FinancialDataService {
     }
   }
 
+  async fetchCashFlowStatement(symbol: string, limit: number = 1): Promise<any[] | null> {
+    try {
+      const data = await this.makeRequest(`/cash-flow-statement/${symbol}?limit=${limit}`);
+      return Array.isArray(data) ? data : null;
+    } catch (error) {
+      console.error(`Error fetching cash flow statement for ${symbol}:`, error);
+      return null;
+    }
+  }
+
+  async fetchIncomeStatement(symbol: string, limit: number = 10): Promise<any[] | null> {
+    try {
+      const data = await this.makeRequest(`/income-statement/${symbol}?limit=${limit}`);
+      return Array.isArray(data) ? data : null;
+    } catch (error) {
+      console.error(`Error fetching income statement for ${symbol}:`, error);
+      return null;
+    }
+  }
+
+  // Ratios TTM (includes dividendYieldTTM)
+  async fetchCompanyRatiosTTM(symbol: string): Promise<any | null> {
+    try {
+      const data = await this.makeRequest(`/ratios-ttm/${symbol}`);
+      if (Array.isArray(data) && data.length > 0) {
+        return data[0];
+      }
+      return null;
+    } catch (error) {
+      console.error(`Error fetching ratios TTM for ${symbol}:`, error);
+      return null;
+    }
+  }
+
+  async fetchHistoricalData(symbol: string, from: string, to: string): Promise<any[] | null> {
+    try {
+      const data = await this.makeRequest(`/historical-price-full/${symbol}?from=${from}&to=${to}`);
+      return data.historical || [];
+    } catch (error) {
+      console.error(`Error fetching historical data for ${symbol}:`, error);
+      return null;
+    }
+  }
+
   convertToCompanySchema(fmpCompany: any, rank: number, profile?: FMPCompanyProfile): InsertCompany {
     // Map exchange to country code
     const getCountryCode = (country: string, exchange: string): string => {

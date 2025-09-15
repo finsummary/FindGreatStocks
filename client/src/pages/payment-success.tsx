@@ -1,9 +1,40 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/providers/AuthProvider";
+import { authFetch } from "@/lib/authFetch";
 
 export function PaymentSuccessPage() {
+  const { refreshUser } = useAuth();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [confirming, setConfirming] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const confirm = async () => {
+      try {
+        const sessionId = searchParams.get('session_id');
+        if (sessionId) {
+          await authFetch('/api/stripe/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId })
+          });
+        }
+        await refreshUser();
+        setConfirming(false);
+      } catch (e: any) {
+        console.error('Payment confirm error:', e);
+        setError(e?.message || 'Failed to confirm payment');
+        setConfirming(false);
+      }
+    };
+    confirm();
+  }, [searchParams, refreshUser]);
+
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
       <Card className="w-full max-w-md text-center">
@@ -13,12 +44,11 @@ export function PaymentSuccessPage() {
           </div>
           <CardTitle className="mt-4 text-2xl font-bold">Payment Successful!</CardTitle>
           <CardDescription className="text-muted-foreground">
-            Thank you for your purchase. Your account has been upgraded to Premium.
+            {confirming ? 'Activating your premium access...' : error ? error : 'Your account has been upgraded to Premium.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="mb-6">You now have access to all premium features, including advanced data columns and exclusive layouts.</p>
-          <Button asChild className="w-full">
+          <Button asChild className="w-full" disabled={confirming}>
             <Link to="/">Go to Dashboard</Link>
           </Button>
         </CardContent>

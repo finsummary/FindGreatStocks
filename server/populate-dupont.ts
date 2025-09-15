@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { db } from './db';
-import { companies, nasdaq100Companies, dowJonesCompanies } from '@shared/schema';
+import { companies, nasdaq100Companies, dowJonesCompanies, sp500Companies } from '@shared/schema';
 import { makeRequest } from './fmp';
 import { sql } from 'drizzle-orm';
 import type { PgTable } from 'drizzle-orm/pg-core';
@@ -82,7 +82,7 @@ async function enhanceDupontForTable(table: PgTable) {
 }
 
 async function main() {
-  await enhanceDupontForTable(companies);
+  await enhanceDupontForTable(sp500Companies);
   await enhanceDupontForTable(nasdaq100Companies);
   await enhanceDupontForTable(dowJonesCompanies);
 }

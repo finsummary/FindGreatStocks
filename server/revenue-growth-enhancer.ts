@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { db } from "./db";
-import { companies, nasdaq100Companies, dowJonesCompanies } from "@shared/schema";
+import { companies, nasdaq100Companies, dowJonesCompanies, sp500Companies } from "@shared/schema";
 import { eq, isNull, or } from "drizzle-orm";
 import { PgTable } from "drizzle-orm/pg-core";
 
@@ -71,10 +71,14 @@ async function enhanceRevenueGrowthForTable(table: PgTable, name: string) {
         symbol: table.symbol,
       })
       .from(table)
-      .where(or(isNull(table.revenue), isNull(table.netIncome)));
+      .where(
+        // Populate where any growth metric is missing
+        // @ts-ignore
+        or(isNull(table.revenueGrowth3Y), isNull(table.revenueGrowth5Y), isNull(table.revenueGrowth10Y))
+      );
     
     if (companiesToEnhance.length === 0) {
-        console.log(`🎉 All companies in ${name} already have revenue and net income data. Nothing to do.`);
+        console.log(`🎉 All companies in ${name} already have 3Y/5Y/10Y revenue growth. Nothing to do.`);
         return;
     }
 
@@ -96,7 +100,7 @@ async function enhanceRevenueGrowthForTable(table: PgTable, name: string) {
         continue;
       }
       
-      // Statements are usually newest first
+      // Newest first
       statements.sort((a, b) => new Date(b.date).getFullYear() - new Date(a.date).getFullYear());
       
       const latestStatement = statements[0];
@@ -158,7 +162,7 @@ async function enhanceRevenueGrowthForTable(table: PgTable, name: string) {
 }
 
 async function main() {
-  await enhanceRevenueGrowthForTable(companies, "S&P 500");
+  await enhanceRevenueGrowthForTable(sp500Companies, "S&P 500");
   await enhanceRevenueGrowthForTable(nasdaq100Companies, "Nasdaq 100");
   await enhanceRevenueGrowthForTable(dowJonesCompanies, "Dow Jones");
   console.log("\nAll revenue growth enhancements complete.");

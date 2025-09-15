@@ -1,4 +1,4 @@
-import { companies, nasdaq100Companies, watchlist, users, type User, type UpsertUser, type Company, type Nasdaq100Company, type InsertCompany, type InsertNasdaq100Company, type Watchlist, type InsertWatchlist, type DowJonesCompany, type InsertDowJonesCompany, dowJonesCompanies } from "@shared/schema";
+import { companies, nasdaq100Companies, sp500Companies, watchlist, users, type User, type UpsertUser, type Company, type Nasdaq100Company, type InsertCompany, type InsertNasdaq100Company, type Watchlist, type InsertWatchlist, type DowJonesCompany, type InsertDowJonesCompany, dowJonesCompanies } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, asc, and, or, ilike, inArray } from "drizzle-orm";
 
@@ -21,6 +21,10 @@ export interface IStorage {
   getNasdaq100CompanyCount(search?: string): Promise<number>;
   getNasdaq100CompanyBySymbol(symbol: string): Promise<Nasdaq100Company | undefined>;
   
+  // S&P 500 methods
+  getSp500Companies(limit?: number, offset?: number, sortBy?: string, sortOrder?: 'asc' | 'desc', search?: string): Promise<any[]>;
+  getSp500CompanyCount(search?: string): Promise<number>;
+
   // Dow Jones methods
   getDowJonesCompanies(limit?: number, offset?: number, sortBy?: string, sortOrder?: 'asc' | 'desc', search?: string): Promise<DowJonesCompany[]>;
   getDowJonesCompanyCount(search?: string): Promise<number>;
@@ -342,6 +346,47 @@ export class DatabaseStorage implements IStorage {
     return company;
   }
 
+  // S&P 500 methods
+  async getSp500Companies(
+    limit: number = 50,
+    offset: number = 0,
+    sortBy: string = 'marketCap',
+    sortOrder: 'asc' | 'desc' = 'desc',
+    search?: string
+  ): Promise<any[]> {
+    const direction = sortOrder === 'asc' ? sql`ASC NULLS FIRST` : sql`DESC NULLS LAST`;
+    const sortColumn = this.buildOrderByClause(sortBy);
+
+    let whereClause = sql``;
+    if (search && search.trim()) {
+        const searchTerm = `%${search.trim()}%`;
+        whereClause = sql`WHERE "name" ILIKE ${searchTerm} OR "symbol" ILIKE ${searchTerm}`;
+    }
+
+    const query = sql`
+        SELECT * FROM sp500_companies
+        ${whereClause}
+        ORDER BY ${sortColumn} ${direction}
+        LIMIT ${limit}
+        OFFSET ${offset}
+    `;
+
+    const result = await db.execute(query);
+    return result.rows.map(this.mapDbRowToCompany as (row: any) => any);
+  }
+
+  async getSp500CompanyCount(search?: string): Promise<number> {
+    let whereClause = sql``;
+    if (search && search.trim()) {
+        const searchTerm = `%${search.trim()}%`;
+        whereClause = sql`WHERE "name" ILIKE ${searchTerm} OR "symbol" ILIKE ${searchTerm}`;
+    }
+
+    const query = sql`SELECT count(*) FROM sp500_companies ${whereClause}`;
+    const result = await db.execute(query);
+    return Number(result.rows[0]?.count || 0);
+  }
+
   // Dow Jones methods
   async getDowJonesCompanies(
     limit: number = 50,
@@ -450,7 +495,7 @@ export class DatabaseStorage implements IStorage {
     // We'll query all of them and merge the results. A UNION query is good for this.
     // Note: We are assuming a symbol is unique across all tables.
  
-    const sp500Query = db.select().from(companies).where(inArray(companies.symbol, symbols));
+    const sp500Query = db.select().from(sp500Companies).where(inArray(sp500Companies.symbol, symbols));
     const nasdaqQuery = db.select().from(nasdaq100Companies).where(inArray(nasdaq100Companies.symbol, symbols));
     const dowJonesQuery = db.select().from(dowJonesCompanies).where(inArray(dowJonesCompanies.symbol, symbols));
  

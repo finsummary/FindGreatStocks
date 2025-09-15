@@ -8,7 +8,7 @@
     "dev:server": "tsx watch server/index.ts",
     "dev:client": "vite --force",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "import:sp500": "tsx server/sp500-scanner.ts",
+    "import:sp500": "tsx server/sp500-import.ts",
     "enhance:returns": "tsx server/returns-enhancer.ts",
     "enhance:peg": "tsx server/peg-ratio-enhancer.ts",
     "enhance:drawdown": "tsx server/drawdown-enhancer.ts",
@@ -47,6 +47,7 @@
     "verify:sp500-count": "tsx server/verify-sp500-count.ts",
     "update:daily": "tsx server/daily-updater.ts",
     "populate:base": "tsx server/populate-base-metrics.ts",
+    "populate:financials": "tsx server/populate-financials.ts",
     "import:sp500-csv": "tsx server/import-sp500-from-csv.ts"
   },
   "dependencies": {
