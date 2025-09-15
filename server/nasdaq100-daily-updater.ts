@@ -81,8 +81,7 @@ async function updateCompanyPrice(symbol: string) {
     if (quoteData.change) updateData.dailyChange = quoteData.change.toString();
     if (quoteData.changesPercentage) updateData.dailyChangePercent = quoteData.changesPercentage.toString();
     if (quoteData.marketCap) updateData.marketCap = quoteData.marketCap.toString();
-    if (quoteData.pe && quoteData.pe > 0) updateData.peRatio = quoteData.pe.toString();
-    if (quoteData.eps) updateData.eps = quoteData.eps.toString();
+    // Do not overwrite EPS daily
 
     // Some FMP responses include yield as 'yield' or 'dividendYield'
     const anyYield: any = (quoteData as any);
@@ -90,7 +89,7 @@ async function updateCompanyPrice(symbol: string) {
     if (anyYield?.dividendYield !== undefined) updateData.dividendYield = String(anyYield.dividendYield);
 
     // Fallback to ratios-ttm dividend yield (TTM)
-    if (!updateData.dividendYield) {
+    if (false && !updateData.dividendYield) {
       try {
         const ttm = await fetch(`${BASE_URL}/ratios-ttm/${symbol}?apikey=${API_KEY}`).then(r => r.ok ? r.json() : null);
         const raw = Array.isArray(ttm) && ttm.length ? (ttm as any[])[0] : null;

@@ -880,7 +880,10 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
   // Protected watchlist endpoints - require authentication
   app.get('/api/watchlist', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id; // Get user ID from Supabase user object
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
       const watchlistItems = await storage.getWatchlist(userId);
       res.json(watchlistItems);
     } catch (error) {
@@ -891,7 +894,10 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
 
   app.get('/api/watchlist/companies', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
       const companies = await storage.getWatchlistCompanies(userId);
       res.json(companies);
     } catch (error) {
@@ -904,7 +910,7 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
     console.log('[/api/watchlist POST] Received request');
     try {
       const { companySymbol } = req.body;
-      const userId = req.user?.id;
+      const userId = req.user?.id || req.user?.claims?.sub;
       
       console.log(`[/api/watchlist POST] User ID: ${userId}, Symbol: ${companySymbol}`);
 
@@ -931,7 +937,8 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
   app.delete('/api/watchlist/:symbol', isAuthenticated, async (req: any, res) => {
     try {
       const { symbol } = req.params;
-      const userId = req.user.id; // Get user ID from Supabase user object
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: 'Unauthorized' });
       
       await storage.removeFromWatchlist(symbol, userId);
       res.json({ message: "Removed from watchlist" });
@@ -944,7 +951,8 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
   app.get('/api/watchlist/check/:symbol', isAuthenticated, async (req: any, res) => {
     try {
       const { symbol } = req.params;
-      const userId = req.user.id; // Get user ID from Supabase user object
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: 'Unauthorized' });
       
       const isInWatchlist = await storage.isInWatchlist(symbol, userId);
       res.json({ isInWatchlist });
@@ -1008,12 +1016,54 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
         return res.status(400).json({ message: 'User ID missing in session metadata' });
       }
 
-      // Update to paid tier
-      await db.update(users).set({ subscriptionTier: 'paid', updatedAt: new Date() }).where(eq(users.id, userId));
+      // Determine interval (quarterly/annual) from the line item price
+      let tier: string = 'paid';
+      try {
+        const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, { limit: 1 });
+        const priceId = (lineItems.data?.[0] as any)?.price?.id;
+        if (priceId) {
+          const price = await stripe.prices.retrieve(priceId as string);
+          const interval = (price.recurring as any)?.interval; // 'month'|'year' etc.
+          if (interval === 'month' || interval === 'quarter') {
+            tier = 'quarterly';
+          } else if (interval === 'year') {
+            tier = 'annual';
+          }
+        }
+      } catch (e) {
+        console.warn('Stripe confirm: failed to derive price interval, defaulting to paid');
+      }
+
+      await db.update(users).set({ subscriptionTier: tier, updatedAt: new Date() }).where(eq(users.id, userId));
       return res.json({ success: true });
     } catch (error) {
       console.error('Error confirming stripe session:', error);
       return res.status(500).json({ message: 'Failed to confirm session' });
+    }
+  });
+
+  // Downgrade to free (cancels Stripe subscription at period end)
+  app.post('/api/billing/downgrade', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+      const [dbUser] = await db.select().from(users).where(eq(users.id, userId));
+      if (!dbUser) return res.status(404).json({ message: 'User not found' });
+
+      const subscriptionId = (dbUser as any).stripeSubscriptionId;
+      if (subscriptionId) {
+        try {
+          await stripe.subscriptions.update(subscriptionId, { cancel_at_period_end: true });
+        } catch (e) {
+          console.warn('Stripe subscription update failed (cancel at period end):', e);
+        }
+      }
+
+      await db.update(users).set({ subscriptionTier: 'free', updatedAt: new Date() }).where(eq(users.id, userId));
+      return res.json({ success: true });
+    } catch (e) {
+      console.error('Error in downgrade:', e);
+      return res.status(500).json({ message: 'Failed to downgrade' });
     }
   });
 

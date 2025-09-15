@@ -45,12 +45,11 @@ export async function updateSp500Prices() {
                                 };
                                 if (quote.change !== undefined) updateData.dailyChange = String(quote.change);
                                 if (quote.changesPercentage !== undefined) updateData.dailyChangePercent = String(quote.changesPercentage);
-                                if (quote.yield !== undefined) updateData.dividendYield = String(quote.yield);
-                                if (quote.pe !== undefined) updateData.peRatio = String(quote.pe);
-                                if (quote.eps !== undefined) updateData.eps = String(quote.eps);
+                                // Do not overwrite fundamental fields daily
+                                // if (quote.eps !== undefined) updateData.eps = String(quote.eps);
 
                                 // Fallback to ratios-ttm dividend yield (TTM)
-                                if (!updateData.dividendYield) {
+                                if (false && !updateData.dividendYield) {
                                     try {
                                         const apiKey = process.env.FMP_API_KEY;
                                         const ttm = await fetch(`https://financialmodelingprep.com/api/v3/ratios-ttm/${quote.symbol}?apikey=${apiKey}`).then((r: any) => r.ok ? r.json() : null);

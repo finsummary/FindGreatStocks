@@ -61,11 +61,11 @@ export function LoginPage() {
     setIsSubmitting(false);
   };
 
-  if (loading || session) {
+  if (session) {
     // Render a loading state or nothing while redirecting
     return (
       <div className="flex justify-center items-center h-screen">
-        <div>Loading...</div>
+        <div>Redirecting...</div>
       </div>
     );
   }

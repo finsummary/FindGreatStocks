@@ -34,8 +34,8 @@ async function updateDowJonesPrices() {
                         };
                         if (quote.change !== undefined) updateData.dailyChange = String(quote.change);
                         if (quote.changesPercentage !== undefined) updateData.dailyChangePercent = String(quote.changesPercentage);
-                        if (quote.pe !== undefined) updateData.peRatio = String(quote.pe);
-                        if (quote.eps !== undefined) updateData.eps = String(quote.eps);
+                        // Preserve EPS (TTM) between quarter updates; don't overwrite daily
+                        // if (quote.eps !== undefined) updateData.eps = String(quote.eps);
 
                         // Dividend Yield: try quote.yield first, fallback to ratios-ttm
                         try {
@@ -57,11 +57,7 @@ async function updateDowJonesPrices() {
                             }
                           }
 
-                          if (dividendYield !== undefined && !Number.isNaN(dividendYield)) {
-                            // Normalize: if value looks like a decimal fraction (<= 1), convert to percentage
-                            const dyPercent = dividendYield <= 1 ? dividendYield * 100 : dividendYield;
-                            updateData.dividendYield = String(dyPercent);
-                          }
+                          // Do not overwrite daily. Dividend yield recalculated on client from saved dividend per share when needed.
                         } catch (e) {
                           // Non-fatal: just skip dividend yield if any error
                           console.warn(`[${quote.symbol}] Dividend yield fetch failed or unavailable.`);

@@ -5,7 +5,11 @@ import { WatchlistPage as Watchlist } from "./pages/watchlist";
 import { PaymentSuccessPage } from './pages/payment-success';
 import { PaymentCancelledPage } from './pages/payment-cancelled';
 import { useAuth } from "@/providers/AuthProvider";
+import { ProfilePage } from './pages/profile';
+import { BillingPage } from './pages/billing';
 import { Button } from "./components/ui/button";
+import { Avatar, AvatarFallback } from "./components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./components/ui/dropdown-menu";
 import { supabase } from "./lib/supabaseClient";
 
 function App() {
@@ -43,7 +47,27 @@ function App() {
             <Link to="/watchlist">Watchlist</Link>
           </Button>
           {user ? (
-            <Button variant="outline" onClick={handleLogout}>Logout</Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="inline-flex items-center gap-2 rounded-full border px-2 py-1 hover:bg-muted/50">
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback>{(user.email || 'U').slice(0,1).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm hidden sm:inline">{user.email}</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Account</DropdownMenuLabel>
+                <DropdownMenuItem asChild>
+                  <Link to="/profile">Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/billing">Billing</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>Sign out</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Button asChild>
               <Link to="/login">Login</Link>
@@ -56,6 +80,8 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/watchlist" element={<Watchlist />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/billing" element={<BillingPage />} />
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
         </Routes>

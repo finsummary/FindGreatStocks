@@ -175,6 +175,8 @@ export const users = pgTable("users", {
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
 	subscriptionTier: varchar("subscription_tier", { length: 255 }).default('free').notNull(),
+	stripeCustomerId: varchar("stripe_customer_id"),
+	stripeSubscriptionId: varchar("stripe_subscription_id"),
 }, (table) => {
 	return {
 		usersEmailUnique: unique("users_email_unique").on(table.email),
