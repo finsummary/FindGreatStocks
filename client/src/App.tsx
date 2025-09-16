@@ -9,10 +9,15 @@ import { ProfilePage } from './pages/profile';
 import { BillingPage } from './pages/billing';
 import BlogPage from './pages/blog';
 import BlogPostPage from './pages/blog-post';
+import TermsPage from './pages/terms';
+import PrivacyPage from './pages/privacy';
+import DisclaimerPage from './pages/disclaimer';
+import AboutPage from './pages/about';
 import { Button } from "./components/ui/button";
 import { Avatar, AvatarFallback } from "./components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./components/ui/dropdown-menu";
 import { supabase } from "./lib/supabaseClient";
+import Footer from "./components/footer";
 
 function App() {
   const { user } = useAuth();
@@ -89,10 +94,15 @@ function App() {
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/disclaimer" element={<DisclaimerPage />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
         </Routes>
       </main>
+      <Footer />
     </div>
   );
 }
