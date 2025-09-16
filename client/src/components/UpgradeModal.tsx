@@ -8,7 +8,17 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2 } from 'lucide-react';
+import { 
+  CheckCircle2, 
+  Unlock, 
+  Globe, 
+  TrendingUp, 
+  Calculator, 
+  BarChart3, 
+  Search, 
+  Zap, 
+  Brain 
+} from 'lucide-react';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -17,14 +27,14 @@ interface UpgradeModalProps {
 }
 
 const features = [
-  '🔓 Access all markets: DJIA, S&P 500, Nasdaq 100 & more coming soon',
-  '🌍 Expanding to Global Markets, full US universe, and ETFs',
-  '📈 Return on Risk Scanner – Evaluate risk-adjusted performance (3/5/10Y)',
-  '🧮 DCF Valuation Scanner – Find stocks trading below intrinsic value',
-  '📊 Reverse DCF Scanner – Uncover growth expectations priced in',
-  '🔬 DuPont ROE Decomposition – Break down what drives return on equity',
-  '🚀 Full access with all future tools and updates included',
-  '🧠 Discover high-quality, undervalued companies faster',
+  { icon: Unlock, text: 'Access all markets: DJIA, S&P 500, Nasdaq 100 & more coming soon' },
+  { icon: Globe, text: 'Expanding to Global Markets, full US universe, and ETFs' },
+  { icon: TrendingUp, text: 'Return on Risk Scanner – Evaluate risk-adjusted performance (3/5/10Y)' },
+  { icon: Calculator, text: 'DCF Valuation Scanner – Find stocks trading below intrinsic value' },
+  { icon: BarChart3, text: 'Reverse DCF Scanner – Uncover growth expectations priced in' },
+  { icon: Search, text: 'DuPont ROE Decomposition – Break down what drives return on equity' },
+  { icon: Zap, text: 'Full access with all future tools and updates included' },
+  { icon: Brain, text: 'Discover high-quality, undervalued companies faster' },
 ];
 
 const boldTerms = [
@@ -55,15 +65,15 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
           <h3 className="text-lg font-semibold mb-4">Premium Features</h3>
           <ul className="space-y-1.5">
             {features.map((feature, index) => {
-              const emoji = feature.split(' ')[0];
-              const text = feature.substring(feature.indexOf(' ') + 1);
+              const IconComponent = feature.icon;
+              const text = feature.text;
               const termToBold = boldTerms.find(term => text.startsWith(term));
 
               if (termToBold) {
                 const parts = text.split(termToBold);
                 return (
                   <li key={index} className="flex items-start gap-3">
-                    <span className="text-lg mt-0.5">{emoji}</span>
+                    <IconComponent className="h-5 w-5 mt-0.5 text-gray-600 flex-shrink-0" />
                     <span className="text-muted-foreground flex-1">
                       <strong className="font-semibold text-foreground">{termToBold}</strong>
                       {parts[1]}
@@ -73,7 +83,7 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
               }
               return (
                 <li key={index} className="flex items-start gap-3">
-                  <span className="text-lg mt-0.5">{emoji}</span>
+                  <IconComponent className="h-5 w-5 mt-0.5 text-gray-600 flex-shrink-0" />
                   <span className="text-muted-foreground flex-1">{text}</span>
                 </li>
               );
