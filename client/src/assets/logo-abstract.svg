@@ -1,0 +1,21 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Abstract geometric shapes representing analysis -->
+  <rect x="120" y="120" width="80" height="200" fill="currentColor" rx="8"/>
+  <rect x="120" y="120" width="200" height="20" fill="currentColor" rx="8"/>
+  
+  <!-- Chart elements -->
+  <path d="M360 200 L400 160 L440 180 L480 140" stroke="currentColor" stroke-width="6" fill="none" stroke-linecap="round"/>
+  
+  <!-- Data visualization dots -->
+  <circle cx="360" cy="200" r="8" fill="currentColor"/>
+  <circle cx="400" cy="160" r="8" fill="currentColor"/>
+  <circle cx="440" cy="180" r="8" fill="currentColor"/>
+  <circle cx="480" cy="140" r="8" fill="currentColor"/>
+  
+  <!-- Growth indicator -->
+  <path d="M200 360 L240 320 L280 340 L320 300" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <circle cx="200" cy="360" r="6" fill="currentColor"/>
+  <circle cx="240" cy="320" r="6" fill="currentColor"/>
+  <circle cx="280" cy="340" r="6" fill="currentColor"/>
+  <circle cx="320" cy="300" r="6" fill="currentColor"/>
+</svg>

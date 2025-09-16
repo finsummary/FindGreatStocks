@@ -32,21 +32,11 @@ function App() {
     <div className="flex flex-col min-h-screen">
       <header className="px-4 lg:px-6 h-14 flex items-center shadow-sm">
         <Link className="flex items-center justify-center" to="/">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+          <img 
+            src="/src/assets/logo-simple.svg" 
+            alt="FindGreatStocks Logo" 
             className="h-6 w-6"
-          >
-            <line x1="12" x2="12" y1="2" y2="22" />
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-          </svg>
+          />
           <span className="ml-2 text-lg font-semibold">FindGreatStocks</span>
         </Link>
         <nav className="ml-auto flex items-center gap-4 sm:gap-6">

@@ -1,0 +1,22 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" stroke="currentColor" stroke-width="2" fill="none"/>
+  
+  <!-- Stylized "F" -->
+  <path d="M180 120 L180 380 L200 380 L200 200 L320 200 L320 180 L200 180 L200 120 Z" fill="currentColor"/>
+  
+  <!-- Chart/graph elements -->
+  <path d="M120 320 L160 280 L200 300 L240 260 L280 280 L320 240 L360 260" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Data points -->
+  <circle cx="120" cy="320" r="4" fill="currentColor"/>
+  <circle cx="160" cy="280" r="4" fill="currentColor"/>
+  <circle cx="200" cy="300" r="4" fill="currentColor"/>
+  <circle cx="240" cy="260" r="4" fill="currentColor"/>
+  <circle cx="280" cy="280" r="4" fill="currentColor"/>
+  <circle cx="320" cy="240" r="4" fill="currentColor"/>
+  <circle cx="360" cy="260" r="4" fill="currentColor"/>
+  
+  <!-- Arrow indicating growth -->
+  <path d="M380 260 L400 240 L380 220 M390 240 L400 240" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
