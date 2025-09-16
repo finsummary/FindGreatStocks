@@ -10,27 +10,16 @@ const Footer: React.FC = () => {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center mb-4">
               <img 
-                src="/src/assets/logo.svg" 
+                src="/src/assets/logo-white.svg" 
                 alt="FindGreatStocks Logo" 
                 className="h-8 w-8"
               />
-              <span className="ml-2 text-xl font-bold">Find<span className="font-black">Great</span>Stocks</span>
+              <span className="ml-2 text-xl font-bold">FindGreatStocks.com</span>
             </div>
             <p className="text-gray-300 mb-4 max-w-md">
               Empowering investors with professional-grade analysis tools and educational resources. 
               Make informed investment decisions with data-driven insights.
             </p>
-            <div className="flex space-x-4">
-              <a
-                href="mailto:hello@FindGreatStocks.com"
-                className="text-gray-300 hover:text-white transition-colors"
-              >
-                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                </svg>
-              </a>
-            </div>
           </div>
 
           {/* Quick Links */}
