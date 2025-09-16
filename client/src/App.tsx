@@ -37,7 +37,7 @@ function App() {
             alt="FindGreatStocks Logo" 
             className="h-8 w-8"
           />
-          <span className="ml-2 text-lg font-semibold">FindGreatStocks</span>
+          <span className="ml-2 text-lg font-semibold">Find<span className="font-bold">Great</span>Stocks</span>
         </Link>
         <nav className="ml-auto flex items-center gap-4 sm:gap-6">
           <Button asChild variant="ghost">

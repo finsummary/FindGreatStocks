@@ -14,7 +14,7 @@ const Footer: React.FC = () => {
                 alt="FindGreatStocks Logo" 
                 className="h-8 w-8"
               />
-              <span className="ml-2 text-xl font-bold">FindGreatStocks</span>
+              <span className="ml-2 text-xl font-bold">Find<span className="font-black">Great</span>Stocks</span>
             </div>
             <p className="text-gray-300 mb-4 max-w-md">
               Empowering investors with professional-grade analysis tools and educational resources. 
