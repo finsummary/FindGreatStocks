@@ -128,7 +128,7 @@ const LAYOUT_DESCRIPTIONS: Record<string, { title: string; description: string }
 };
 
 const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlist' | 'none', string>> = {
-  watchlist: 'Add to your personal watchlist. Sign-in required.',
+  watchlist: 'Add to your personal watchlist. Click to sign in if you\'re not logged in.',
   rank: 'Rank based on the current sorting criteria.',
   name: 'Company name and stock ticker symbol.',
   marketCap: 'The total market value of a company\'s outstanding shares.',
@@ -375,9 +375,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   const handleWatchlistToggle = (symbol: string, isCurrentlyWatched: boolean) => {
     if (!isLoggedIn) {
       toast({
-        title: "Sign In Required",
-        description: "Please sign in to add stocks to your personal watchlist",
-        variant: "default",
+        title: "🔒 Sign In Required",
+        description: "You need to sign in to add companies to your personal watchlist. Click the 'Sign In' button in the top right corner.",
+        variant: "destructive",
+        duration: 5000,
       });
       return;
     }
@@ -499,7 +500,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                   className={`p-1 h-auto transition-colors ${
                     isWatched
                       ? 'text-yellow-500 hover:text-yellow-600'
-                      : 'text-muted-foreground hover:text-yellow-500'
+                      : isLoggedIn
+                        ? 'text-muted-foreground hover:text-yellow-500'
+                        : 'text-muted-foreground hover:text-orange-500 opacity-60'
                   }`}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -507,7 +510,11 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                   }}
                   disabled={!isLoggedIn || !!watchlistPending[row.symbol]}
                 >
-                  <Star className={`h-4 w-4 ${isWatched ? 'fill-current' : ''}`} />
+                  {isLoggedIn ? (
+                    <Star className={`h-4 w-4 ${isWatched ? 'fill-current' : ''}`} />
+                  ) : (
+                    <Lock className="h-4 w-4" />
+                  )}
                 </Button>
               );
               break;
