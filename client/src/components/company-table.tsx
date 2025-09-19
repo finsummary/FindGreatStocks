@@ -128,7 +128,7 @@ const LAYOUT_DESCRIPTIONS: Record<string, { title: string; description: string }
 };
 
 const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlist' | 'none', string>> = {
-  watchlist: 'Add to your personal watchlist. Click to sign in if you\'re not logged in.',
+  watchlist: 'Add to your personal watchlist. Click the star to add or the lock to sign in.',
   rank: 'Rank based on the current sorting criteria.',
   name: 'Company name and stock ticker symbol.',
   marketCap: 'The total market value of a company\'s outstanding shares.',
@@ -494,28 +494,42 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
             case 'watchlist':
               const isWatched = row.isWatched || false;
               cellContent = (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`p-1 h-auto transition-colors ${
-                    isWatched
-                      ? 'text-yellow-500 hover:text-yellow-600'
-                      : isLoggedIn
-                        ? 'text-muted-foreground hover:text-yellow-500'
-                        : 'text-muted-foreground hover:text-orange-500 opacity-60'
-                  }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleWatchlistToggle(row.symbol, isWatched);
-                  }}
-                  disabled={!isLoggedIn || !!watchlistPending[row.symbol]}
-                >
-                  {isLoggedIn ? (
-                    <Star className={`h-4 w-4 ${isWatched ? 'fill-current' : ''}`} />
-                  ) : (
-                    <Lock className="h-4 w-4" />
-                  )}
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`p-1 h-auto transition-colors ${
+                          isWatched
+                            ? 'text-yellow-500 hover:text-yellow-600'
+                            : isLoggedIn
+                              ? 'text-muted-foreground hover:text-yellow-500'
+                              : 'text-muted-foreground hover:text-orange-500 cursor-pointer'
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleWatchlistToggle(row.symbol, isWatched);
+                        }}
+                        disabled={!!watchlistPending[row.symbol]}
+                      >
+                        {isLoggedIn ? (
+                          <Star className={`h-4 w-4 ${isWatched ? 'fill-current' : ''}`} />
+                        ) : (
+                          <Lock className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        {isLoggedIn 
+                          ? (isWatched ? 'Remove from watchlist' : 'Add to watchlist')
+                          : 'Sign in to add to watchlist'
+                        }
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               );
               break;
             case 'rank':
