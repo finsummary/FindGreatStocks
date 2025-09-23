@@ -505,11 +505,13 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                             ? 'text-yellow-500 hover:text-yellow-600'
                             : isLoggedIn
                               ? 'text-muted-foreground hover:text-yellow-500'
-                              : 'text-muted-foreground hover:text-orange-500 cursor-pointer'
+                              : 'text-muted-foreground opacity-60 cursor-not-allowed'
                         }`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleWatchlistToggle(row.symbol, isWatched);
+                          if (isLoggedIn) {
+                            handleWatchlistToggle(row.symbol, isWatched);
+                          }
                         }}
                         disabled={!!watchlistPending[row.symbol]}
                       >
