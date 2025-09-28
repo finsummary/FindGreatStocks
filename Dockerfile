@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 5002
 
 # Start the application
-CMD ["node", "simple-server.js"]
+ENTRYPOINT ["node", "simple-server.js"]
