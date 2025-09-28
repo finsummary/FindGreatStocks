@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 interface AuthContextType {
   user: any;
@@ -13,8 +13,8 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState(null);
-  const [session, setSession] = useState(null);
+  const [user] = useState(null);
+  const [session] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
