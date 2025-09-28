@@ -183,7 +183,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   const { toast } = useToast();
 
   const isLoggedIn = !!user || !!session;
-  const isPaidUser = user?.subscriptionTier === 'paid';
+  const isPaidUser = user?.subscriptionTier === 'paid' || user?.subscriptionTier === 'quarterly' || user?.subscriptionTier === 'annual';
 
   useEffect(() => {
     setSelectedLayout(null);

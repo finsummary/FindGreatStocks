@@ -30,15 +30,27 @@ export function setupStripeWebhook(app: Express) {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
       const userId = session.metadata?.userId;
+      const priceId = session.metadata?.priceId;
 
       if (userId) {
         console.log(`Payment successful for user ${userId}. Updating subscription tier.`);
+        
+        // Determine subscription tier based on price ID
+        let subscriptionTier = 'paid'; // default
+        if (priceId) {
+          if (priceId.includes('quarterly') || priceId.includes('quarter')) {
+            subscriptionTier = 'quarterly';
+          } else if (priceId.includes('annual') || priceId.includes('year')) {
+            subscriptionTier = 'annual';
+          }
+        }
+        
         try {
           await db
             .update(users)
-            .set({ subscriptionTier: 'paid' })
+            .set({ subscriptionTier })
             .where(eq(users.id, userId));
-          console.log(`User ${userId} subscription tier updated to 'paid'.`);
+          console.log(`User ${userId} subscription tier updated to '${subscriptionTier}'.`);
         } catch (dbError) {
           console.error(`Failed to update subscription for user ${userId}:`, dbError);
         }
@@ -985,6 +997,7 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
         cancel_url: `${process.env.CLIENT_URL}/payment-cancelled`,
         metadata: {
           userId: user.id,
+          priceId: priceId,
         },
       });
 

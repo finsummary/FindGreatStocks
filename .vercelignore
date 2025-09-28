@@ -1,0 +1,13 @@
+server/
+node_modules/
+.env
+.env.local
+.env.production
+*.log
+dist/
+build/
+coverage/
+.nyc_output/
+.cache/
+.temp/
+.tmp/
