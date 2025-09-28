@@ -1,22 +1,50 @@
-// Railway entry point - redirects to server
-import { spawn } from 'child_process';
-import path from 'path';
+// Railway entry point - starts server directly
+import express from 'express';
+import cors from 'cors';
+import { createClient } from '@supabase/supabase-js';
+import { setupRoutes, setupStripeWebhook } from './server/routes.js';
+import { DataScheduler } from './server/scheduler.js';
 
-// Change to server directory
-process.chdir('./server');
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
-// Start the server using tsx
-const server = spawn('npx', ['tsx', 'index.ts'], {
-  stdio: 'inherit',
-  shell: true
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error("Supabase URL and Key must be provided in .env file");
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+const app = express();
+app.use(cors({
+  origin: process.env.CLIENT_URL,
+  credentials: true,
+}));
+
+// Special handling for Stripe webhook, which needs the raw body
+setupStripeWebhook(app);
+
+app.use(express.json());
+
+setupRoutes(app, supabase);
+
+const port = process.env.PORT || 5002;
+const dataScheduler = new DataScheduler(supabase);
+
+// Start the server
+app.listen(port, () => {
+  console.log(`🚀 Server running on port ${port}`);
+  console.log(`📊 Data scheduler started`);
 });
 
-server.on('error', (err) => {
-  console.error('Failed to start server:', err);
-  process.exit(1);
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  dataScheduler.stop();
+  process.exit(0);
 });
 
-server.on('exit', (code) => {
-  console.log(`Server exited with code ${code}`);
-  process.exit(code);
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  dataScheduler.stop();
+  process.exit(0);
 });
