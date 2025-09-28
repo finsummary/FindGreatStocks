@@ -1,3 +1,6 @@
+[phases.install]
+cmds = ["cd server && npm install"]
+
 [phases.build]
 cmds = ["echo 'Skipping client build for server deployment'"]
 
