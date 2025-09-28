@@ -5,10 +5,10 @@
   "main": "index.ts",
   "type": "module",
   "scripts": {
-    "start": "tsx index.ts",
-    "dev": "tsx watch index.ts",
+    "start": "npx tsx index.ts",
+    "dev": "npx tsx watch index.ts",
     "build": "tsc",
-    "db:push": "tsx drizzle/push.ts"
+    "db:push": "npx tsx drizzle/push.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.3",
