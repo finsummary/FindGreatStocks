@@ -2,4 +2,4 @@
 cmds = ["echo 'Skipping client build for server deployment'"]
 
 [phases.start]
-cmds = ["node index.js"]
+cmds = ["node simple-server.js"]

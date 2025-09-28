@@ -2,10 +2,10 @@
   "name": "findgreatstocks",
   "version": "1.0.0",
   "description": "FindGreatStocks.com - Market Intelligence Platform",
-  "main": "index.js",
+  "main": "simple-server.js",
   "type": "module",
   "scripts": {
-    "start": "node index.js",
+    "start": "node simple-server.js",
     "dev": "cd server && npm run dev"
   },
   "dependencies": {
