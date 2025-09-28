@@ -1,8 +1,0 @@
-[phases.install]
-cmds = ["npm install"]
-
-[phases.build]
-cmds = ["echo 'Skipping client build for server deployment'"]
-
-[phases.start]
-cmds = ["node simple-server.js"]
