@@ -10,7 +10,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { authFetch } from "@/lib/authFetch";
-import type { Company, Watchlist } from "@shared/schema";
+import type { Company, Watchlist } from "../types";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 

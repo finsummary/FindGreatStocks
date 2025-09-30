@@ -55,3 +55,16 @@ export interface WatchlistItem {
 }
 
 export type Dataset = 'dowjones' | 'sp500' | 'nasdaq100';
+
+export type DowJonesCompany = Company;
+export type Sp500Company = Company;
+export type Nasdaq100Company = Company;
+
+export interface Watchlist {
+  id: number;
+  userId: string;
+  symbol: string;
+  name: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+}

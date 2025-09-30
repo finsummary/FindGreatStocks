@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronUp, ChevronDown, Star, Download, Search, Settings2, X, Lock, LockOpen } from "lucide-react";
+import { ChevronUp, ChevronDown, Star, Download, Search, Settings2, X, Lock, Unlock } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,7 @@ import { formatMarketCap, formatPercentage, formatPrice, formatEarnings, formatN
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/providers/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
-import type { Company, Nasdaq100Company } from "@shared/schema";
+import type { Company, Nasdaq100Company } from "../types";
 import { authFetch } from "@/lib/authFetch";
 import { loadStripe } from '@stripe/stripe-js';
 import {
@@ -966,7 +966,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
             </DropdownMenu>
             {!authLoading && !isPaidUser && (
                <Button onClick={() => setIsUpgradeModalOpen(true)}>
-                <LockOpen className="mr-2 h-4 w-4" />
+                <Unlock className="mr-2 h-4 w-4" />
                 Upgrade
               </Button>
             )}

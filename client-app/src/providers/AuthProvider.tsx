@@ -2,7 +2,7 @@ import { createContext, useState, useEffect, useContext, FC, ReactNode } from 'r
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
 import { authFetch } from '@/lib/authFetch';
-import type { User as DbUser } from '@shared/schema';
+import type { User as DbUser } from '../types';
 
 interface AuthContextType {
   user: DbUser | null;
