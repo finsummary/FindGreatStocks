@@ -22,6 +22,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/providers/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import type { Company, Nasdaq100Company } from "../types";
+
+type DisplayCompany = Company & { isWatched?: boolean };
 import { authFetch } from "@/lib/authFetch";
 import { loadStripe } from '@stripe/stripe-js';
 import {
@@ -390,7 +392,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     }
   };
 
-  let apiEndpoint;
+  let apiEndpoint: string;
   switch (dataset) {
     case 'sp500':
       apiEndpoint = '/api/sp500';
