@@ -22,4 +22,7 @@ export default defineConfig({
       },
     },
   },
+  define: {
+    'import.meta.env': 'import.meta.env',
+  },
 })

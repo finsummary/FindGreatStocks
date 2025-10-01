@@ -10,9 +10,11 @@ export interface Company {
   country: string | null;
   rank: number | null;
   logo: string | null;
+  logoUrl: string | null;
   peRatio: string | null;
   eps: string | null;
   dividendYield: string | null;
+  priceToSalesRatio: string | null;
   revenue: string | null;
   netIncome: string | null;
   freeCashFlow: string | null;
@@ -26,6 +28,9 @@ export interface Company {
   maxDrawdown5Year: string | null;
   maxDrawdown10Year: string | null;
   arMddRatio: string | null;
+  arMddRatio3Year: string | null;
+  arMddRatio5Year: string | null;
+  arMddRatio10Year: string | null;
   netProfitMargin: string | null;
   assetTurnover: string | null;
   financialLeverage: string | null;
