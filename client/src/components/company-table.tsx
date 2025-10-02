@@ -819,8 +819,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
 
   const SortIcon = ({ column }: { column: string }) => {
     if (sortBy !== column) return <ChevronUp className="h-4 w-4 opacity-30" />;
-    return sortOrder === 'asc' ?
-      <ChevronUp className="h-4 w-4" /> :
+    return sortOrder === 'asc' ? 
+      <ChevronUp className="h-4 w-4" /> : 
       <ChevronDown className="h-4 w-4" />;
   };
 
@@ -875,7 +875,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
               })}
             </SelectContent>
           </Select>
-
+          
           <div className="flex-1 flex justify-end items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -968,7 +968,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                <Button onClick={() => setIsUpgradeModalOpen(true)}>
                 <LockOpen className="mr-2 h-4 w-4" />
                 Upgrade
-              </Button>
+          </Button>
             )}
           </div>
         </div>
@@ -999,7 +999,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow key={headerGroup.id} className="bg-muted/50">
                   {headerGroup.headers.map(header => (
-                    <TableHead
+              <TableHead 
                       key={header.id}
                       className={`text-right cursor-pointer hover:bg-muted/80 transition-colors ${ (header.column.columnDef.meta as any)?.columnConfig.width } ${
                         sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
@@ -1012,16 +1012,16 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                             header.column.columnDef.header,
                             header.getContext()
                           )}
-                    </TableHead>
+              </TableHead>
                   ))}
-                </TableRow>
+            </TableRow>
               ))}
-            </TableHeader>
-              <TableBody>
+          </TableHeader>
+          <TableBody>
                 {showSkeletons ? (
-                  // Loading skeleton
-                  Array.from({ length: 10 }).map((_, i) => (
-                    <TableRow key={i}>
+              // Loading skeleton
+              Array.from({ length: 10 }).map((_, i) => (
+                <TableRow key={i}>
                       {table.getVisibleFlatColumns().map(column => (
                         <TableCell key={column.id} className={
                           (column.columnDef.meta as any)?.columnConfig.id === 'rank' || (column.columnDef.meta as any)?.columnConfig.id === 'watchlist'
@@ -1031,26 +1031,26 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                             : 'text-right'
                         }>
                           <Skeleton className="h-6" />
-                        </TableCell>
+                  </TableCell>
                       ))}
-                    </TableRow>
-                  ))
+                </TableRow>
+              ))
                 ) : table.getRowModel().rows.length === 0 ? (
-                  <TableRow>
+              <TableRow>
                     <TableCell colSpan={table.getVisibleFlatColumns().length} className="text-center py-12">
-                      <div className="text-muted-foreground">
-                        {searchQuery ?
-                          'No companies found matching your search.' :
-                          'No companies available.'
-                        }
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
+                  <div className="text-muted-foreground">
+                    {searchQuery ? 
+                      'No companies found matching your search.' : 
+                      'No companies available.'
+                    }
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
                   table.getRowModel().rows.map(row => (
-                    <TableRow
+                <TableRow 
                       key={row.id}
-                      className="hover:bg-muted/50 cursor-pointer group transition-colors"
+                  className="hover:bg-muted/50 cursor-pointer group transition-colors"
                     >
                       {row.getVisibleCells().map(cell => (
                         <TableCell key={cell.id} className={
@@ -1061,15 +1061,15 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                             : 'text-right'
                         }>
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
+                  </TableCell>
                       ))}
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+          </Table>
+        </div>
+      </Card>
 
       {/* Pagination */}
       {data && data.total > limit && (
@@ -1078,17 +1078,17 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
             Showing {page * limit + 1} to {Math.min((page + 1) * limit, data.total)} of {data.total} companies
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
+            <Button 
+              variant="outline" 
+              size="sm" 
               disabled={page === 0}
               onClick={() => setPage(p => Math.max(0, p - 1))}
             >
               Previous
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
+            <Button 
+              variant="outline" 
+              size="sm" 
               disabled={!data.hasMore}
               onClick={() => setPage(p => p + 1)}
             >
