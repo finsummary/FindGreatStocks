@@ -1,5 +1,5 @@
 import { companies, nasdaq100Companies, sp500Companies, watchlist, users, type User, type UpsertUser, type Company, type Nasdaq100Company, type InsertCompany, type InsertNasdaq100Company, type Watchlist, type InsertWatchlist, type DowJonesCompany, type InsertDowJonesCompany, dowJonesCompanies } from "@shared/schema";
-import { db } from "./db";
+import { db, supabase } from "./db";
 import { eq, sql, desc, asc, and, or, ilike, inArray } from "drizzle-orm";
 
 export interface IStorage {
@@ -272,58 +272,23 @@ export class DatabaseStorage implements IStorage {
     sortOrder: 'asc' | 'desc' = 'desc',
     search?: string
   ): Promise<Nasdaq100Company[]> {
-    // This is a direct copy of the robust getCompanies raw SQL implementation
-    const direction = sortOrder === 'asc' ? sql`ASC NULLS FIRST` : sql`DESC NULLS LAST`;
+    try {
+      const { data, error } = await supabase
+        .from('nasdaq100_companies')
+        .select('*')
+        .limit(limit)
+        .range(offset, offset + limit - 1);
 
-    const sortColumnMap: Record<string, SQL> = {
-        'rank': sql`CASE WHEN "rank" IS NULL THEN 0 ELSE "rank" END`,
-        'name': sql`"name"`,
-        'marketCap': sql`CASE WHEN "market_cap" IS NULL OR "market_cap"::text = '' THEN 0 ELSE CAST("market_cap" AS BIGINT) END`,
-        'price': sql`CASE WHEN "price" IS NULL OR "price"::text = '' THEN 0 ELSE CAST("price" AS NUMERIC) END`,
-        'revenue': sql`CASE WHEN "revenue" IS NULL OR "revenue"::text = '' THEN 0 ELSE CAST("revenue" AS BIGINT) END`,
-        'peRatio': sql`CASE WHEN "pe_ratio" IS NULL OR "pe_ratio"::text = '' THEN 99999 ELSE CAST("pe_ratio" AS NUMERIC) END`,
-        'priceToSalesRatio': sql`CASE WHEN "price_to_sales_ratio" IS NULL OR "price_to_sales_ratio"::text = '' THEN 99999 ELSE CAST("price_to_sales_ratio" AS NUMERIC) END`,
-        'netProfitMargin': sql`CASE WHEN "net_profit_margin" IS NULL OR "net_profit_margin"::text = '' THEN -99999 ELSE CAST("net_profit_margin" AS NUMERIC) END`,
-        'dividendYield': sql`CASE WHEN "dividend_yield" IS NULL OR "dividend_yield"::text = '' THEN -99999 ELSE CAST("dividend_yield" AS NUMERIC) END`,
-        'revenueGrowth3Y': sql`CASE WHEN "revenue_growth_3y" IS NULL OR "revenue_growth_3y"::text = '' THEN -99999 ELSE CAST("revenue_growth_3y" AS NUMERIC) END`,
-        'revenueGrowth5Y': sql`CASE WHEN "revenue_growth_5y" IS NULL OR "revenue_growth_5y"::text = '' THEN -99999 ELSE CAST("revenue_growth_5y" AS NUMERIC) END`,
-        'revenueGrowth10Y': sql`CASE WHEN "revenue_growth_10y" IS NULL OR "revenue_growth_10y"::text = '' THEN -99999 ELSE CAST("revenue_growth_10y" AS NUMERIC) END`,
-        'return3Year': sql`CASE WHEN "return_3_year" IS NULL OR "return_3_year"::text = '' THEN -99999 ELSE CAST("return_3_year" AS NUMERIC) END`,
-        'return5Year': sql`CASE WHEN "return_5_year" IS NULL OR "return_5_year"::text = '' THEN -99999 ELSE CAST("return_5_year" AS NUMERIC) END`,
-        'return10Year': sql`CASE WHEN "return_10_year" IS NULL OR "return_10_year"::text = '' THEN -99999 ELSE CAST("return_10_year" AS NUMERIC) END`,
-        'maxDrawdown3Year': sql`CASE WHEN "max_drawdown_3_year" IS NULL OR "max_drawdown_3_year"::text = '' THEN 99999 ELSE CAST("max_drawdown_3_year" AS NUMERIC) END`,
-        'maxDrawdown5Year': sql`CASE WHEN "max_drawdown_5_year" IS NULL OR "max_drawdown_5_year"::text = '' THEN 99999 ELSE CAST("max_drawdown_5_year" AS NUMERIC) END`,
-        'maxDrawdown10Year': sql`CASE WHEN "max_drawdown_10_year" IS NULL OR "max_drawdown_10_year"::text = '' THEN 99999 ELSE CAST("max_drawdown_10_year" AS NUMERIC) END`,
-        'arMddRatio3Year': sql`CASE WHEN "ar_mdd_ratio_3_year" IS NULL OR "ar_mdd_ratio_3_year"::text = '' THEN -99999 ELSE CAST("ar_mdd_ratio_3_year" AS NUMERIC) END`,
-        'arMddRatio5Year': sql`CASE WHEN "ar_mdd_ratio_5_year" IS NULL OR "ar_mdd_ratio_5_year"::text = '' THEN -99999 ELSE CAST("ar_mdd_ratio_5_year" AS NUMERIC) END`,
-        'arMddRatio10Year': sql`CASE WHEN "ar_mdd_ratio_10_year" IS NULL OR "ar_mdd_ratio_10_year"::text = '' THEN -99999 ELSE CAST("ar_mdd_ratio_10_year" AS NUMERIC) END`,
-        'freeCashFlow': sql`CASE WHEN "free_cash_flow" IS NULL OR "free_cash_flow"::text = '' THEN 0 ELSE CAST("free_cash_flow" AS BIGINT) END`,
-        'dcfEnterpriseValue': sql`CASE WHEN "dcf_enterprise_value" IS NULL OR "dcf_enterprise_value"::text = '' THEN 0 ELSE CAST("dcf_enterprise_value" AS BIGINT) END`,
-        'marginOfSafety': sql`CASE WHEN "margin_of_safety" IS NULL OR "margin_of_safety"::text = '' THEN -99999 ELSE CAST("margin_of_safety" AS NUMERIC) END`,
-        'dcfImpliedGrowth': sql`CASE WHEN "dcf_implied_growth" IS NULL OR "dcf_implied_growth"::text = '' THEN -99999 ELSE CAST("dcf_implied_growth" AS NUMERIC) END`,
-        'roe': sql`CASE WHEN "roe" IS NULL OR "roe"::text = '' THEN -99999 ELSE CAST("roe" AS NUMERIC) END`,
-        'assetTurnover': sql`CASE WHEN "asset_turnover" IS NULL OR "asset_turnover"::text = '' THEN -99999 ELSE CAST("asset_turnover" AS NUMERIC) END`,
-        'financialLeverage': sql`CASE WHEN "financial_leverage" IS NULL OR "financial_leverage"::text = '' THEN -99999 ELSE CAST("financial_leverage" AS NUMERIC) END`,
-    };
-    
-    const sortColumn = sortColumnMap[sortBy] || sql`CASE WHEN "market_cap" IS NULL OR "market_cap" = '' THEN 0 ELSE CAST("market_cap" AS BIGINT) END`;
+      if (error) {
+        console.error('Error fetching Nasdaq 100 companies:', error);
+        return [];
+      }
 
-    let whereClause = sql``;
-    if (search && search.trim()) {
-        const searchTerm = `%${search.trim()}%`;
-        whereClause = sql`WHERE "name" ILIKE ${searchTerm} OR "symbol" ILIKE ${searchTerm}`;
+      return data || [];
+    } catch (error) {
+      console.error('Error in getNasdaq100Companies:', error);
+      return [];
     }
-
-    const query = sql`
-        SELECT * FROM nasdaq100_companies
-        ${whereClause}
-        ORDER BY ${sortColumn} ${direction}
-        LIMIT ${limit}
-        OFFSET ${offset}
-    `;
-
-    const result = await db.execute(query);
-    return result.rows.map(this.mapDbRowToCompany as (row: any) => Nasdaq100Company);
   }
 
   async getNasdaq100CompanyCount(search?: string): Promise<number> {
@@ -354,25 +319,23 @@ export class DatabaseStorage implements IStorage {
     sortOrder: 'asc' | 'desc' = 'desc',
     search?: string
   ): Promise<any[]> {
-    const direction = sortOrder === 'asc' ? sql`ASC NULLS FIRST` : sql`DESC NULLS LAST`;
-    const sortColumn = this.buildOrderByClause(sortBy);
+    try {
+      const { data, error } = await supabase
+        .from('sp500_companies')
+        .select('*')
+        .limit(limit)
+        .range(offset, offset + limit - 1);
 
-    let whereClause = sql``;
-    if (search && search.trim()) {
-        const searchTerm = `%${search.trim()}%`;
-        whereClause = sql`WHERE "name" ILIKE ${searchTerm} OR "symbol" ILIKE ${searchTerm}`;
+      if (error) {
+        console.error('Error fetching S&P 500 companies:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in getSp500Companies:', error);
+      return [];
     }
-
-    const query = sql`
-        SELECT * FROM sp500_companies
-        ${whereClause}
-        ORDER BY ${sortColumn} ${direction}
-        LIMIT ${limit}
-        OFFSET ${offset}
-    `;
-
-    const result = await db.execute(query);
-    return result.rows.map(this.mapDbRowToCompany as (row: any) => any);
   }
 
   async getSp500CompanyCount(search?: string): Promise<number> {
@@ -395,25 +358,23 @@ export class DatabaseStorage implements IStorage {
     sortOrder: 'asc' | 'desc' = 'desc',
     search?: string
   ): Promise<DowJonesCompany[]> {
-    const direction = sortOrder === 'asc' ? sql`ASC NULLS FIRST` : sql`DESC NULLS LAST`;
-    const sortColumn = this.buildOrderByClause(sortBy);
+    try {
+      const { data, error } = await supabase
+        .from('dow_jones_companies')
+        .select('*')
+        .limit(limit)
+        .range(offset, offset + limit - 1);
 
-    let whereClause = sql``;
-    if (search && search.trim()) {
-        const searchTerm = `%${search.trim()}%`;
-        whereClause = sql`WHERE "name" ILIKE ${searchTerm} OR "symbol" ILIKE ${searchTerm}`;
+      if (error) {
+        console.error('Error fetching Dow Jones companies:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in getDowJonesCompanies:', error);
+      return [];
     }
-
-    const query = sql`
-        SELECT * FROM dow_jones_companies
-        ${whereClause}
-        ORDER BY ${sortColumn} ${direction}
-        LIMIT ${limit}
-        OFFSET ${offset}
-    `;
-
-    const result = await db.execute(query);
-    return result.rows.map(this.mapDbRowToCompany as (row: any) => DowJonesCompany);
   }
 
   async getDowJonesCompanyCount(search?: string): Promise<number> {
