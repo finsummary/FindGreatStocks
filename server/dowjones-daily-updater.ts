@@ -1,4 +1,4 @@
-import { db } from './db';
+import { db, supabase } from './db';
 import { dowJonesCompanies } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { batcher } from './utils/batcher';
@@ -11,8 +11,16 @@ async function updateDowJonesPrices() {
   let failedCount = 0;
 
   try {
-    const companiesToUpdate = await db.select({ symbol: dowJonesCompanies.symbol }).from(dowJonesCompanies);
-    const symbols = companiesToUpdate.map(c => c.symbol);
+    const { data: companiesToUpdate, error } = await supabase
+      .from('dow_jones_companies')
+      .select('symbol');
+    
+    if (error) {
+      console.error('Error fetching Dow Jones companies:', error);
+      return { updated: 0, failed: 0 };
+    }
+    
+    const symbols = (companiesToUpdate || []).map(c => c.symbol);
 
     console.log(`Found ${symbols.length} companies in Dow Jones to update.`);
 

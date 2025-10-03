@@ -4,7 +4,7 @@
  * after market close using Financial Modeling Prep API
  */
 
-import { db } from "./db";
+import { db, supabase } from "./db";
 import { nasdaq100Companies } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { batcher } from "./utils/batcher";
@@ -129,13 +129,21 @@ export async function updateNasdaq100Prices() {
   
   try {
     // Get all Nasdaq 100 companies
-    const companies = await db.select().from(nasdaq100Companies);
-    console.log(`Found ${companies.length} Nasdaq 100 companies to update`);
+    const { data: companies, error } = await supabase
+      .from('nasdaq100_companies')
+      .select('symbol');
+    
+    if (error) {
+      console.error('Error fetching Nasdaq 100 companies:', error);
+      return { success: false, error: error.message, updated: 0, failed: 0 };
+    }
+    
+    console.log(`Found ${(companies || []).length} Nasdaq 100 companies to update`);
     
     let updated = 0;
     let failed = 0;
     
-    for (const company of companies) {
+    for (const company of (companies || [])) {
       try {
         await updateCompanyPrice(company.symbol);
         updated++;
@@ -145,7 +153,7 @@ export async function updateNasdaq100Prices() {
       }
       
       // Rate limiting - wait 100ms between requests
-      if (updated + failed < companies.length) {
+      if (updated + failed < (companies || []).length) {
         await delay(100);
       }
     }

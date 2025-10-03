@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db, supabase } from "./db";
 import * as schema from "../shared/schema";
 import { eq } from "drizzle-orm";
 import { batcher } from "./utils/batcher";
@@ -16,8 +16,16 @@ export async function updateSp500Prices() {
     const financialDataService = new FinancialDataService();
 
     try {
-        const companies = await db.select({ symbol: schema.sp500Companies.symbol }).from(schema.sp500Companies);
-        const symbols = companies.map(c => c.symbol).filter((s): s is string => s !== null);
+        const { data: companies, error } = await supabase
+          .from('sp500_companies')
+          .select('symbol');
+        
+        if (error) {
+          console.error('Error fetching S&P 500 companies:', error);
+          return;
+        }
+        
+        const symbols = (companies || []).map(c => c.symbol).filter((s): s is string => s !== null);
 
         if (symbols.length === 0) {
             console.log("No S&P 500 companies found in the database. Skipping update.");
