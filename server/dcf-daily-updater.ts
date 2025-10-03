@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { db } from "./db";
+import { db, supabase } from "./db";
 import * as schema from "../shared/schema";
 import { PgTable } from "drizzle-orm/pg-core";
 
@@ -22,16 +22,30 @@ export async function updateDcfMetricsForCompany(table: PgTable<any>, symbol: st
         return;
     }
 
-    const company = await db.select().from(table).where(eq(table.symbol, symbol)).limit(1);
+    // Determine table name based on the table parameter
+    let tableName = 'companies';
+    if (table === schema.sp500Companies) tableName = 'sp500_companies';
+    else if (table === schema.nasdaq100Companies) tableName = 'nasdaq100_companies';
+    else if (table === schema.dowJonesCompanies) tableName = 'dow_jones_companies';
 
-    if (!company || company.length === 0 || !company[0].latestFcf || company[0].latestFcf <= 0 || company[0].revenueGrowth10Y === null) {
-        console.log(`[${symbol}] Missing required data (FCF, 10Y Revenue Growth) for DCF calculation. Skipping.`);
+    const { data: company, error } = await supabase
+        .from(tableName)
+        .select('latest_fcf, revenue_growth_10y')
+        .eq('symbol', symbol)
+        .limit(1);
+
+    if (error || !company || company.length === 0) {
+        console.log(`[${symbol}] Error fetching company data: ${error?.message || 'No data found'}. Skipping DCF update.`);
         return;
     }
 
     const companyData = company[0];
-    const latestFcf = Number(companyData.latestFcf);
-    const revenueGrowth10Y = Number(companyData.revenueGrowth10Y);
+    if (!companyData.latest_fcf || companyData.latest_fcf <= 0 || companyData.revenue_growth_10y === null) {
+        console.log(`[${symbol}] Missing required data (FCF, 10Y Revenue Growth) for DCF calculation. Skipping.`);
+        return;
+    }
+    const latestFcf = Number(companyData.latest_fcf);
+    const revenueGrowth10Y = Number(companyData.revenue_growth_10y);
 
     // Use 10-year revenue growth as a proxy for FCF growth, capped at a reasonable range.
     const baseGrowth = revenueGrowth10Y / 100;
@@ -48,8 +62,16 @@ export async function updateDcfMetricsForCompany(table: PgTable<any>, symbol: st
     };
 
     try {
-        await db.update(table).set(updates).where(eq(table.symbol, symbol));
-        console.log(`[${symbol}] ✅ Successfully updated DCF metrics. MoS: ${updates.marginOfSafety}`);
+        const { error: updateError } = await supabase
+            .from(tableName)
+            .update(updates)
+            .eq('symbol', symbol);
+        
+        if (updateError) {
+            console.error(`[${symbol}] ❌ Failed to update DCF metrics in DB:`, updateError);
+        } else {
+            console.log(`[${symbol}] ✅ Successfully updated DCF metrics. MoS: ${updates.marginOfSafety}`);
+        }
     } catch (error) {
         console.error(`[${symbol}] ❌ Failed to update DCF metrics in DB:`, error);
     }
