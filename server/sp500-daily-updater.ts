@@ -76,8 +76,8 @@ export async function updateSp500Prices() {
                                 console.log(`[${quote.symbol}] 💾 Price & MCap updated to ${quote.price} / ${quote.marketCap}`);
                                 updatedCount++;
 
-                                // Now, trigger the DCF metrics update
-                                await updateDcfMetricsForCompany(schema.sp500Companies, quote.symbol, quote.marketCap);
+                                // DCF metrics update temporarily disabled
+                                // await updateDcfMetricsForCompany(schema.sp500Companies, quote.symbol, quote.marketCap);
 
                             } catch (error) {
                                 failedCount++;
