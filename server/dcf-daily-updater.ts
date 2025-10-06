@@ -56,9 +56,9 @@ export async function updateDcfMetricsForCompany(table: PgTable<any>, symbol: st
     const impliedGrowth = calculateReverseDcfGrowth(marketCap, latestFcf);
 
     const updates: any = {
-        dcfEnterpriseValue: enterpriseValue !== null ? String(enterpriseValue.toFixed(0)) : null,
-        marginOfSafety: marginOfSafety !== null ? marginOfSafety.toFixed(4) : null,
-        dcfImpliedGrowth: impliedGrowth !== null ? impliedGrowth.toFixed(4) : null,
+        dcf_enterprise_value: enterpriseValue !== null ? String(enterpriseValue.toFixed(0)) : null,
+        margin_of_safety: marginOfSafety !== null ? marginOfSafety.toFixed(4) : null,
+        dcf_implied_growth: impliedGrowth !== null ? impliedGrowth.toFixed(4) : null,
     };
 
     try {

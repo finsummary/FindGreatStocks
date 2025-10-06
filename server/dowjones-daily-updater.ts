@@ -78,8 +78,8 @@ async function updateDowJonesPrices() {
                         console.log(`[${quote.symbol}] 💾 Price & MCap updated to ${quote.price} / ${quote.marketCap}`);
                         updatedCount++;
 
-                        // DCF metrics update temporarily disabled
-                        // await updateDcfMetricsForCompany(dowJonesCompanies, quote.symbol, quote.marketCap);
+                        // Now, trigger the DCF metrics update
+                        await updateDcfMetricsForCompany(dowJonesCompanies, quote.symbol, quote.marketCap);
 
                     } catch (error) {
                         failedCount++;

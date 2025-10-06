@@ -108,15 +108,15 @@ async function updateCompanyPrice(symbol: string) {
     
     console.log(`✅ Updated ${symbol}: $${quoteData.price} (${quoteData.changesPercentage > 0 ? '+' : ''}${quoteData.changesPercentage.toFixed(2)}%)`);
 
-    // DCF metrics update temporarily disabled
-    // if (quoteData.marketCap) {
-    //   try {
-    //     const { updateDcfMetricsForCompany } = await import('./dcf-daily-updater');
-    //     await updateDcfMetricsForCompany(nasdaq100Companies as any, symbol, quoteData.marketCap);
-    //   } catch (e) {
-    //     console.warn(`[${symbol}] DCF update skipped:`, e);
-    //   }
-    // }
+    // Trigger DCF recomputation when we have fresh market cap
+    if (quoteData.marketCap) {
+      try {
+        const { updateDcfMetricsForCompany } = await import('./dcf-daily-updater');
+        await updateDcfMetricsForCompany(nasdaq100Companies as any, symbol, quoteData.marketCap);
+      } catch (e) {
+        console.warn(`[${symbol}] DCF update skipped:`, e);
+      }
+    }
 
   } catch (error) {
     console.error(`❌ Error updating ${symbol}:`, error);
