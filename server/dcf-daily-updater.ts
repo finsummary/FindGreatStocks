@@ -70,7 +70,7 @@ export async function updateDcfMetricsForCompany(table: PgTable<any>, symbol: st
         if (updateError) {
             console.error(`[${symbol}] ❌ Failed to update DCF metrics in DB:`, updateError);
         } else {
-            console.log(`[${symbol}] ✅ Successfully updated DCF metrics. MoS: ${updates.marginOfSafety}`);
+            console.log(`[${symbol}] ✅ Successfully updated DCF metrics. MoS: ${updates.margin_of_safety || 'N/A'}`);
         }
     } catch (error) {
         console.error(`[${symbol}] ❌ Failed to update DCF metrics in DB:`, error);
