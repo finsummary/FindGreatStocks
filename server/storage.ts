@@ -292,15 +292,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getNasdaq100CompanyCount(search?: string): Promise<number> {
-    let whereClause = sql``;
-    if (search && search.trim()) {
-        const searchTerm = `%${search.trim()}%`;
-        whereClause = sql`WHERE "name" ILIKE ${searchTerm} OR "symbol" ILIKE ${searchTerm}`;
-    }
+    try {
+      let query = supabase
+        .from('nasdaq100_companies')
+        .select('*', { count: 'exact', head: true });
 
-    const query = sql`SELECT count(*) FROM nasdaq100_companies ${whereClause}`;
-    const result = await db.execute(query);
-    return Number(result.rows[0]?.count || 0);
+      if (search && search.trim()) {
+        query = query.or(`name.ilike.%${search.trim()}%,symbol.ilike.%${search.trim()}%`);
+      }
+
+      const { count, error } = await query;
+
+      if (error) {
+        console.error('Error fetching Nasdaq 100 company count:', error);
+        return 0;
+      }
+
+      return count || 0;
+    } catch (error) {
+      console.error('Error in getNasdaq100CompanyCount:', error);
+      return 0;
+    }
   }
 
   async getNasdaq100CompanyBySymbol(symbol: string): Promise<Nasdaq100Company | undefined> {
@@ -339,15 +351,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSp500CompanyCount(search?: string): Promise<number> {
-    let whereClause = sql``;
-    if (search && search.trim()) {
-        const searchTerm = `%${search.trim()}%`;
-        whereClause = sql`WHERE "name" ILIKE ${searchTerm} OR "symbol" ILIKE ${searchTerm}`;
-    }
+    try {
+      let query = supabase
+        .from('sp500_companies')
+        .select('*', { count: 'exact', head: true });
 
-    const query = sql`SELECT count(*) FROM sp500_companies ${whereClause}`;
-    const result = await db.execute(query);
-    return Number(result.rows[0]?.count || 0);
+      if (search && search.trim()) {
+        query = query.or(`name.ilike.%${search.trim()}%,symbol.ilike.%${search.trim()}%`);
+      }
+
+      const { count, error } = await query;
+
+      if (error) {
+        console.error('Error fetching S&P 500 company count:', error);
+        return 0;
+      }
+
+      return count || 0;
+    } catch (error) {
+      console.error('Error in getSp500CompanyCount:', error);
+      return 0;
+    }
   }
 
   // Dow Jones methods
@@ -378,15 +402,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getDowJonesCompanyCount(search?: string): Promise<number> {
-    let whereClause = sql``;
-    if (search && search.trim()) {
-        const searchTerm = `%${search.trim()}%`;
-        whereClause = sql`WHERE "name" ILIKE ${searchTerm} OR "symbol" ILIKE ${searchTerm}`;
-    }
+    try {
+      let query = supabase
+        .from('dow_jones_companies')
+        .select('*', { count: 'exact', head: true });
 
-    const query = sql`SELECT count(*) FROM dow_jones_companies ${whereClause}`;
-    const result = await db.execute(query);
-    return Number(result.rows[0]?.count || 0);
+      if (search && search.trim()) {
+        query = query.or(`name.ilike.%${search.trim()}%,symbol.ilike.%${search.trim()}%`);
+      }
+
+      const { count, error } = await query;
+
+      if (error) {
+        console.error('Error fetching Dow Jones company count:', error);
+        return 0;
+      }
+
+      return count || 0;
+    } catch (error) {
+      console.error('Error in getDowJonesCompanyCount:', error);
+      return 0;
+    }
   }
 
   async getDowJonesCompanyBySymbol(symbol: string): Promise<DowJonesCompany | undefined> {
