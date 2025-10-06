@@ -21,7 +21,11 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const app: Express = express();
 app.use(cors({
-  origin: process.env.CLIENT_URL,
+  origin: [
+    process.env.CLIENT_URL,
+    'https://find-great-stocks-datr.vercel.app',
+    'http://localhost:5173'
+  ].filter(Boolean),
   credentials: true,
 }));
 

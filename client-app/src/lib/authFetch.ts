@@ -18,7 +18,8 @@ export async function authFetch(url: string, options: RequestInit = {}, token?: 
   const headers = new Headers(options.headers || {});
   headers.append('Authorization', `Bearer ${sessionToken}`);
 
-  const response = await fetch(url, { ...options, headers });
+  const fullUrl = url.startsWith('http') ? url : `https://findgreatstocks-production.up.railway.app${url}`;
+  const response = await fetch(fullUrl, { ...options, headers });
 
   if (response.ok) {
     const contentType = response.headers.get('content-type');
