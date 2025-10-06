@@ -64,6 +64,15 @@ export function setupStripeWebhook(app: Express) {
 export function setupRoutes(app: Express, supabase: SupabaseClient) {
   const isAuthenticated = createIsAuthenticatedMiddleware(supabase);
 
+  // Health check endpoint
+  app.get('/api/health', (req, res) => {
+    res.json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      service: 'FindGreatStocks API'
+    });
+  });
+
   app.get('/api/auth/me', isAuthenticated, async (req: any, res) => {
     try {
       const supabaseUser = req.user;
