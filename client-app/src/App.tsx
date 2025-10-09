@@ -33,11 +33,11 @@ function App() {
       <header className="px-4 lg:px-6 h-14 flex items-center">
         <Link className="flex items-center justify-center" to="/">
           <img 
-            src="/logo.svg" 
+            src="/favicon.svg" 
             alt="FindGreatStocks Logo" 
             className="h-8 w-8"
           />
-          <span className="sr-only">FindGreatStocks.com</span>
+          <span className="ml-2 text-lg font-semibold">FindGreatStocks.com</span>
         </Link>
         <nav className="ml-auto flex items-center gap-4 sm:gap-6">
           <Button asChild variant="ghost">
