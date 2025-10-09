@@ -30,14 +30,14 @@ function App() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="px-4 lg:px-6 h-14 flex items-center shadow-sm">
+      <header className="px-4 lg:px-6 h-14 flex items-center">
         <Link className="flex items-center justify-center" to="/">
           <img 
-            src="/src/assets/logo.svg" 
+            src="/logo.svg" 
             alt="FindGreatStocks Logo" 
             className="h-8 w-8"
           />
-          <span className="ml-2 text-lg font-semibold">FindGreatStocks.com</span>
+          <span className="sr-only">FindGreatStocks.com</span>
         </Link>
         <nav className="ml-auto flex items-center gap-4 sm:gap-6">
           <Button asChild variant="ghost">
