@@ -81,17 +81,35 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
-      // Fetch DB user to get subscriptionTier and other app-specific fields
-      const dbUsers = await db.select().from(users).where(eq(users.id, userId));
-      const dbUser = dbUsers[0];
+      // Fetch user from Supabase DB directly (avoid Drizzle dependency in prod)
+      const { data: dbUser, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116: no rows
+        console.error('Supabase error reading users:', error);
+        return res.status(500).json({ message: 'Failed to fetch user profile' });
+      }
 
       if (!dbUser) {
-        // If not present yet, create a basic record with free tier
-        await db.insert(users).values({ id: userId, email: supabaseUser?.email || null }).onConflictDoNothing();
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert({ id: userId, email: supabaseUser?.email || null, subscription_tier: 'free', updated_at: new Date().toISOString() });
+        if (insertError) {
+          console.error('Supabase error inserting user:', insertError);
+          return res.status(500).json({ message: 'Failed to create user profile' });
+        }
         return res.json({ id: userId, email: supabaseUser?.email || null, subscriptionTier: 'free' });
       }
 
-      return res.json(dbUser);
+      // Map snake_case → camelCase for frontend
+      return res.json({
+        ...dbUser,
+        subscriptionTier: dbUser.subscription_tier || 'free',
+        updatedAt: dbUser.updated_at,
+      });
     } catch (error) {
       console.error('Error in /api/auth/me:', error);
       return res.status(500).json({ message: 'Failed to fetch user profile' });
@@ -905,8 +923,17 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
       if (!userId) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
-      const watchlistItems = await storage.getWatchlist(userId);
-      res.json(watchlistItems);
+      const { data, error } = await supabase
+        .from('watchlist')
+        .select('*')
+        .eq('user_id', userId);
+      if (error) {
+        console.error('Supabase error fetching watchlist:', error);
+        return res.status(500).json({ message: 'Failed to fetch watchlist' });
+      }
+      // Normalize keys for frontend
+      const normalized = (data || []).map(i => ({ id: i.id, companySymbol: i.company_symbol, userId: i.user_id }));
+      res.json(normalized);
     } catch (error) {
       console.error("Error fetching watchlist:", error);
       res.status(500).json({ message: "Failed to fetch watchlist" });
@@ -945,10 +972,17 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
         return res.status(400).json({ message: "Company symbol is required" });
       }
 
-      console.log(`[/api/watchlist POST] Calling storage.addToWatchlist for user ${userId}`);
-      const watchlistItem = await storage.addToWatchlist(companySymbol, userId);
-      console.log(`[/api/watchlist POST] Successfully added to watchlist. Item ID: ${watchlistItem?.id}`);
-      res.json(watchlistItem);
+      const { data, error } = await supabase
+        .from('watchlist')
+        .insert({ user_id: userId, company_symbol: companySymbol })
+        .select('*')
+        .single();
+      if (error) {
+        // Ignore unique violation by returning existing shape
+        console.warn('Supabase insert watchlist error (may be duplicate):', error);
+      }
+      const response = data ? { id: data.id, userId: data.user_id, companySymbol: data.company_symbol } : { userId, companySymbol };
+      res.json(response);
     } catch (error) {
       console.error("!!! FATAL ERROR in [/api/watchlist POST]:", error);
       res.status(500).json({ message: "Failed to add to watchlist" });
@@ -961,7 +995,14 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
       const userId = req.user?.id || req.user?.claims?.sub;
       if (!userId) return res.status(401).json({ message: 'Unauthorized' });
       
-      await storage.removeFromWatchlist(symbol, userId);
+      const { error } = await supabase
+        .from('watchlist')
+        .delete()
+        .match({ user_id: userId, company_symbol: symbol });
+      if (error) {
+        console.error('Supabase error deleting watchlist item:', error);
+        return res.status(500).json({ message: 'Failed to remove from watchlist' });
+      }
       res.json({ message: "Removed from watchlist" });
     } catch (error) {
       console.error("Error removing from watchlist:", error);
