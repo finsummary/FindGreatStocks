@@ -243,29 +243,57 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
       const offset = parseInt(req.query.offset as string) || 0;
-      const sortBy = (req.query.sortBy as string) || 'rank';
-      const sortOrder = (req.query.sortOrder as 'asc' | 'desc') || 'asc';
-      const search = req.query.search as string;
-      const country = req.query.country as string;
+      const sortBy = (req.query.sortBy as string) || 'marketCap';
+      const sortOrder = (req.query.sortOrder as 'asc' | 'desc') || 'desc';
+      const search = (req.query.search as string) || '';
 
-      const companies = await storage.getCompanies(limit, offset, sortBy, sortOrder, search, country);
-      
-      const totalCount = await storage.getCompanyCount(search, country);
+      // map camelCase -> snake_case columns in Supabase table
+      const sortMap: Record<string, string> = {
+        rank: 'rank',
+        name: 'name',
+        marketCap: 'market_cap',
+        price: 'price',
+        revenue: 'revenue',
+        netIncome: 'net_income',
+        peRatio: 'pe_ratio',
+        dividendYield: 'dividend_yield',
+        freeCashFlow: 'free_cash_flow',
+        revenueGrowth10Y: 'revenue_growth_10y',
+        return3Year: 'return_3_year',
+        return5Year: 'return_5_year',
+        return10Year: 'return_10_year',
+        maxDrawdown3Year: 'max_drawdown_3_year',
+        maxDrawdown5Year: 'max_drawdown_5_year',
+        maxDrawdown10Year: 'max_drawdown_10_year',
+      };
+      const orderCol = sortMap[sortBy] || 'market_cap';
+
+      let query = supabase
+        .from('companies')
+        .select('*', { count: 'exact' })
+        .order(orderCol, { ascending: sortOrder === 'asc', nullsFirst: false })
+        .range(offset, offset + limit - 1);
+
+      if (search && search.trim()) {
+        query = query.or(`name.ilike.%${search.trim()}%,symbol.ilike.%${search.trim()}%`);
+      }
+
+      const { data, count, error } = await query;
+      if (error) {
+        console.error('Supabase error in /api/companies:', error);
+        return res.status(500).json({ message: 'Failed to fetch companies' });
+      }
 
       res.json({
-        companies: companies,
-        total: totalCount,
+        companies: data || [],
+        total: count || 0,
         limit,
         offset,
-        hasMore: offset + limit < totalCount
+        hasMore: (offset + limit) < (count || 0),
       });
     } catch (error) {
-      console.error("========================================");
-      console.error("FATAL: Error in /api/companies endpoint!");
-      console.error("Timestamp:", new Date().toISOString());
-      console.error(error);
-      console.error("========================================");
-      res.status(500).json({ message: "Failed to fetch companies" });
+      console.error('Error in /api/companies:', error);
+      res.status(500).json({ message: 'Failed to fetch companies' });
     }
   });
 
