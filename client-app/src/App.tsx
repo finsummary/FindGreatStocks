@@ -33,7 +33,7 @@ function App() {
       <header className="px-4 lg:px-6 h-14 flex items-center">
         <Link className="flex items-center justify-center" to="/">
           <img 
-            src="/logo-192.png" 
+            src="/logo.svg" 
             alt="FindGreatStocks Logo" 
             className="h-8 w-8"
           />
