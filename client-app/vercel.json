@@ -9,10 +9,8 @@
     },
     {
       "source": "/(.*)",
-      "has": [
-        { "type": "header", "key": "accept", "value": "text/html" }
-      ],
-      "destination": "/index.html"
+      "destination": "/index.html",
+      "missing": [ { "type": "file" } ]
     }
   ]
 }
