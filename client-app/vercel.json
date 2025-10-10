@@ -13,11 +13,3 @@
     }
   ]
 }
-{
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "https://findgreatstocks-production.up.railway.app/api/$1"
-    }
-  ]
-}
