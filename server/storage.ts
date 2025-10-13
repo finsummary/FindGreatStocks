@@ -248,10 +248,49 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateCompany(symbol: string, updates: Partial<Company>): Promise<void> {
-    await db
-      .update(companies)
-      .set(updates)
-      .where(eq(companies.symbol, symbol));
+    // Map camelCase keys to snake_case columns used in Supabase
+    const map: Record<string, string> = {
+      marketCap: 'market_cap',
+      dailyChange: 'daily_change',
+      dailyChangePercent: 'daily_change_percent',
+      countryCode: 'country_code',
+      logoUrl: 'logo_url',
+      peRatio: 'pe_ratio',
+      priceToSalesRatio: 'price_to_sales_ratio',
+      netProfitMargin: 'net_profit_margin',
+      revenueGrowth3Y: 'revenue_growth_3y',
+      revenueGrowth5Y: 'revenue_growth_5y',
+      revenueGrowth10Y: 'revenue_growth_10y',
+      return3Year: 'return_3_year',
+      return5Year: 'return_5_year',
+      return10Year: 'return_10_year',
+      maxDrawdown10Year: 'max_drawdown_10_year',
+      maxDrawdown5Year: 'max_drawdown_5_year',
+      maxDrawdown3Year: 'max_drawdown_3_year',
+      arMddRatio10Year: 'ar_mdd_ratio_10_year',
+      arMddRatio5Year: 'ar_mdd_ratio_5_year',
+      arMddRatio3Year: 'ar_mdd_ratio_3_year',
+      freeCashFlow: 'free_cash_flow',
+      returnDrawdownRatio10Year: 'return_drawdown_ratio_10_year',
+      dcfEnterpriseValue: 'dcf_enterprise_value',
+      marginOfSafety: 'margin_of_safety',
+      dcfImpliedGrowth: 'dcf_implied_growth',
+      totalAssets: 'total_assets',
+      totalEquity: 'total_equity',
+    };
+    const payload: Record<string, any> = {};
+    for (const [k, v] of Object.entries(updates)) {
+      const target = map[k] || k;
+      payload[target] = v;
+    }
+    const { error } = await supabase
+      .from('companies')
+      .update(payload)
+      .eq('symbol', symbol);
+    if (error) {
+      console.error('Supabase updateCompany error:', error);
+      throw error;
+    }
   }
 
   async clearAllCompanies(): Promise<void> {
