@@ -64,6 +64,66 @@ export function setupStripeWebhook(app: Express) {
 export function setupRoutes(app: Express, supabase: SupabaseClient) {
   const isAuthenticated = createIsAuthenticatedMiddleware(supabase);
 
+  const mapDbRowToCompany = (row: any) => ({
+    id: row.id,
+    name: row.name,
+    symbol: row.symbol,
+    marketCap: row.market_cap,
+    price: row.price,
+    dailyChange: row.daily_change,
+    dailyChangePercent: row.daily_change_percent,
+    country: row.country,
+    countryCode: row.country_code,
+    rank: row.rank,
+    logoUrl: row.logo_url,
+    industry: row.industry,
+    sector: row.sector,
+    website: row.website,
+    description: row.description,
+    ceo: row.ceo,
+    employees: row.employees,
+    peRatio: row.pe_ratio,
+    eps: row.eps,
+    beta: row.beta,
+    dividendYield: row.dividend_yield,
+    priceToSalesRatio: row.price_to_sales_ratio,
+    netProfitMargin: row.net_profit_margin,
+    revenueGrowth3Y: row.revenue_growth_3y,
+    revenueGrowth5Y: row.revenue_growth_5y,
+    revenueGrowth10Y: row.revenue_growth_10y,
+    volume: row.volume,
+    avgVolume: row.avg_volume,
+    dayLow: row.day_low,
+    dayHigh: row.day_high,
+    yearLow: row.year_low,
+    yearHigh: row.year_high,
+    revenue: row.revenue,
+    grossProfit: row.gross_profit,
+    operatingIncome: row.operating_income,
+    netIncome: row.net_income,
+    totalAssets: row.total_assets,
+    totalDebt: row.total_debt,
+    cashAndEquivalents: row.cash_and_equivalents,
+    return3Year: row.return_3_year,
+    return5Year: row.return_5_year,
+    return10Year: row.return_10_year,
+    maxDrawdown10Year: row.max_drawdown_10_year,
+    maxDrawdown5Year: row.max_drawdown_5_year,
+    maxDrawdown3Year: row.max_drawdown_3_year,
+    arMddRatio10Year: row.ar_mdd_ratio_10_year,
+    arMddRatio5Year: row.ar_mdd_ratio_5_year,
+    arMddRatio3Year: row.ar_mdd_ratio_3_year,
+    freeCashFlow: row.free_cash_flow,
+    returnDrawdownRatio10Year: row.return_drawdown_ratio_10_year,
+    dcfEnterpriseValue: row.dcf_enterprise_value,
+    marginOfSafety: row.margin_of_safety,
+    dcfImpliedGrowth: row.dcf_implied_growth,
+    totalEquity: row.total_equity,
+    roe: row.roe,
+    assetTurnover: row.asset_turnover,
+    financialLeverage: row.financial_leverage,
+  });
+
   // Health check endpoint
   app.get('/api/health', (req, res) => {
     res.json({ 
@@ -151,7 +211,7 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
       const totalCount = await storage.getNasdaq100CompanyCount(search);
       
       res.json({
-        companies,
+        companies: (companies || []).map(mapDbRowToCompany),
         total: totalCount,
         limit,
         offset,
@@ -182,7 +242,7 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
       const totalCount = await storage.getSp500CompanyCount(search);
       
       res.json({
-        companies,
+        companies: (companies || []).map(mapDbRowToCompany),
         total: totalCount,
         limit,
         offset,
@@ -213,7 +273,7 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
       const totalCount = await storage.getDowJonesCompanyCount(search);
       
       res.json({
-        companies,
+        companies: (companies || []).map(mapDbRowToCompany),
         total: totalCount,
         limit,
         offset,
