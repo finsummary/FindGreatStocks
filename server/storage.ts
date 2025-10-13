@@ -29,7 +29,7 @@ export interface IStorage {
   getDowJonesCompanies(limit?: number, offset?: number, sortBy?: string, sortOrder?: 'asc' | 'desc', search?: string): Promise<DowJonesCompany[]>;
   getDowJonesCompanyCount(search?: string): Promise<number>;
   getDowJonesCompanyBySymbol(symbol: string): Promise<DowJonesCompany | undefined>;
-
+  
   // FTSE 100 methods
   getFtse100Companies(limit?: number, offset?: number, sortBy?: string, sortOrder?: 'asc' | 'desc', search?: string): Promise<Ftse100Company[]>;
   getFtse100CompanyCount(search?: string): Promise<number>;
@@ -113,7 +113,7 @@ export class DatabaseStorage implements IStorage {
 
     let whereClause = sql``;
     if (search && search.trim()) {
-        const searchTerm = `%${search.trim()}%`;
+      const searchTerm = `%${search.trim()}%`;
         whereClause = sql`WHERE "name" ILIKE ${searchTerm} OR "symbol" ILIKE ${searchTerm}`;
     }
 
@@ -198,7 +198,7 @@ export class DatabaseStorage implements IStorage {
   async getCompanyCount(search?: string): Promise<number> {
     let whereClause = sql``;
     if (search && search.trim()) {
-        const searchTerm = `%${search.trim()}%`;
+      const searchTerm = `%${search.trim()}%`;
         whereClause = sql`WHERE "name" ILIKE ${searchTerm} OR "symbol" ILIKE ${searchTerm}`;
     }
 
@@ -209,32 +209,26 @@ export class DatabaseStorage implements IStorage {
 
   async getCompaniesForEnhancement(): Promise<Pick<Company, 'symbol' | 'return3Year' | 'return5Year' | 'return10Year' | 'maxDrawdown3Year' | 'maxDrawdown5Year' | 'maxDrawdown10Year'>[]> {
         try {
-            const result = await db.execute(sql`
-                SELECT 
-                    symbol, 
-                    "return_3_year", 
-                    "return_5_year", 
-                    "return_10_year",
-                    "max_drawdown_3_year",
-                    "max_drawdown_5_year",
-                    "max_drawdown_10_year"
-                FROM companies
-            `);
-            // Manually map to the expected camelCase properties
-            return result.rows.map((row: any) => ({
-                symbol: row.symbol,
-                return3Year: row.return_3_year,
-                return5Year: row.return_5_year,
-                return10Year: row.return_10_year,
-                maxDrawdown3Year: row.max_drawdown_3_year,
-                maxDrawdown5Year: row.max_drawdown_5_year,
-                maxDrawdown10Year: row.max_drawdown_10_year,
+            const { data, error } = await supabase
+              .from('companies')
+              .select('symbol, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year');
+            if (error) {
+              throw error;
+            }
+            return (data || []).map((row: any) => ({
+              symbol: row.symbol,
+              return3Year: row.return_3_year,
+              return5Year: row.return_5_year,
+              return10Year: row.return_10_year,
+              maxDrawdown3Year: row.max_drawdown_3_year,
+              maxDrawdown5Year: row.max_drawdown_5_year,
+              maxDrawdown10Year: row.max_drawdown_10_year,
             }));
         } catch (error) {
             console.error("Error fetching companies for enhancement:", error);
             throw error;
         }
-    }
+  }
 
   async getCompanyBySymbol(symbol: string): Promise<Company | undefined> {
     const query = sql`SELECT * FROM companies WHERE symbol = ${symbol}`;
@@ -477,7 +471,7 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(watchlist.companySymbol, companySymbol), eq(watchlist.userId, userId)));
     return result.length > 0;
   }
- 
+
   async getWatchlistCompanies(userId: string): Promise<Company[]> {
     // First, get all the symbols from the user's watchlist
     const watchlistItems = await this.getWatchlist(userId);
