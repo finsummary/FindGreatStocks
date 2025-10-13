@@ -345,7 +345,7 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
       }
 
       res.json({
-        companies: data || [],
+        companies: (data || []).map(mapDbRowToCompany),
         total: count || 0,
         limit,
         offset,
