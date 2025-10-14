@@ -163,6 +163,43 @@ export function setupRoutes(app, supabase) {
   app.get('/api/nasdaq100', listCompanies);
   app.get('/api/dowjones', listCompanies);
 
+  // Enhancement endpoints (run TS modules via tsx loader at call time)
+  app.post('/api/companies/enhance-financial-data', async (_req, res) => {
+    try {
+      await import('tsx/esm');
+      const mod = await import('./financial-data-enhancer.ts');
+      await mod.financialDataEnhancer.enhanceAllCompaniesFinancialData();
+      return res.json({ status: 'ok' });
+    } catch (e) {
+      console.error('enhance-financial-data error:', e);
+      return res.status(500).json({ message: 'Failed to enhance financial data' });
+    }
+  });
+
+  app.post('/api/companies/enhance-returns', async (_req, res) => {
+    try {
+      await import('tsx/esm');
+      const mod = await import('./returns-enhancer.ts');
+      await mod.returnsEnhancer.enhanceAllCompaniesReturns();
+      return res.json({ status: 'ok' });
+    } catch (e) {
+      console.error('enhance-returns error:', e);
+      return res.status(500).json({ message: 'Failed to enhance returns' });
+    }
+  });
+
+  app.post('/api/companies/enhance-drawdown', async (_req, res) => {
+    try {
+      await import('tsx/esm');
+      const mod = await import('./drawdown-enhancer.ts');
+      await mod.drawdownEnhancer.enhanceAllCompaniesDrawdown();
+      return res.json({ status: 'ok' });
+    } catch (e) {
+      console.error('enhance-drawdown error:', e);
+      return res.status(500).json({ message: 'Failed to enhance drawdown' });
+    }
+  });
+
   // Watchlist endpoints
   app.get('/api/watchlist', isAuthenticated, async (req, res) => {
     try {
