@@ -605,29 +605,29 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
             case 'return3Year':
             case 'return5Year':
             case 'return10Year':
-              cellContent = row[colConfig.id] ? (
+              cellContent = (row[colConfig.id] !== null && row[colConfig.id] !== undefined) ? (
                 <Badge variant="outline" className={`font-mono ${parseFloat(row[colConfig.id] as string) >= 0 ? 'text-blue-600 border-blue-200 bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:bg-blue-950' : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'}`}>{formatPercentage(row[colConfig.id] as string, true)}</Badge>
               ) : <span className="text-muted-foreground">-</span>;
               break;
             case 'maxDrawdown3Year':
             case 'maxDrawdown5Year':
             case 'maxDrawdown10Year':
-              cellContent = row[colConfig.id] ? (
+              cellContent = (row[colConfig.id] !== null && row[colConfig.id] !== undefined) ? (
                 <Badge variant="outline" className="font-mono text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950">-{formatPercentage(row[colConfig.id] as string, false, 2)}</Badge>
               ) : <span className="text-muted-foreground">-</span>;
               break;
             case 'arMddRatio3Year':
             case 'arMddRatio5Year':
             case 'arMddRatio10Year':
-                cellContent = row[colConfig.id] ? (
+                cellContent = (row[colConfig.id] !== null && row[colConfig.id] !== undefined) ? (
                   <Badge variant="outline" className={`font-mono ${parseFloat(row[colConfig.id] as string) >= 0.5 ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950' : parseFloat(row[colConfig.id] as string) >= 0.2 ? 'text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950' : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'}`}>{formatNumber(row[colConfig.id] as string, 2)}</Badge>
                   ) : <span className="text-muted-foreground">-</span>;
                   break;
             case 'dcfEnterpriseValue':
-              cellContent = <div className="font-mono">{row.dcfEnterpriseValue ? formatMarketCap(row.dcfEnterpriseValue) : <span className="text-muted-foreground">-</span>}</div>;
+              cellContent = <div className="font-mono">{(row.dcfEnterpriseValue !== null && row.dcfEnterpriseValue !== undefined) ? formatMarketCap(row.dcfEnterpriseValue) : <span className="text-muted-foreground">-</span>}</div>;
               break;
             case 'marginOfSafety':
-              cellContent = row.marginOfSafety ? (
+              cellContent = (row.marginOfSafety !== null && row.marginOfSafety !== undefined) ? (
                 <Badge variant="outline" className={`font-mono ${
                   parseFloat(row.marginOfSafety as string) >= 0.25
                     ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950'
@@ -638,8 +638,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
               ) : <span className="text-muted-foreground">-</span>;
               break;
             case 'dcfImpliedGrowth':
-              const impliedGrowth = row.dcfImpliedGrowth ? parseFloat(row.dcfImpliedGrowth) : null;
-              const revenueGrowth10Y = row.revenueGrowth10Y ? parseFloat(row.revenueGrowth10Y) / 100 : null;
+              const impliedGrowth = (row.dcfImpliedGrowth !== null && row.dcfImpliedGrowth !== undefined) ? parseFloat(row.dcfImpliedGrowth as string) : null;
+              const revenueGrowth10Y = (row.revenueGrowth10Y !== null && row.revenueGrowth10Y !== undefined) ? parseFloat(row.revenueGrowth10Y as string) / 100 : null;
               let badgeClass = '';
               if (impliedGrowth !== null && revenueGrowth10Y !== null) {
                 if (impliedGrowth < revenueGrowth10Y) {
@@ -648,7 +648,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                   badgeClass = 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950';
                 }
               }
-              cellContent = row.dcfImpliedGrowth ? (
+              cellContent = (row.dcfImpliedGrowth !== null && row.dcfImpliedGrowth !== undefined) ? (
                 <Badge variant="outline" className={`font-mono ${badgeClass}`}>
                   {formatPercentageFromDecimal(row.dcfImpliedGrowth, false)}
                 </Badge>
