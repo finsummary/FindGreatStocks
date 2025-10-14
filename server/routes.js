@@ -167,9 +167,10 @@ export function setupRoutes(app, supabase) {
   app.post('/api/companies/enhance-financial-data', async (_req, res) => {
     try {
       await import('tsx/esm');
-      const mod = await import('./financial-data-enhancer.ts');
-      await mod.financialDataEnhancer.enhanceAllCompaniesFinancialData();
-      return res.json({ status: 'ok' });
+      import('./financial-data-enhancer.ts')
+        .then(mod => mod.financialDataEnhancer.enhanceAllCompaniesFinancialData())
+        .catch(e => console.error('enhance-financial-data async error:', e));
+      return res.json({ status: 'started' });
     } catch (e) {
       console.error('enhance-financial-data error:', e);
       return res.status(500).json({ message: 'Failed to enhance financial data' });
@@ -179,9 +180,10 @@ export function setupRoutes(app, supabase) {
   app.post('/api/companies/enhance-returns', async (_req, res) => {
     try {
       await import('tsx/esm');
-      const mod = await import('./returns-enhancer.ts');
-      await mod.returnsEnhancer.enhanceAllCompaniesReturns();
-      return res.json({ status: 'ok' });
+      import('./returns-enhancer.ts')
+        .then(mod => mod.returnsEnhancer.enhanceAllCompaniesReturns())
+        .catch(e => console.error('enhance-returns async error:', e));
+      return res.json({ status: 'started' });
     } catch (e) {
       console.error('enhance-returns error:', e);
       return res.status(500).json({ message: 'Failed to enhance returns' });
@@ -191,9 +193,10 @@ export function setupRoutes(app, supabase) {
   app.post('/api/companies/enhance-drawdown', async (_req, res) => {
     try {
       await import('tsx/esm');
-      const mod = await import('./drawdown-enhancer.ts');
-      await mod.drawdownEnhancer.enhanceAllCompaniesDrawdown();
-      return res.json({ status: 'ok' });
+      import('./drawdown-enhancer.ts')
+        .then(mod => mod.drawdownEnhancer.enhanceAllCompaniesDrawdown())
+        .catch(e => console.error('enhance-drawdown async error:', e));
+      return res.json({ status: 'started' });
     } catch (e) {
       console.error('enhance-drawdown error:', e);
       return res.status(500).json({ message: 'Failed to enhance drawdown' });
