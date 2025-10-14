@@ -38,12 +38,9 @@ setupRoutes(app, supabase);
 
 const port = process.env.PORT || 5002;
 
-const dataScheduler = new DataScheduler();
-dataScheduler.start();
-
-console.log("DataScheduler initialized and running...");
-
-
 app.listen(port, () => {
   console.log(`🚀 Server listening on port ${port}`);
+  const dataScheduler = new DataScheduler();
+  dataScheduler.start();
+  console.log("DataScheduler initialized and running...");
 });

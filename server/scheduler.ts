@@ -18,8 +18,7 @@ export class DataScheduler {
         console.log("🚀 Scheduler started. Daily price and enhancement jobs are scheduled.");
         this.priceJob.start();
         this.enhanceJob.start();
-        // Выполним мягкий прогон на старте (без ожидания расписания)
-        this.performDailyPrices().finally(() => this.performDailyEnhancements());
+        // Не запускаем тяжёлые задачи немедленно при старте, чтобы избежать таймаутов на платформах деплоя
     }
 
     public stop() {
