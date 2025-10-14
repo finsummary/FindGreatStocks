@@ -128,10 +128,14 @@ async function enhanceReturnsForTable(table: PgTable, name: string) {
 }
 
 
-async function main() {
+export async function enhanceAllCompaniesReturns() {
   await enhanceReturnsForTable(dowJonesCompanies, 'Dow Jones');
   await enhanceReturnsForTable(sp500Companies, 'S&P 500');
   await enhanceReturnsForTable(nasdaq100Companies, 'Nasdaq 100');
+}
+
+async function main() {
+  await enhanceAllCompaniesReturns();
   process.exit(0);
 }
 

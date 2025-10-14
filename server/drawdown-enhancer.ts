@@ -283,9 +283,9 @@ const isMainModule = resolve(process.argv[1]) === resolve(fileURLToPath(import.m
 
 if (isMainModule) {
   (async () => {
-    await enhanceAllDrawdowns(sp500Companies, "S&P 500");
-    await enhanceAllDrawdowns(nasdaq100Companies, "Nasdaq 100");
-    await enhanceAllDrawdowns(dowJonesCompanies, "Dow Jones");
+    await enhanceAllDrawdowns(sp500Companies as any, "S&P 500");
+    await enhanceAllDrawdowns(nasdaq100Companies as any, "Nasdaq 100");
+    await enhanceAllDrawdowns(dowJonesCompanies as any, "Dow Jones");
     console.log("\nAll drawdown enhancements complete.");
     process.exit(0);
   })().catch(error => {
