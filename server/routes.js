@@ -217,6 +217,20 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // General companies table price update (fills marketCap/price in companies)
+  app.post('/api/companies/update-prices', async (_req, res) => {
+    try {
+      await import('tsx/esm');
+      import('./daily-price-updater.ts')
+        .then(mod => mod.dailyPriceUpdater.updateAllPrices())
+        .catch(e => console.error('companies price update async error:', e));
+      return res.json({ status: 'started' });
+    } catch (e) {
+      console.error('companies price update error:', e);
+      return res.status(500).json({ message: 'Failed to start companies price update' });
+    }
+  });
+
   app.post('/api/companies/enhance-returns', async (_req, res) => {
     try {
       await import('tsx/esm');
