@@ -151,16 +151,22 @@ export function setupRoutes(app, supabase) {
       const symbols = rows.map(r => r.symbol).filter(Boolean);
       if (symbols.length) {
         const [sp500, ndx, dji] = await Promise.all([
-          supabase.from('sp500_companies').select('symbol, price, market_cap').in('symbol', symbols),
-          supabase.from('nasdaq100_companies').select('symbol, price, market_cap').in('symbol', symbols),
-          supabase.from('dow_jones_companies').select('symbol, price, market_cap').in('symbol', symbols),
+          supabase.from('sp500_companies').select('symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield').in('symbol', symbols),
+          supabase.from('nasdaq100_companies').select('symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield').in('symbol', symbols),
+          supabase.from('dow_jones_companies').select('symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield').in('symbol', symbols),
         ]);
         const fallback = new Map();
         const add = (res) => {
           if (res && Array.isArray(res.data)) {
             for (const r of res.data) {
               if (!r || !r.symbol) continue;
-              fallback.set(r.symbol, { price: r.price, marketCap: r.market_cap });
+              fallback.set(r.symbol, { 
+                price: r.price, 
+                marketCap: r.market_cap,
+                peRatio: r.pe_ratio,
+                priceToSalesRatio: r.price_to_sales_ratio,
+                dividendYield: r.dividend_yield,
+              });
             }
           }
         };
@@ -175,6 +181,9 @@ export function setupRoutes(app, supabase) {
           const mcapMissing = (r.market_cap === null || r.market_cap === undefined || Number(r.market_cap) === 0);
           if (priceMissing && fb.price !== null && fb.price !== undefined) r.price = fb.price;
           if (mcapMissing && fb.marketCap !== null && fb.marketCap !== undefined) r.market_cap = fb.marketCap;
+          if ((r.pe_ratio === null || r.pe_ratio === undefined) && fb.peRatio !== null && fb.peRatio !== undefined) r.pe_ratio = fb.peRatio;
+          if ((r.price_to_sales_ratio === null || r.price_to_sales_ratio === undefined) && fb.priceToSalesRatio !== null && fb.priceToSalesRatio !== undefined) r.price_to_sales_ratio = fb.priceToSalesRatio;
+          if ((r.dividend_yield === null || r.dividend_yield === undefined) && fb.dividendYield !== null && fb.dividendYield !== undefined) r.dividend_yield = fb.dividendYield;
         }
       }
 

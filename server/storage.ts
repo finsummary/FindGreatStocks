@@ -256,6 +256,7 @@ export class DatabaseStorage implements IStorage {
       countryCode: 'country_code',
       logoUrl: 'logo_url',
       peRatio: 'pe_ratio',
+      dividendYield: 'dividend_yield',
       priceToSalesRatio: 'price_to_sales_ratio',
       netProfitMargin: 'net_profit_margin',
       revenueGrowth3Y: 'revenue_growth_3y',
