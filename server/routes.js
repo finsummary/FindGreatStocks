@@ -177,6 +177,46 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Daily price updates
+  app.post('/api/sp500/update-prices', async (_req, res) => {
+    try {
+      await import('tsx/esm');
+      import('./sp500-daily-updater.ts')
+        .then(mod => mod.updateSp500Prices())
+        .catch(e => console.error('sp500 update async error:', e));
+      return res.json({ status: 'started' });
+    } catch (e) {
+      console.error('sp500 update error:', e);
+      return res.status(500).json({ message: 'Failed to update S&P 500 prices' });
+    }
+  });
+
+  app.post('/api/nasdaq100/update-prices', async (_req, res) => {
+    try {
+      await import('tsx/esm');
+      import('./nasdaq100-daily-updater.ts')
+        .then(mod => mod.updateNasdaq100Prices())
+        .catch(e => console.error('nasdaq100 update async error:', e));
+      return res.json({ status: 'started' });
+    } catch (e) {
+      console.error('nasdaq100 update error:', e);
+      return res.status(500).json({ message: 'Failed to update Nasdaq 100 prices' });
+    }
+  });
+
+  app.post('/api/dowjones/update-prices', async (_req, res) => {
+    try {
+      await import('tsx/esm');
+      import('./dowjones-daily-updater.ts')
+        .then(mod => mod.updateDowJonesPrices())
+        .catch(e => console.error('dowjones update async error:', e));
+      return res.json({ status: 'started' });
+    } catch (e) {
+      console.error('dowjones update error:', e);
+      return res.status(500).json({ message: 'Failed to update Dow Jones prices' });
+    }
+  });
+
   app.post('/api/companies/enhance-returns', async (_req, res) => {
     try {
       await import('tsx/esm');
