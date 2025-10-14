@@ -1,3 +1,37 @@
-// Bootstrap TypeScript server via tsx without changing Railway Start Command
-import 'tsx/esm';
-import './index.ts';
+// Pure JS bootstrap for Railway
+import express from 'express';
+import cors from 'cors';
+import { createClient } from '@supabase/supabase-js';
+import { setupRoutes, setupStripeWebhook } from './routes.js';
+
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Supabase URL and Key must be provided');
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+const app = express();
+app.use(cors({
+  origin: [
+    process.env.CLIENT_URL,
+    'https://find-great-stocks-datr.vercel.app',
+    'http://localhost:5173',
+  ].filter(Boolean),
+  credentials: true,
+}));
+
+// Stripe webhook (raw body)
+setupStripeWebhook(app);
+
+app.use(express.json());
+
+// API routes
+setupRoutes(app, supabase);
+
+const port = process.env.PORT || 5002;
+app.listen(port, () => {
+  console.log(`🚀 Server running on port ${port}`);
+});

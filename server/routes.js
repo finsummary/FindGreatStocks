@@ -1,0 +1,228 @@
+import express from 'express';
+import Stripe from 'stripe';
+
+export function setupStripeWebhook(app) {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    // Fallback dummy endpoint to avoid 404 if webhook not configured
+    app.post('/api/stripe/webhook', express.json(), (_req, res) => res.json({ received: true }));
+    return;
+  }
+  app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    try {
+      const sig = req.headers['stripe-signature'];
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' });
+      stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+      return res.json({ received: true });
+    } catch (e) {
+      console.error('Stripe webhook error', e);
+      return res.status(400).send(`Webhook Error: ${e.message}`);
+    }
+  });
+}
+
+function createAuthMiddleware(supabase) {
+  return async function isAuthenticated(req, res, next) {
+    try {
+      const authHeader = req.headers['authorization'] || '';
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : null;
+      if (!token) return res.status(401).json({ message: 'Unauthorized' });
+      const { data, error } = await supabase.auth.getUser(token);
+      if (error || !data?.user) return res.status(401).json({ message: 'Unauthorized' });
+      req.user = data.user;
+      next();
+    } catch (e) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+  };
+}
+
+function mapDbRowToCompany(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    symbol: row.symbol,
+    marketCap: row.market_cap,
+    price: row.price,
+    dailyChange: row.daily_change,
+    dailyChangePercent: row.daily_change_percent,
+    country: row.country,
+    rank: row.rank,
+    logoUrl: row.logo_url,
+    peRatio: row.pe_ratio,
+    eps: row.eps,
+    dividendYield: row.dividend_yield,
+    priceToSalesRatio: row.price_to_sales_ratio,
+    netProfitMargin: row.net_profit_margin,
+    revenueGrowth3Y: row.revenue_growth_3y,
+    revenueGrowth5Y: row.revenue_growth_5y,
+    revenueGrowth10Y: row.revenue_growth_10y,
+    revenue: row.revenue,
+    netIncome: row.net_income,
+    freeCashFlow: row.free_cash_flow,
+    return3Year: row.return_3_year,
+    return5Year: row.return_5_year,
+    return10Year: row.return_10_year,
+    maxDrawdown3Year: row.max_drawdown_3_year,
+    maxDrawdown5Year: row.max_drawdown_5_year,
+    maxDrawdown10Year: row.max_drawdown_10_year,
+    arMddRatio3Year: row.ar_mdd_ratio_3_year,
+    arMddRatio5Year: row.ar_mdd_ratio_5_year,
+    arMddRatio10Year: row.ar_mdd_ratio_10_year,
+    dcfEnterpriseValue: row.dcf_enterprise_value,
+    marginOfSafety: row.margin_of_safety,
+    dcfImpliedGrowth: row.dcf_implied_growth,
+    assetTurnover: row.asset_turnover,
+    financialLeverage: row.financial_leverage,
+    roe: row.roe,
+  };
+}
+
+export function setupRoutes(app, supabase) {
+  const isAuthenticated = createAuthMiddleware(supabase);
+
+  app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+
+  app.get('/api/auth/me', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+      const { data: dbUser, error } = await supabase.from('users').select('*').eq('id', userId).single();
+      if (error && error.code !== 'PGRST116') {
+        console.error('Supabase users read error:', error);
+        return res.status(500).json({ message: 'Failed to fetch user profile' });
+      }
+      if (!dbUser) {
+        const { error: insertError } = await supabase.from('users').insert({ id: userId, email: req.user.email || null, subscription_tier: 'free', updated_at: new Date().toISOString() });
+        if (insertError) return res.status(500).json({ message: 'Failed to create user profile' });
+        return res.json({ id: userId, email: req.user.email || null, subscriptionTier: 'free' });
+      }
+      return res.json({ ...dbUser, subscriptionTier: dbUser.subscription_tier || 'free', updatedAt: dbUser.updated_at });
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to fetch user profile' });
+    }
+  });
+
+  const sortMap = {
+    rank: 'rank',
+    name: 'name',
+    marketCap: 'market_cap',
+    price: 'price',
+    revenue: 'revenue',
+    netIncome: 'net_income',
+    peRatio: 'pe_ratio',
+    dividendYield: 'dividend_yield',
+    freeCashFlow: 'free_cash_flow',
+    revenueGrowth10Y: 'revenue_growth_10y',
+    return3Year: 'return_3_year',
+    return5Year: 'return_5_year',
+    return10Year: 'return_10_year',
+    maxDrawdown3Year: 'max_drawdown_3_year',
+    maxDrawdown5Year: 'max_drawdown_5_year',
+    maxDrawdown10Year: 'max_drawdown_10_year',
+  };
+
+  async function listCompanies(req, res) {
+    try {
+      const limit = parseInt(req.query.limit) || 50;
+      const offset = parseInt(req.query.offset) || 0;
+      const sortBy = req.query.sortBy || 'marketCap';
+      const sortOrder = (req.query.sortOrder || 'desc') === 'asc';
+      const search = (req.query.search || '').trim();
+      const orderCol = sortMap[sortBy] || 'market_cap';
+
+      let query = supabase
+        .from('companies')
+        .select('*', { count: 'exact' })
+        .order(orderCol, { ascending: sortOrder, nullsFirst: false })
+        .range(offset, offset + limit - 1);
+      if (search) {
+        query = query.or(`name.ilike.%${search}%,symbol.ilike.%${search}%`);
+      }
+      const { data, count, error } = await query;
+      if (error) {
+        console.error('Supabase error in listCompanies:', error);
+        return res.status(500).json({ message: 'Failed to fetch companies' });
+      }
+      return res.json({
+        companies: (data || []).map(mapDbRowToCompany),
+        total: count || 0,
+        limit,
+        offset,
+        hasMore: (offset + limit) < (count || 0),
+      });
+    } catch (e) {
+      console.error('Error in listCompanies:', e);
+      return res.status(500).json({ message: 'Failed to fetch companies' });
+    }
+  }
+
+  // Use same list for tabs for now (can specialize later)
+  app.get('/api/companies', listCompanies);
+  app.get('/api/sp500', listCompanies);
+  app.get('/api/nasdaq100', listCompanies);
+  app.get('/api/dowjones', listCompanies);
+
+  // Watchlist endpoints
+  app.get('/api/watchlist', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const { data, error } = await supabase.from('watchlist').select('*').eq('user_id', userId);
+      if (error) return res.status(500).json({ message: 'Failed to fetch watchlist' });
+      const normalized = (data || []).map(i => ({ id: i.id, companySymbol: i.company_symbol, userId: i.user_id }));
+      return res.json(normalized);
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to fetch watchlist' });
+    }
+  });
+
+  app.post('/api/watchlist', isAuthenticated, async (req, res) => {
+    try {
+      const { companySymbol } = req.body || {};
+      const userId = req.user?.id;
+      if (!companySymbol) return res.status(400).json({ message: 'Company symbol is required' });
+      const { data, error } = await supabase.from('watchlist').insert({ user_id: userId, company_symbol: companySymbol }).select('*').single();
+      if (error) console.warn('Insert watchlist error:', error);
+      const response = data ? { id: data.id, userId: data.user_id, companySymbol: data.company_symbol } : { userId, companySymbol };
+      return res.json(response);
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to add to watchlist' });
+    }
+  });
+
+  app.delete('/api/watchlist/:symbol', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const symbol = req.params.symbol;
+      const { error } = await supabase.from('watchlist').delete().match({ user_id: userId, company_symbol: symbol });
+      if (error) return res.status(500).json({ message: 'Failed to remove from watchlist' });
+      return res.json({ message: 'Removed from watchlist' });
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to remove from watchlist' });
+    }
+  });
+
+  // Stripe checkout (optional)
+  app.post('/api/stripe/create-checkout-session', isAuthenticated, async (req, res) => {
+    try {
+      if (!process.env.STRIPE_SECRET_KEY) return res.status(400).json({ error: { message: 'Stripe not configured' } });
+      const { priceId } = req.body || {};
+      if (!priceId) return res.status(400).json({ error: { message: 'Price ID is required' } });
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' });
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [{ price: priceId, quantity: 1 }],
+        mode: 'subscription',
+        success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.CLIENT_URL}/payment-cancelled`,
+        metadata: { userId: req.user.id, priceId },
+      });
+      return res.json({ sessionId: session.id });
+    } catch (e) {
+      console.error('Stripe checkout error:', e);
+      return res.status(500).json({ error: { message: 'Failed to create checkout session' } });
+    }
+  });
+}
+
+
