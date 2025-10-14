@@ -144,8 +144,42 @@ export function setupRoutes(app, supabase) {
         console.error('Supabase error in listCompanies:', error);
         return res.status(500).json({ message: 'Failed to fetch companies' });
       }
+
+      // Fallback enrichment: if price/market_cap are missing or zero in companies,
+      // try to pull them from index-specific tables to avoid empty columns.
+      const rows = Array.isArray(data) ? data : [];
+      const symbols = rows.map(r => r.symbol).filter(Boolean);
+      if (symbols.length) {
+        const [sp500, ndx, dji] = await Promise.all([
+          supabase.from('sp500_companies').select('symbol, price, marketCap').in('symbol', symbols),
+          supabase.from('nasdaq100_companies').select('symbol, price, marketCap').in('symbol', symbols),
+          supabase.from('dow_jones_companies').select('symbol, price, marketCap').in('symbol', symbols),
+        ]);
+        const fallback = new Map();
+        const add = (res) => {
+          if (res && Array.isArray(res.data)) {
+            for (const r of res.data) {
+              if (!r || !r.symbol) continue;
+              fallback.set(r.symbol, { price: r.price, marketCap: r.marketCap });
+            }
+          }
+        };
+        add(sp500);
+        add(ndx);
+        add(dji);
+
+        for (const r of rows) {
+          const fb = fallback.get(r.symbol);
+          if (!fb) continue;
+          const priceMissing = (r.price === null || r.price === undefined || Number(r.price) === 0);
+          const mcapMissing = (r.market_cap === null || r.market_cap === undefined || Number(r.market_cap) === 0);
+          if (priceMissing && fb.price !== null && fb.price !== undefined) r.price = fb.price;
+          if (mcapMissing && fb.marketCap !== null && fb.marketCap !== undefined) r.market_cap = fb.marketCap;
+        }
+      }
+
       return res.json({
-        companies: (data || []).map(mapDbRowToCompany),
+        companies: rows.map(mapDbRowToCompany),
         total: count || 0,
         limit,
         offset,
