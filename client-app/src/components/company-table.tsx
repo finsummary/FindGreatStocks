@@ -439,53 +439,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       if (!response.ok) {
         throw new Error("Failed to fetch companies");
       }
-      const raw = await response.json();
-      const toStr = (v: any): string | null => (v === null || v === undefined ? null : String(v));
-      const mapRow = (row: any): Company => ({
-        id: row.id,
-        symbol: row.symbol,
-        name: row.name,
-        marketCap: toStr(row.marketCap ?? row.market_cap),
-        price: toStr(row.price),
-        dailyChange: toStr(row.dailyChange ?? row.daily_change),
-        dailyChangePercent: toStr(row.dailyChangePercent ?? row.daily_change_percent),
-        country: row.country ?? null,
-        rank: row.rank ?? null,
-        logo: row.logo ?? null,
-        logoUrl: row.logoUrl ?? row.logo_url ?? null,
-        peRatio: toStr(row.peRatio ?? row.pe_ratio),
-        eps: toStr(row.eps),
-        dividendYield: toStr(row.dividendYield ?? row.dividend_yield),
-        priceToSalesRatio: toStr(row.priceToSalesRatio ?? row.price_to_sales_ratio),
-        revenue: toStr(row.revenue),
-        netIncome: toStr(row.netIncome ?? row.net_income),
-        freeCashFlow: toStr(row.freeCashFlow ?? row.free_cash_flow),
-        revenueGrowth3Y: toStr(row.revenueGrowth3Y ?? row.revenue_growth_3y),
-        revenueGrowth5Y: toStr(row.revenueGrowth5Y ?? row.revenue_growth_5y),
-        revenueGrowth10Y: toStr(row.revenueGrowth10Y ?? row.revenue_growth_10y),
-        return3Year: toStr(row.return3Year ?? row.return_3_year),
-        return5Year: toStr(row.return5Year ?? row.return_5_year),
-        return10Year: toStr(row.return10Year ?? row.return_10_year),
-        maxDrawdown3Year: toStr(row.maxDrawdown3Year ?? row.max_drawdown_3_year),
-        maxDrawdown5Year: toStr(row.maxDrawdown5Year ?? row.max_drawdown_5_year),
-        maxDrawdown10Year: toStr(row.maxDrawdown10Year ?? row.max_drawdown_10_year),
-        arMddRatio: toStr(row.arMddRatio ?? row.ar_mdd_ratio),
-        arMddRatio3Year: toStr(row.arMddRatio3Year ?? row.ar_mdd_ratio_3_year),
-        arMddRatio5Year: toStr(row.arMddRatio5Year ?? row.ar_mdd_ratio_5_year),
-        arMddRatio10Year: toStr(row.arMddRatio10Year ?? row.ar_mdd_ratio_10_year),
-        netProfitMargin: toStr(row.netProfitMargin ?? row.net_profit_margin),
-        assetTurnover: toStr(row.assetTurnover),
-        financialLeverage: toStr(row.financialLeverage),
-        roe: toStr(row.roe),
-        dcfEnterpriseValue: toStr(row.dcfEnterpriseValue ?? row.dcf_enterprise_value),
-        marginOfSafety: toStr(row.marginOfSafety ?? row.margin_of_safety),
-        dcfImpliedGrowth: toStr(row.dcfImpliedGrowth ?? row.dcf_implied_growth),
-        latestFcf: toStr(row.latestFcf ?? row.latest_fcf),
-      });
-      return {
-        ...raw,
-        companies: Array.isArray(raw.companies) ? raw.companies.map(mapRow) : [],
-      };
+      return response.json();
     },
     // Кэширование и моментальная отдача данных без скелетонов
     placeholderData: (prev) => prev,
