@@ -150,10 +150,11 @@ export function setupRoutes(app, supabase) {
       const rows = Array.isArray(data) ? data : [];
       const symbols = rows.map(r => r.symbol).filter(Boolean);
       if (symbols.length) {
+        const selectCols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth';
         const [sp500, ndx, dji] = await Promise.all([
-          supabase.from('sp500_companies').select('symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield').in('symbol', symbols),
-          supabase.from('nasdaq100_companies').select('symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield').in('symbol', symbols),
-          supabase.from('dow_jones_companies').select('symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield').in('symbol', symbols),
+          supabase.from('sp500_companies').select(selectCols).in('symbol', symbols),
+          supabase.from('nasdaq100_companies').select(selectCols).in('symbol', symbols),
+          supabase.from('dow_jones_companies').select(selectCols).in('symbol', symbols),
         ]);
         const fallback = new Map();
         const add = (res) => {
@@ -166,6 +167,15 @@ export function setupRoutes(app, supabase) {
                 peRatio: r.pe_ratio,
                 priceToSalesRatio: r.price_to_sales_ratio,
                 dividendYield: r.dividend_yield,
+                return3Year: r.return_3_year,
+                return5Year: r.return_5_year,
+                return10Year: r.return_10_year,
+                maxDrawdown3Year: r.max_drawdown_3_year,
+                maxDrawdown5Year: r.max_drawdown_5_year,
+                maxDrawdown10Year: r.max_drawdown_10_year,
+                dcfEnterpriseValue: r.dcf_enterprise_value,
+                marginOfSafety: r.margin_of_safety,
+                dcfImpliedGrowth: r.dcf_implied_growth,
               });
             }
           }
@@ -182,8 +192,54 @@ export function setupRoutes(app, supabase) {
           if (priceMissing && fb.price !== null && fb.price !== undefined) r.price = fb.price;
           if (mcapMissing && fb.marketCap !== null && fb.marketCap !== undefined) r.market_cap = fb.marketCap;
           if ((r.pe_ratio === null || r.pe_ratio === undefined) && fb.peRatio !== null && fb.peRatio !== undefined) r.pe_ratio = fb.peRatio;
-          if ((r.price_to_sales_ratio === null || r.price_to_sales_ratio === undefined) && fb.priceToSalesRatio !== null && fb.priceToSalesRatio !== undefined) r.price_to_sales_ratio = fb.priceToSalesRatio;
+          if ((r.price_to_sales_ratio === null || r.price_to_sales_ratio === undefined || Number(r.price_to_sales_ratio) === 0)) {
+            if (fb.priceToSalesRatio !== null && fb.priceToSalesRatio !== undefined && Number(fb.priceToSalesRatio) !== 0) {
+              r.price_to_sales_ratio = fb.priceToSalesRatio;
+            } else {
+              // Compute fallback P/S = marketCap / revenue if both available
+              const mcap = Number(r.market_cap);
+              const rev = Number(r.revenue);
+              if (isFinite(mcap) && isFinite(rev) && rev > 0) {
+                r.price_to_sales_ratio = mcap / rev;
+              }
+            }
+          }
           if ((r.dividend_yield === null || r.dividend_yield === undefined) && fb.dividendYield !== null && fb.dividendYield !== undefined) r.dividend_yield = fb.dividendYield;
+
+          // Returns fallback
+          if (r.return_3_year == null && fb.return3Year != null) r.return_3_year = fb.return3Year;
+          if (r.return_5_year == null && fb.return5Year != null) r.return_5_year = fb.return5Year;
+          if (r.return_10_year == null && fb.return10Year != null) r.return_10_year = fb.return10Year;
+
+          // Drawdowns fallback
+          if (r.max_drawdown_3_year == null && fb.maxDrawdown3Year != null) r.max_drawdown_3_year = fb.maxDrawdown3Year;
+          if (r.max_drawdown_5_year == null && fb.maxDrawdown5Year != null) r.max_drawdown_5_year = fb.maxDrawdown5Year;
+          if (r.max_drawdown_10_year == null && fb.maxDrawdown10Year != null) r.max_drawdown_10_year = fb.maxDrawdown10Year;
+
+          // AR/MDD ratio compute if missing
+          const computeRatio = (ret, mdd) => {
+            const retNum = Number(ret);
+            const mddNum = Number(mdd);
+            if (!isFinite(retNum) || !isFinite(mddNum) || mddNum <= 0) return null;
+            return (retNum / 100) / (mddNum / 100);
+          };
+          if (r.ar_mdd_ratio_3_year == null && r.return_3_year != null && r.max_drawdown_3_year != null) {
+            const val = computeRatio(r.return_3_year, r.max_drawdown_3_year);
+            if (val != null) r.ar_mdd_ratio_3_year = val;
+          }
+          if (r.ar_mdd_ratio_5_year == null && r.return_5_year != null && r.max_drawdown_5_year != null) {
+            const val = computeRatio(r.return_5_year, r.max_drawdown_5_year);
+            if (val != null) r.ar_mdd_ratio_5_year = val;
+          }
+          if (r.ar_mdd_ratio_10_year == null && r.return_10_year != null && r.max_drawdown_10_year != null) {
+            const val = computeRatio(r.return_10_year, r.max_drawdown_10_year);
+            if (val != null) r.ar_mdd_ratio_10_year = val;
+          }
+
+          // DCF fallback
+          if (r.dcf_enterprise_value == null && fb.dcfEnterpriseValue != null) r.dcf_enterprise_value = fb.dcfEnterpriseValue;
+          if (r.margin_of_safety == null && fb.marginOfSafety != null) r.margin_of_safety = fb.marginOfSafety;
+          if (r.dcf_implied_growth == null && fb.dcfImpliedGrowth != null) r.dcf_implied_growth = fb.dcfImpliedGrowth;
         }
       }
 
