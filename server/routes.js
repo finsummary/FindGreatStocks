@@ -151,16 +151,16 @@ export function setupRoutes(app, supabase) {
       const symbols = rows.map(r => r.symbol).filter(Boolean);
       if (symbols.length) {
         const [sp500, ndx, dji] = await Promise.all([
-          supabase.from('sp500_companies').select('symbol, price, marketCap').in('symbol', symbols),
-          supabase.from('nasdaq100_companies').select('symbol, price, marketCap').in('symbol', symbols),
-          supabase.from('dow_jones_companies').select('symbol, price, marketCap').in('symbol', symbols),
+          supabase.from('sp500_companies').select('symbol, price, market_cap').in('symbol', symbols),
+          supabase.from('nasdaq100_companies').select('symbol, price, market_cap').in('symbol', symbols),
+          supabase.from('dow_jones_companies').select('symbol, price, market_cap').in('symbol', symbols),
         ]);
         const fallback = new Map();
         const add = (res) => {
           if (res && Array.isArray(res.data)) {
             for (const r of res.data) {
               if (!r || !r.symbol) continue;
-              fallback.set(r.symbol, { price: r.price, marketCap: r.marketCap });
+              fallback.set(r.symbol, { price: r.price, marketCap: r.market_cap });
             }
           }
         };
