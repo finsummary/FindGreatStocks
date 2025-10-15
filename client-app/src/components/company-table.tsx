@@ -165,8 +165,8 @@ const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlis
 
 interface CompanyTableProps {
   searchQuery: string;
-  dataset: 'sp500' | 'nasdaq100' | 'ftse100' | 'dowjones' | 'all';
-  activeTab: 'sp500' | 'nasdaq100' | 'dowjones' | 'all';
+  dataset: 'sp500' | 'nasdaq100' | 'ftse100' | 'dowjones';
+  activeTab: 'sp500' | 'nasdaq100' | 'dowjones';
 }
 
 export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTableProps) {
@@ -402,9 +402,6 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       break;
     case 'dowjones':
       apiEndpoint = '/api/dowjones';
-      break;
-    case 'all':
-      apiEndpoint = '/api/companies-all';
       break;
     default:
       apiEndpoint = '/api/companies';
