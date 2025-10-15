@@ -120,6 +120,9 @@ export function setupRoutes(app, supabase) {
     maxDrawdown3Year: 'max_drawdown_3_year',
     maxDrawdown5Year: 'max_drawdown_5_year',
     maxDrawdown10Year: 'max_drawdown_10_year',
+    arMddRatio3Year: 'ar_mdd_ratio_3_year',
+    arMddRatio5Year: 'ar_mdd_ratio_5_year',
+    arMddRatio10Year: 'ar_mdd_ratio_10_year',
   };
 
   async function listCompanies(req, res) {
