@@ -37,10 +37,37 @@ function createAuthMiddleware(supabase) {
   };
 }
 
+function normalizeCompanyName(name, website) {
+  try {
+    let n = (name || '').toString().trim();
+    if (!n) return n;
+    // Strip website host if accidentally concatenated into name
+    if (website) {
+      try {
+        const url = new URL(/^https?:\/\//i.test(website) ? website : `https://${website}`);
+        const host = url.hostname.replace(/^www\./i, '');
+        if (host) {
+          const hostRe = new RegExp(host.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'ig');
+          n = n.replace(hostRe, '').trim();
+        }
+      } catch {}
+    }
+    // Fix ", Inc" → " Inc", similar for other suffixes
+    n = n.replace(/,\s*(Inc|Corp|Corporation|Ltd|PLC|LLC)\b/gi, ' $1');
+    // Collapse duplicate dot spacing and spaces
+    n = n.replace(/\s*\.\s*/g, '. ').replace(/\s{2,}/g, ' ').trim();
+    // Remove trailing dot left from cleanup
+    n = n.replace(/\.$/, '');
+    return n;
+  } catch {
+    return name;
+  }
+}
+
 function mapDbRowToCompany(row) {
   return {
     id: row.id,
-    name: row.name,
+    name: normalizeCompanyName(row.name, row.website),
     symbol: row.symbol,
     marketCap: row.market_cap,
     price: row.price,
