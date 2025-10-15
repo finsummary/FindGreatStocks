@@ -513,6 +513,36 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Admin: override returns to null for symbols (e.g., IPO < window)
+  app.post('/api/sp500/override-returns-null', async (req, res) => {
+    try {
+      const symbolsParam = (req.query.symbols || req.body?.symbols || '').toString();
+      const windowsParam = (req.query.windows || req.body?.windows || '3,5,10').toString();
+      const symbols = symbolsParam.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      const windows = new Set(windowsParam.split(',').map(s => s.trim()));
+      if (!symbols.length) return res.status(400).json({ message: 'Provide symbols as comma-separated list in ?symbols=' });
+
+      const fields = {};
+      if (windows.has('3')) fields['return_3_year'] = null;
+      if (windows.has('5')) fields['return_5_year'] = null;
+      if (windows.has('10')) fields['return_10_year'] = null;
+
+      const results = [];
+      for (const sym of symbols) {
+        try {
+          await supabase.from('sp500_companies').update(fields).eq('symbol', sym);
+          results.push({ symbol: sym, updated: true });
+        } catch (e) {
+          results.push({ symbol: sym, updated: false, error: e?.message || 'unknown' });
+        }
+      }
+      return res.json({ status: 'ok', results });
+    } catch (e) {
+      console.error('override-returns-null error:', e);
+      return res.status(500).json({ message: 'Failed to override returns' });
+    }
+  });
+
   app.post('/api/companies/enhance-returns', async (_req, res) => {
     try {
       await import('tsx/esm');
