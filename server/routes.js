@@ -52,8 +52,17 @@ function normalizeCompanyName(name, website) {
         }
       } catch {}
     }
-    // Fix ", Inc" → " Inc", similar for other suffixes
-    n = n.replace(/,\s*(Inc|Corp|Corporation|Ltd|PLC|LLC)\b/gi, ' $1');
+    // Fix punctuation around suffixes and remove trailing domain if concatenated
+    n = n
+      .replace(/,\s*Inc\.?\b/gi, ' Inc.')
+      .replace(/,\s*Corp\.?\b/gi, ' Corp')
+      .replace(/,\s*Corporation\b/gi, ' Corporation')
+      .replace(/,\s*Ltd\.?\b/gi, ' Ltd')
+      .replace(/,\s*PLC\b/gi, ' PLC')
+      .replace(/,\s*LLC\b/gi, ' LLC');
+    n = n.replace(/\bInc\b(?!\.)/g, 'Inc.');
+    // Trim any domain accidentally appended after suffix, e.g. "Inc.amazon.com"
+    n = n.replace(/(Inc\.|Corp|Corporation|Ltd|PLC|LLC)\s*[a-z0-9.-]+\.(?:com|net|org|io|co|ai)\s*$/i, '$1');
     // Collapse duplicate dot spacing and spaces
     n = n.replace(/\s*\.\s*/g, '. ').replace(/\s{2,}/g, ' ').trim();
     // Remove trailing dot left from cleanup
