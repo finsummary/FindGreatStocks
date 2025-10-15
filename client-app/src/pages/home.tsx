@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 
 export function HomePage() {
-  const [activeTab, setActiveTab] = useState<'sp500' | 'nasdaq100' | 'dowjones'>('dowjones');
+  const [activeTab, setActiveTab] = useState<'sp500' | 'nasdaq100' | 'dowjones' | 'all'>('dowjones');
   const [searchQuery, setSearchQuery] = useState("");
   const [searchInput, setSearchInput] = useState("");
 
@@ -20,6 +20,13 @@ export function HomePage() {
       <main className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
+            <Button
+              variant={activeTab === 'all' ? 'secondary' : 'outline'}
+              onClick={() => setActiveTab('all')}
+              className={`font-semibold ${activeTab === 'all' ? 'ring-2 ring-blue-500/50' : ''}`}
+            >
+              All
+            </Button>
             <Button
               variant={activeTab === 'dowjones' ? 'secondary' : 'outline'}
               onClick={() => setActiveTab('dowjones')}
@@ -54,6 +61,7 @@ export function HomePage() {
         </div>
 
         <div>
+          {activeTab === 'all' && <CompanyTable searchQuery={searchQuery} dataset="all" activeTab={activeTab} />}
           {activeTab === 'sp500' && <CompanyTable searchQuery={searchQuery} dataset="sp500" activeTab={activeTab} />}
           {activeTab === 'nasdaq100' && <CompanyTable searchQuery={searchQuery} dataset="nasdaq100" activeTab={activeTab} />}
           {activeTab === 'dowjones' && <CompanyTable searchQuery={searchQuery} dataset="dowjones" activeTab={activeTab} />}
