@@ -279,8 +279,18 @@ export function setupRoutes(app, supabase) {
         console.error(`Supabase error in listFromTable(${tableName}):`, error);
         return res.status(500).json({ message: 'Failed to fetch companies' });
       }
+      const rows = Array.isArray(data) ? data : [];
+      // Symbol-specific overrides for 10Y metrics where company has <10Y history (e.g., DASH IPO in 2020)
+      if (tableName === 'sp500_companies') {
+        for (const r of rows) {
+          if (r?.symbol === 'DASH') {
+            r.return_10_year = null;
+            r.ar_mdd_ratio_10_year = null;
+          }
+        }
+      }
       return res.json({
-        companies: (data || []).map(mapDbRowToCompany),
+        companies: rows.map(mapDbRowToCompany),
         total: count || 0,
         limit,
         offset,
