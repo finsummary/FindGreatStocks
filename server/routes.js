@@ -454,6 +454,65 @@ export function setupRoutes(app, supabase) {
     return res.json({ status: 'started' });
   });
 
+  // Enrich specific S&P 500 symbols with fundamentals via FMP and write into sp500_companies
+  app.post('/api/sp500/enrich', async (req, res) => {
+    try {
+      const symbolsParam = (req.query.symbols || req.body?.symbols || '').toString();
+      const symbols = symbolsParam.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      if (!symbols.length) return res.status(400).json({ message: 'Provide symbols as comma-separated list in ?symbols=' });
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+
+      const fmp = async (endpoint) => {
+        const url = `https://financialmodelingprep.com/api/v3${endpoint}${endpoint.includes('?') ? '&' : '?'}apikey=${apiKey}`;
+        const r = await fetch(url);
+        if (!r.ok) throw new Error(`${endpoint} ${r.status}`);
+        return r.json();
+      };
+
+      const results = [];
+      for (const sym of symbols) {
+        try {
+          const [quote, income, cash, balance] = await Promise.all([
+            fmp(`/quote/${sym}`),
+            fmp(`/income-statement/${sym}?limit=1`),
+            fmp(`/cash-flow-statement/${sym}?limit=1`),
+            fmp(`/balance-sheet-statement/${sym}?limit=1`),
+          ]);
+          const q = Array.isArray(quote) && quote[0] || {};
+          const i = Array.isArray(income) && income[0] || {};
+          const c = Array.isArray(cash) && cash[0] || {};
+          const b = Array.isArray(balance) && balance[0] || {};
+
+          const updates = {
+            price: q.price ?? null,
+            market_cap: q.marketCap ?? null,
+            pe_ratio: q.pe ?? null,
+            eps: q.eps ?? i.epsdiluted ?? i.eps ?? null,
+            dividend_yield: q.lastDiv && q.price ? (Number(q.lastDiv) / Number(q.price)) * 100 : (q.dividendYield ?? null),
+            revenue: i.revenue ?? null,
+            net_income: i.netIncome ?? null,
+            free_cash_flow: c.freeCashFlow ?? null,
+            total_assets: b.totalAssets ?? null,
+            total_debt: b.totalDebt ?? null,
+          };
+
+          await supabase.from('sp500_companies').update(updates).eq('symbol', sym);
+          results.push({ symbol: sym, updated: true });
+        } catch (e) {
+          console.error('enrich error', sym, e);
+          results.push({ symbol: sym, updated: false, error: e?.message || 'unknown' });
+        }
+        // brief delay to avoid rate limits
+        await new Promise(r => setTimeout(r, 200));
+      }
+      return res.json({ status: 'ok', results });
+    } catch (e) {
+      console.error('sp500/enrich error:', e);
+      return res.status(500).json({ message: 'Failed to enrich symbols' });
+    }
+  });
+
   app.post('/api/companies/enhance-returns', async (_req, res) => {
     try {
       await import('tsx/esm');
