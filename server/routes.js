@@ -74,9 +74,15 @@ function normalizeCompanyName(name, website) {
 }
 
 function mapDbRowToCompany(row) {
+  // Special-case cleanup for known anomalies
+  let fixedName = normalizeCompanyName(row.name, row.website);
+  if (row.symbol === 'AMZN') {
+    // Force correct canonical form for Amazon if any residue remains
+    fixedName = 'Amazon.com Inc.';
+  }
   return {
     id: row.id,
-    name: normalizeCompanyName(row.name, row.website),
+    name: fixedName,
     symbol: row.symbol,
     marketCap: row.market_cap,
     price: row.price,
