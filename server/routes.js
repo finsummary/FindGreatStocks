@@ -517,7 +517,7 @@ export function setupRoutes(app, supabase) {
     try {
       await import('tsx/esm');
       import('./returns-enhancer.ts')
-        .then(mod => mod.returnsEnhancer.enhanceAllCompaniesReturns())
+        .then(mod => (mod.enhanceAllCompaniesReturns ? mod.enhanceAllCompaniesReturns() : (mod.returnsEnhancer?.enhanceAllCompaniesReturns?.())))
         .catch(e => console.error('enhance-returns async error:', e));
       return res.json({ status: 'started' });
     } catch (e) {
