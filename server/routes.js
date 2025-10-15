@@ -543,6 +543,82 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Recompute returns (3/5/10Y) for specific S&P 500 symbols using FMP historical prices
+  app.post('/api/sp500/recompute-returns', async (req, res) => {
+    try {
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      const symbolsParam = (req.query.symbols || req.body?.symbols || '').toString();
+      const symbols = symbolsParam.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      if (!symbols.length) return res.status(400).json({ message: 'Provide symbols as comma-separated list in ?symbols=' });
+
+      const now = new Date();
+      const to = now.toISOString().split('T')[0];
+      const tenYearsAgo = new Date(now);
+      tenYearsAgo.setFullYear(now.getFullYear() - 10);
+      const from10 = tenYearsAgo.toISOString().split('T')[0];
+
+      const annualized = (start, end, years) => {
+        if (!isFinite(start) || !isFinite(end) || start <= 0 || end <= 0 || years <= 0) return null;
+        return (Math.pow(end / start, 1 / years) - 1) * 100;
+      };
+
+      const results = [];
+      for (const sym of symbols) {
+        try {
+          const url = `https://financialmodelingprep.com/api/v3/historical-price-full/${sym}?from=${from10}&to=${to}&serietype=line&apikey=${apiKey}`;
+          const r = await fetch(url);
+          if (!r.ok) throw new Error(`historical ${r.status}`);
+          const data = await r.json();
+          const hist = Array.isArray(data?.historical) ? data.historical.slice().sort((a, b) => new Date(a.date) - new Date(b.date)) : [];
+          if (!hist.length) {
+            await supabase.from('sp500_companies').update({ return_3_year: null, return_5_year: null, return_10_year: null }).eq('symbol', sym);
+            results.push({ symbol: sym, updated: true, note: 'no history' });
+            continue;
+          }
+          const earliest = new Date(hist[0].date);
+          const latestClose = Number(hist[hist.length - 1].close);
+          const date3 = new Date(now); date3.setFullYear(now.getFullYear() - 3);
+          const date5 = new Date(now); date5.setFullYear(now.getFullYear() - 5);
+          const date10 = new Date(now); date10.setFullYear(now.getFullYear() - 10);
+
+          const closest = (target) => {
+            if (earliest > target) return null;
+            let best = null, bestDiff = Infinity;
+            for (const p of hist) {
+              const d = Math.abs(new Date(p.date) - target);
+              if (d < bestDiff) { bestDiff = d; best = Number(p.close); }
+            }
+            return best;
+          };
+
+          const s3 = closest(date3);
+          const s5 = closest(date5);
+          const s10 = closest(date10);
+
+          const ret3 = s3 ? annualized(s3, latestClose, 3) : null;
+          const ret5 = s5 ? annualized(s5, latestClose, 5) : null;
+          const ret10 = s10 ? annualized(s10, latestClose, 10) : null;
+
+          await supabase.from('sp500_companies').update({
+            return_3_year: ret3,
+            return_5_year: ret5,
+            return_10_year: ret10,
+          }).eq('symbol', sym);
+          results.push({ symbol: sym, updated: true, ret3, ret5, ret10 });
+        } catch (e) {
+          console.error('recompute-returns error', sym, e);
+          results.push({ symbol: sym, updated: false, error: e?.message || 'unknown' });
+        }
+        await new Promise(r => setTimeout(r, 300));
+      }
+      return res.json({ status: 'ok', results });
+    } catch (e) {
+      console.error('sp500/recompute-returns error:', e);
+      return res.status(500).json({ message: 'Failed to recompute returns' });
+    }
+  });
+
   app.post('/api/companies/enhance-returns', async (_req, res) => {
     try {
       await import('tsx/esm');
