@@ -308,6 +308,82 @@ export function setupRoutes(app, supabase) {
   app.get('/api/nasdaq100', (req, res) => listFromTable('nasdaq100_companies', req, res));
   app.get('/api/dowjones', (req, res) => listFromTable('dow_jones_companies', req, res));
 
+  // Union endpoint: combine S&P 500, Nasdaq 100, Dow Jones for global search
+  app.get('/api/companies-all', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit) || 50;
+      const offset = parseInt(req.query.offset) || 0;
+      const sortBy = (req.query.sortBy || 'marketCap').toString();
+      const sortOrder = ((req.query.sortOrder || 'desc').toString() === 'asc') ? 'asc' : 'desc';
+      const search = (req.query.search || '').toString().trim();
+
+      const orderCol = sortMap[sortBy] || 'market_cap';
+
+      // Fetch all three sets (bounded size: ~635 rows)
+      const [sp500, ndx, dji] = await Promise.all([
+        supabase.from('sp500_companies').select('*'),
+        supabase.from('nasdaq100_companies').select('*'),
+        supabase.from('dow_jones_companies').select('*'),
+      ]);
+      if (sp500.error) { console.warn('companies-all sp500 error:', sp500.error); }
+      if (ndx.error) { console.warn('companies-all ndx error:', ndx.error); }
+      if (dji.error) { console.warn('companies-all dji error:', dji.error); }
+
+      let rows = ([])
+        .concat(Array.isArray(sp500.data) ? sp500.data : [])
+        .concat(Array.isArray(ndx.data) ? ndx.data : [])
+        .concat(Array.isArray(dji.data) ? dji.data : []);
+
+      if (search) {
+        const s = search.toLowerCase();
+        rows = rows.filter(r => (r?.name || '').toLowerCase().includes(s) || (r?.symbol || '').toLowerCase().includes(s));
+      }
+
+      // Sort in memory by mapped column
+      const getVal = (r) => {
+        switch (orderCol) {
+          case 'name': return (r?.name || '').toString();
+          case 'rank': return Number(r?.rank ?? 0);
+          case 'market_cap': return Number(r?.market_cap ?? 0);
+          case 'price': return Number(r?.price ?? 0);
+          case 'revenue': return Number(r?.revenue ?? 0);
+          case 'net_income': return Number(r?.net_income ?? 0);
+          case 'pe_ratio': return Number(r?.pe_ratio ?? 0);
+          case 'dividend_yield': return Number(r?.dividend_yield ?? 0);
+          case 'free_cash_flow': return Number(r?.free_cash_flow ?? 0);
+          case 'revenue_growth_10y': return Number(r?.revenue_growth_10y ?? 0);
+          case 'return_3_year': return Number(r?.return_3_year ?? -99999);
+          case 'return_5_year': return Number(r?.return_5_year ?? -99999);
+          case 'return_10_year': return Number(r?.return_10_year ?? -99999);
+          case 'max_drawdown_3_year': return Number(r?.max_drawdown_3_year ?? 99999);
+          case 'max_drawdown_5_year': return Number(r?.max_drawdown_5_year ?? 99999);
+          case 'max_drawdown_10_year': return Number(r?.max_drawdown_10_year ?? 99999);
+          default: return Number(r?.market_cap ?? 0);
+        }
+      };
+      rows.sort((a, b) => {
+        const va = getVal(a); const vb = getVal(b);
+        if (typeof va === 'string' || typeof vb === 'string') {
+          return sortOrder === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+        }
+        return sortOrder === 'asc' ? (va - vb) : (vb - va);
+      });
+
+      const total = rows.length;
+      const page = rows.slice(offset, offset + limit);
+      return res.json({
+        companies: page.map(mapDbRowToCompany),
+        total,
+        limit,
+        offset,
+        hasMore: (offset + limit) < total,
+      });
+    } catch (e) {
+      console.error('Error in /api/companies-all:', e);
+      return res.status(500).json({ message: 'Failed to fetch companies' });
+    }
+  });
+
   // Enhancement endpoints (run TS modules via tsx loader at call time)
   app.post('/api/companies/enhance-financial-data', async (_req, res) => {
     try {
