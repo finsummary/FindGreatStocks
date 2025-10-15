@@ -366,6 +366,37 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Sync constituents endpoints (add new, keep existing; removals can be handled later)
+  app.post('/api/import/sp500-sync', async (_req, res) => {
+    try {
+      await import('tsx/esm');
+      import('./sp500-import.ts').then(() => console.log('sp500 sync started')).catch(e => console.error('sp500 sync error:', e));
+      return res.json({ status: 'started' });
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to start sp500 sync' });
+    }
+  });
+
+  app.post('/api/import/nasdaq100-sync', async (_req, res) => {
+    try {
+      await import('tsx/esm');
+      import('./nasdaq100-import.ts').then(() => console.log('nasdaq100 sync started')).catch(e => console.error('nasdaq100 sync error:', e));
+      return res.json({ status: 'started' });
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to start nasdaq100 sync' });
+    }
+  });
+
+  app.post('/api/import/dowjones-sync', async (_req, res) => {
+    try {
+      await import('tsx/esm');
+      import('./dow-jones-import.ts').then(() => console.log('dowjones sync started')).catch(e => console.error('dowjones sync error:', e));
+      return res.json({ status: 'started' });
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to start dowjones sync' });
+    }
+  });
+
   app.post('/api/companies/enhance-returns', async (_req, res) => {
     try {
       await import('tsx/esm');
