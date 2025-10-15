@@ -256,11 +256,47 @@ export function setupRoutes(app, supabase) {
     }
   }
 
-  // Use same list for tabs for now (can specialize later)
+  // Helper: list from a specific table (sp500, nasdaq100, dowjones)
+  async function listFromTable(tableName, req, res) {
+    try {
+      const limit = parseInt(req.query.limit) || 50;
+      const offset = parseInt(req.query.offset) || 0;
+      const sortBy = req.query.sortBy || 'marketCap';
+      const sortOrder = (req.query.sortOrder || 'desc') === 'asc';
+      const search = (req.query.search || '').trim();
+      const orderCol = sortMap[sortBy] || 'market_cap';
+
+      let query = supabase
+        .from(tableName)
+        .select('*', { count: 'exact' })
+        .order(orderCol, { ascending: sortOrder, nullsFirst: false })
+        .range(offset, offset + limit - 1);
+      if (search) {
+        query = query.or(`name.ilike.%${search}%,symbol.ilike.%${search}%`);
+      }
+      const { data, count, error } = await query;
+      if (error) {
+        console.error(`Supabase error in listFromTable(${tableName}):`, error);
+        return res.status(500).json({ message: 'Failed to fetch companies' });
+      }
+      return res.json({
+        companies: (data || []).map(mapDbRowToCompany),
+        total: count || 0,
+        limit,
+        offset,
+        hasMore: (offset + limit) < (count || 0),
+      });
+    } catch (e) {
+      console.error('Error in listFromTable:', e);
+      return res.status(500).json({ message: 'Failed to fetch companies' });
+    }
+  }
+
+  // Distinct datasets
   app.get('/api/companies', listCompanies);
-  app.get('/api/sp500', listCompanies);
-  app.get('/api/nasdaq100', listCompanies);
-  app.get('/api/dowjones', listCompanies);
+  app.get('/api/sp500', (req, res) => listFromTable('sp500_companies', req, res));
+  app.get('/api/nasdaq100', (req, res) => listFromTable('nasdaq100_companies', req, res));
+  app.get('/api/dowjones', (req, res) => listFromTable('dow_jones_companies', req, res));
 
   // Enhancement endpoints (run TS modules via tsx loader at call time)
   app.post('/api/companies/enhance-financial-data', async (_req, res) => {
