@@ -113,6 +113,10 @@ export function setupRoutes(app, supabase) {
     peRatio: 'pe_ratio',
     dividendYield: 'dividend_yield',
     freeCashFlow: 'free_cash_flow',
+    priceToSalesRatio: 'price_to_sales_ratio',
+    netProfitMargin: 'net_profit_margin',
+    revenueGrowth3Y: 'revenue_growth_3y',
+    revenueGrowth5Y: 'revenue_growth_5y',
     revenueGrowth10Y: 'revenue_growth_10y',
     return3Year: 'return_3_year',
     return5Year: 'return_5_year',
@@ -123,6 +127,12 @@ export function setupRoutes(app, supabase) {
     arMddRatio3Year: 'ar_mdd_ratio_3_year',
     arMddRatio5Year: 'ar_mdd_ratio_5_year',
     arMddRatio10Year: 'ar_mdd_ratio_10_year',
+    dcfEnterpriseValue: 'dcf_enterprise_value',
+    marginOfSafety: 'margin_of_safety',
+    dcfImpliedGrowth: 'dcf_implied_growth',
+    assetTurnover: 'asset_turnover',
+    financialLeverage: 'financial_leverage',
+    roe: 'roe',
   };
 
   async function listCompanies(req, res) {
