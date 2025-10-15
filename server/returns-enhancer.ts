@@ -33,6 +33,10 @@ async function calculateAllAnnualizedReturns(symbol: string): Promise<{ return3Y
   // Ensure chronological order (oldest -> latest)
   historicalData.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
+  // If the earliest available data is more recent than the target window start,
+  // we MUST return null for that window (e.g., IPO < 10Y → no 10Y Return)
+  const earliestDataDate = new Date(historicalData[0].date);
+
   const findClosestPrice = (targetDate: Date) => {
     let closestDataPoint = null as any;
     let minDiff = Infinity;
@@ -52,15 +56,15 @@ async function calculateAllAnnualizedReturns(symbol: string): Promise<{ return3Y
 
   const date3YearsAgo = new Date(now);
   date3YearsAgo.setFullYear(now.getFullYear() - 3);
-  const startPrice3 = findClosestPrice(date3YearsAgo);
+  const startPrice3 = earliestDataDate <= date3YearsAgo ? findClosestPrice(date3YearsAgo) : null;
 
   const date5YearsAgo = new Date(now);
   date5YearsAgo.setFullYear(now.getFullYear() - 5);
-  const startPrice5 = findClosestPrice(date5YearsAgo);
+  const startPrice5 = earliestDataDate <= date5YearsAgo ? findClosestPrice(date5YearsAgo) : null;
 
   const date10YearsAgo = new Date(now);
   date10YearsAgo.setFullYear(now.getFullYear() - 10);
-  const startPrice10 = findClosestPrice(date10YearsAgo);
+  const startPrice10 = earliestDataDate <= date10YearsAgo ? findClosestPrice(date10YearsAgo) : null;
 
   const return3Year = startPrice3 ? calculateAnnualizedReturn(startPrice3, endPrice, 3) : null;
   const return5Year = startPrice5 ? calculateAnnualizedReturn(startPrice5, endPrice, 5) : null;
