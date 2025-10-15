@@ -397,6 +397,63 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Safer refresh endpoints (no process.exit) using Supabase directly
+  async function refreshConstituents(tableName, fmpPath) {
+    try {
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) throw new Error('FMP_API_KEY is missing');
+      const url = `https://financialmodelingprep.com/api/v3/${fmpPath}?apikey=${apiKey}`;
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`FMP ${fmpPath} failed: ${resp.status}`);
+      const list = await resp.json(); // [{symbol,name}]
+      const desiredSymbols = new Set((list || []).map(i => i.symbol).filter(Boolean));
+
+      const { data: existing, error: readErr } = await supabase.from(tableName).select('symbol');
+      if (readErr) throw readErr;
+      const existingSymbols = new Set((existing || []).map(r => r.symbol));
+
+      const toInsert = [];
+      for (const item of (list || [])) {
+        if (item && item.symbol && !existingSymbols.has(item.symbol)) {
+          toInsert.push({ symbol: item.symbol, name: item.name || item.symbol });
+        }
+      }
+
+      const toDelete = [];
+      for (const sym of existingSymbols) {
+        if (!desiredSymbols.has(sym)) toDelete.push(sym);
+      }
+
+      if (toInsert.length) {
+        await supabase.from(tableName).insert(toInsert);
+      }
+      if (toDelete.length) {
+        // Delete in chunks of 100
+        for (let i = 0; i < toDelete.length; i += 100) {
+          const chunk = toDelete.slice(i, i + 100);
+          await supabase.from(tableName).delete().in('symbol', chunk);
+        }
+      }
+      return { inserted: toInsert.length, deleted: toDelete.length, total: desiredSymbols.size };
+    } catch (e) {
+      console.error('refreshConstituents error:', e);
+      return { error: e?.message || 'unknown' };
+    }
+  }
+
+  app.post('/api/import/sp500-refresh', async (_req, res) => {
+    (async () => { await refreshConstituents('sp500_companies', 'sp500_constituent'); })();
+    return res.json({ status: 'started' });
+  });
+  app.post('/api/import/nasdaq100-refresh', async (_req, res) => {
+    (async () => { await refreshConstituents('nasdaq100_companies', 'nasdaq_constituent'); })();
+    return res.json({ status: 'started' });
+  });
+  app.post('/api/import/dowjones-refresh', async (_req, res) => {
+    (async () => { await refreshConstituents('dow_jones_companies', 'dowjones_constituent'); })();
+    return res.json({ status: 'started' });
+  });
+
   app.post('/api/companies/enhance-returns', async (_req, res) => {
     try {
       await import('tsx/esm');
