@@ -7,14 +7,11 @@ import { useState } from "react";
 export function HomePage() {
   const [activeTab, setActiveTab] = useState<'sp500' | 'nasdaq100' | 'dowjones'>('dowjones');
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    // The original code had searchQuery state, but the new_code removed it.
-    // Assuming the intent was to use searchQuery state for the search functionality.
-    // Since searchQuery state is removed, this function will not work as intended
-    // without a new searchQuery state or a different mechanism for the search input.
-    // For now, I'm keeping the function signature as is, but it will not update searchQuery.
+    setSearchQuery(searchInput.trim());
   };
 
   return (
@@ -49,7 +46,8 @@ export function HomePage() {
             <Input 
               type="text" 
               placeholder="Search by company or ticker..."
-              defaultValue={searchQuery}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
             <Button type="submit" variant="outline">Search</Button>
           </form>
