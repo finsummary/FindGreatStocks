@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { API_BASE } from './config';
 
 export async function authFetch(url: string, options: RequestInit = {}, token?: string | null) {
   let sessionToken = token;
@@ -18,7 +19,8 @@ export async function authFetch(url: string, options: RequestInit = {}, token?: 
   const headers = new Headers(options.headers || {});
   headers.append('Authorization', `Bearer ${sessionToken}`);
 
-  const response = await fetch(url, { ...options, headers });
+  const targetUrl = url.startsWith('/api/') ? `${API_BASE}${url}` : url;
+  const response = await fetch(targetUrl, { ...options, headers });
 
   if (response.ok) {
     const contentType = response.headers.get('content-type');

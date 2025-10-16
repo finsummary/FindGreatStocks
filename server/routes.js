@@ -189,7 +189,7 @@ export function setupRoutes(app, supabase) {
       let query = supabase
         .from('companies')
         .select('*', { count: 'exact' })
-        .order(orderCol, { ascending: sortOrder, nullsFirst: false })
+        .order(orderCol, { ascending: sortOrder })
         .range(offset, offset + limit - 1);
       if (search) {
         query = query.or(`name.ilike.%${search}%,symbol.ilike.%${search}%`);
@@ -324,7 +324,7 @@ export function setupRoutes(app, supabase) {
       let query = supabase
         .from(tableName)
         .select('*', { count: 'exact' })
-        .order(orderCol, { ascending: sortOrder, nullsFirst: false })
+        .order(orderCol, { ascending: sortOrder })
         .range(offset, offset + limit - 1);
       if (search) {
         query = query.or(`name.ilike.%${search}%,symbol.ilike.%${search}%`);
@@ -480,7 +480,7 @@ export function setupRoutes(app, supabase) {
       const arr = await r.json();
       const q = Array.isArray(arr) && arr[0];
       if (!q) return res.status(404).json({ message: 'No quote' });
-      const updates: any = {};
+      const updates = {};
       if (q.price !== undefined) updates.price = Number(q.price);
       if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
       if (q.change !== undefined) updates.daily_change = Number(q.change);

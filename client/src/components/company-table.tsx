@@ -23,6 +23,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import type { Company, Nasdaq100Company } from "@shared/schema";
 import { authFetch } from "@/lib/authFetch";
+import { API_BASE } from "@/lib/config";
 import { loadStripe } from '@stripe/stripe-js';
 import {
   DropdownMenu,
@@ -393,16 +394,16 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   let apiEndpoint;
   switch (dataset) {
     case 'sp500':
-      apiEndpoint = '/api/sp500';
+      apiEndpoint = `${API_BASE}/api/sp500`;
       break;
     case 'nasdaq100':
-      apiEndpoint = '/api/nasdaq100';
+      apiEndpoint = `${API_BASE}/api/nasdaq100`;
       break;
     case 'dowjones':
-      apiEndpoint = '/api/dowjones';
+      apiEndpoint = `${API_BASE}/api/dowjones`;
       break;
     default:
-      apiEndpoint = '/api/companies';
+      apiEndpoint = `${API_BASE}/api/companies`;
   }
 
   const { data, isLoading, error } = useQuery<{ companies: Company[], total: number, hasMore: boolean }>({
@@ -756,9 +757,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   // Prefetch данных для соседних вкладок, чтобы переключение было мгновенным
   useEffect(() => {
     const datasets: Array<{ key: CompanyTableProps['dataset']; endpoint: string }> = [
-      { key: 'sp500', endpoint: '/api/sp500' },
-      { key: 'nasdaq100', endpoint: '/api/nasdaq100' },
-      { key: 'dowjones', endpoint: '/api/dowjones' },
+      { key: 'sp500', endpoint: `${API_BASE}/api/sp500` },
+      { key: 'nasdaq100', endpoint: `${API_BASE}/api/nasdaq100` },
+      { key: 'dowjones', endpoint: `${API_BASE}/api/dowjones` },
     ];
     // Prefetch для текущего датасета: следующие страницы (page+1, page+2)
     const current = datasets.find(d => d.key === dataset)!;
