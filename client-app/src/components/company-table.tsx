@@ -441,11 +441,11 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       }
       return response.json();
     },
-    // Кэширование и моментальная отдача данных без скелетонов
-    placeholderData: (prev) => prev,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    // Тянуть всегда свежие данные после серверных обновлений
+    refetchOnMount: 'always',
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
   const tableData = useMemo(() => {
@@ -777,7 +777,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           if (!res.ok) throw new Error('Failed to prefetch companies');
           return res.json();
         },
-        staleTime: 5 * 60 * 1000,
+        staleTime: 0,
       });
     }
 
@@ -796,7 +796,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
             if (!res.ok) throw new Error('Failed to prefetch companies');
             return res.json();
           },
-          staleTime: 5 * 60 * 1000,
+          staleTime: 0,
         });
       }
     }
