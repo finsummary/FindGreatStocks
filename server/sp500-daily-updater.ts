@@ -45,14 +45,14 @@ export async function updateSp500Prices() {
 
                 if (quotes && quotes.length > 0) {
                     for (const quote of quotes) {
-                        if (quote.symbol && quote.price && quote.marketCap) {
+                        if (quote.symbol && (quote.price !== undefined) && (quote.marketCap !== undefined)) {
                             try {
                                 const updateData: any = {
-                                    price: quote.price,
-                                    marketCap: String(quote.marketCap),
+                                    price: Number(quote.price),
+                                    market_cap: Number(quote.marketCap),
                                 };
-                                if (quote.change !== undefined) updateData.dailyChange = String(quote.change);
-                                if (quote.changesPercentage !== undefined) updateData.dailyChangePercent = String(quote.changesPercentage);
+                                if (quote.change !== undefined) updateData.daily_change = Number(quote.change);
+                                if (quote.changesPercentage !== undefined) updateData.daily_change_percent = Number(quote.changesPercentage);
                                 // Do not overwrite fundamental fields daily
                                 // if (quote.eps !== undefined) updateData.eps = String(quote.eps);
 
@@ -69,9 +69,10 @@ export async function updateSp500Prices() {
                                     } catch {}
                                 }
 
-                                await db.update(schema.sp500Companies)
-                                    .set(updateData)
-                                    .where(eq(schema.sp500Companies.symbol, quote.symbol));
+                                await supabase
+                                  .from('sp500_companies')
+                                  .update(updateData)
+                                  .eq('symbol', quote.symbol);
 
                                 console.log(`[${quote.symbol}] 💾 Price & MCap updated to ${quote.price} / ${quote.marketCap}`);
                                 updatedCount++;
