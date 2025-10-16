@@ -298,36 +298,6 @@ export function setupRoutes(app, supabase) {
         }
       }
 
-      // Overlay fresh quotes from FMP for currently returned page
-      try {
-        const apiKey = process.env.FMP_API_KEY;
-        if (apiKey) {
-          const pageSymbols = rows.map(r => r.symbol).filter(Boolean);
-          if (pageSymbols.length) {
-            const chunk = pageSymbols.slice(0, 100).join(',');
-            const url = `https://financialmodelingprep.com/api/v3/quote/${chunk}?apikey=${apiKey}`;
-            const qr = await fetch(url);
-            if (qr.ok) {
-              const quotes = await qr.json();
-              const qmap = new Map();
-              for (const q of Array.isArray(quotes) ? quotes : []) {
-                if (q?.symbol) qmap.set(q.symbol, q);
-              }
-              for (const r of rows) {
-                const q = qmap.get(r.symbol);
-                if (!q) continue;
-                if (q.price !== undefined) r.price = Number(q.price);
-                if (q.marketCap !== undefined) r.market_cap = Number(q.marketCap);
-                if (q.change !== undefined) r.daily_change = Number(q.change);
-                if (q.changesPercentage !== undefined) r.daily_change_percent = Number(q.changesPercentage);
-              }
-            }
-          }
-        }
-      } catch (e) {
-        console.warn('quotes overlay skipped:', e?.message || e);
-      }
-
       return res.json({
         companies: rows.map(mapDbRowToCompany),
         total: count || 0,
@@ -374,36 +344,6 @@ export function setupRoutes(app, supabase) {
           }
         }
       }
-      // Overlay fresh quotes from FMP for the current page
-      try {
-        const apiKey = process.env.FMP_API_KEY;
-        if (apiKey) {
-          const symbolsPage = rows.map(r => r.symbol).filter(Boolean);
-          if (symbolsPage.length) {
-            const chunk = symbolsPage.slice(0, 100).join(',');
-            const url = `https://financialmodelingprep.com/api/v3/quote/${chunk}?apikey=${apiKey}`;
-            const qr = await fetch(url);
-            if (qr.ok) {
-              const quotes = await qr.json();
-              const qmap = new Map();
-              for (const q of Array.isArray(quotes) ? quotes : []) {
-                if (q?.symbol) qmap.set(q.symbol, q);
-              }
-              for (const r of rows) {
-                const q = qmap.get(r.symbol);
-                if (!q) continue;
-                if (q.price !== undefined) r.price = Number(q.price);
-                if (q.marketCap !== undefined) r.market_cap = Number(q.marketCap);
-                if (q.change !== undefined) r.daily_change = Number(q.change);
-                if (q.changesPercentage !== undefined) r.daily_change_percent = Number(q.changesPercentage);
-              }
-            }
-          }
-        }
-      } catch (e) {
-        console.warn('quotes overlay (table) skipped:', e?.message || e);
-      }
-
       return res.json({
         companies: rows.map(mapDbRowToCompany),
         total: count || 0,
