@@ -507,6 +507,81 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Update price for a single Nasdaq 100 symbol (manual refresh)
+  app.post('/api/nasdaq100/update-price', async (req, res) => {
+    try {
+      const symbol = (req.query.symbol || req.body?.symbol || '').toString().trim().toUpperCase();
+      if (!symbol) return res.status(400).json({ message: 'symbol is required' });
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      const url = `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${apiKey}`;
+      const r = await fetch(url);
+      if (!r.ok) return res.status(502).json({ message: 'FMP error', status: r.status });
+      const arr = await r.json();
+      const q = Array.isArray(arr) && arr[0];
+      if (!q) return res.status(404).json({ message: 'No quote' });
+      const updates = {};
+      if (q.price !== undefined) updates.price = Number(q.price);
+      if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
+      if (q.change !== undefined) updates.daily_change = Number(q.change);
+      if (q.changesPercentage !== undefined) updates.daily_change_percent = Number(q.changesPercentage);
+      const { error } = await supabase.from('nasdaq100_companies').update(updates).eq('symbol', symbol);
+      if (error) return res.status(500).json({ message: 'DB update error', error });
+      return res.json({ status: 'ok', symbol, updates });
+    } catch (e) {
+      console.error('nasdaq100/update-price error:', e);
+      return res.status(500).json({ message: 'Failed to update price' });
+    }
+  });
+
+  // Update fundamentals for a single Nasdaq 100 symbol (quote + statements)
+  app.post('/api/nasdaq100/update-fundamentals', async (req, res) => {
+    try {
+      const symbol = (req.query.symbol || req.body?.symbol || '').toString().trim().toUpperCase();
+      if (!symbol) return res.status(400).json({ message: 'symbol is required' });
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+
+      const fmp = async (endpoint) => {
+        const url = `https://financialmodelingprep.com/api/v3${endpoint}${endpoint.includes('?') ? '&' : '?'}apikey=${apiKey}`;
+        const r = await fetch(url);
+        if (!r.ok) throw new Error(`${endpoint} ${r.status}`);
+        return r.json();
+      };
+
+      const [quote, income, cash, balance] = await Promise.all([
+        fmp(`/quote/${symbol}`),
+        fmp(`/income-statement/${symbol}?limit=1`),
+        fmp(`/cash-flow-statement/${symbol}?limit=1`),
+        fmp(`/balance-sheet-statement/${symbol}?limit=1`),
+      ]);
+      const q = Array.isArray(quote) && quote[0] || {};
+      const i = Array.isArray(income) && income[0] || {};
+      const c = Array.isArray(cash) && cash[0] || {};
+      const b = Array.isArray(balance) && balance[0] || {};
+
+      const updates = {
+        price: q.price ?? null,
+        market_cap: q.marketCap ?? null,
+        pe_ratio: q.pe ?? null,
+        eps: q.eps ?? i.epsdiluted ?? i.eps ?? null,
+        dividend_yield: q.lastDiv && q.price ? (Number(q.lastDiv) / Number(q.price)) * 100 : (q.dividendYield ?? null),
+        revenue: i.revenue ?? null,
+        net_income: i.netIncome ?? null,
+        free_cash_flow: c.freeCashFlow ?? null,
+        total_assets: b.totalAssets ?? null,
+        total_debt: b.totalDebt ?? null,
+      };
+
+      const { error } = await supabase.from('nasdaq100_companies').update(updates).eq('symbol', symbol);
+      if (error) return res.status(500).json({ message: 'DB update error', error });
+      return res.json({ status: 'ok', symbol, updates });
+    } catch (e) {
+      console.error('nasdaq100/update-fundamentals error:', e);
+      return res.status(500).json({ message: 'Failed to update fundamentals' });
+    }
+  });
+
   app.post('/api/dowjones/update-prices', async (_req, res) => {
     try {
       await import('tsx/esm');
