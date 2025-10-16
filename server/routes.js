@@ -298,6 +298,7 @@ export function setupRoutes(app, supabase) {
         }
       }
 
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
       return res.json({
         companies: rows.map(mapDbRowToCompany),
         total: count || 0,
@@ -388,6 +389,7 @@ export function setupRoutes(app, supabase) {
           }
         }
       }
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
       return res.json({
         companies: rows.map(mapDbRowToCompany),
         total: count || 0,
@@ -470,6 +472,7 @@ export function setupRoutes(app, supabase) {
 
       const total = rows.length;
       const page = rows.slice(offset, offset + limit);
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
       return res.json({
         companies: page.map(mapDbRowToCompany),
         total,

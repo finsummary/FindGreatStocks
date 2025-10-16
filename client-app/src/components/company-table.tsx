@@ -435,7 +435,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
 
       params.append("_", new Date().getTime().toString());
 
-      const response = await fetch(`https://findgreatstocks-production.up.railway.app${url}?${params.toString()}`);
+      const response = await fetch(`https://findgreatstocks-production.up.railway.app${url}?${params.toString()}`, { cache: 'no-store' });
       if (!response.ok) {
         throw new Error("Failed to fetch companies");
       }
@@ -773,7 +773,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       queryClient.prefetchQuery({
         queryKey: qk as any,
         queryFn: async () => {
-          const res = await fetch(`https://findgreatstocks-production.up.railway.app${current.endpoint}?${params.toString()}`);
+          const res = await fetch(`https://findgreatstocks-production.up.railway.app${current.endpoint}?${params.toString()}`, { cache: 'no-store' });
           if (!res.ok) throw new Error('Failed to prefetch companies');
           return res.json();
         },
@@ -792,7 +792,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         queryClient.prefetchQuery({
           queryKey: qk as any,
           queryFn: async () => {
-            const res = await fetch(`https://findgreatstocks-production.up.railway.app${d.endpoint}?${params.toString()}`);
+            const res = await fetch(`https://findgreatstocks-production.up.railway.app${d.endpoint}?${params.toString()}`, { cache: 'no-store' });
             if (!res.ok) throw new Error('Failed to prefetch companies');
             return res.json();
           },
