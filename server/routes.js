@@ -335,6 +335,50 @@ export function setupRoutes(app, supabase) {
         return res.status(500).json({ message: 'Failed to fetch companies' });
       }
       const rows = Array.isArray(data) ? data : [];
+
+      // Fallback enrichment from master companies table for missing metrics
+      const symbols = rows.map(r => r.symbol).filter(Boolean);
+      if (symbols.length) {
+        const cols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth';
+        const { data: master, error: mErr } = await supabase.from('companies').select(cols).in('symbol', symbols);
+        if (!mErr && Array.isArray(master)) {
+          const bySym = new Map(master.map(m => [m.symbol, m]));
+          for (const r of rows) {
+            const m = bySym.get(r.symbol);
+            if (!m) continue;
+            const applyIfMissing = (key, val) => {
+              if (r[key] === null || r[key] === undefined || (typeof r[key] === 'number' && r[key] === 0)) {
+                if (val !== null && val !== undefined) r[key] = val;
+              }
+            };
+            applyIfMissing('price', m.price);
+            applyIfMissing('market_cap', m.market_cap);
+            applyIfMissing('pe_ratio', m.pe_ratio);
+            if (r.price_to_sales_ratio == null || Number(r.price_to_sales_ratio) === 0) {
+              if (m.price_to_sales_ratio != null && Number(m.price_to_sales_ratio) !== 0) {
+                r.price_to_sales_ratio = m.price_to_sales_ratio;
+              } else {
+                const mc = Number(r.market_cap ?? m.market_cap);
+                const rev = Number(r.revenue ?? m.revenue);
+                if (isFinite(mc) && isFinite(rev) && rev > 0) r.price_to_sales_ratio = mc / rev;
+              }
+            }
+            applyIfMissing('dividend_yield', m.dividend_yield);
+            applyIfMissing('revenue', m.revenue);
+            applyIfMissing('net_income', m.net_income);
+            applyIfMissing('free_cash_flow', m.free_cash_flow);
+            applyIfMissing('return_3_year', m.return_3_year);
+            applyIfMissing('return_5_year', m.return_5_year);
+            applyIfMissing('return_10_year', m.return_10_year);
+            applyIfMissing('max_drawdown_3_year', m.max_drawdown_3_year);
+            applyIfMissing('max_drawdown_5_year', m.max_drawdown_5_year);
+            applyIfMissing('max_drawdown_10_year', m.max_drawdown_10_year);
+            applyIfMissing('dcf_enterprise_value', m.dcf_enterprise_value);
+            applyIfMissing('margin_of_safety', m.margin_of_safety);
+            applyIfMissing('dcf_implied_growth', m.dcf_implied_growth);
+          }
+        }
+      }
       // Symbol-specific overrides for 10Y metrics where company has <10Y history (e.g., DASH IPO in 2020)
       if (tableName === 'sp500_companies') {
         for (const r of rows) {
