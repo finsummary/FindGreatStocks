@@ -467,6 +467,33 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Update price for a single S&P 500 symbol (manual refresh)
+  app.post('/api/sp500/update-price', async (req, res) => {
+    try {
+      const symbol = (req.query.symbol || req.body?.symbol || '').toString().trim().toUpperCase();
+      if (!symbol) return res.status(400).json({ message: 'symbol is required' });
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      const url = `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${apiKey}`;
+      const r = await fetch(url);
+      if (!r.ok) return res.status(502).json({ message: 'FMP error', status: r.status });
+      const arr = await r.json();
+      const q = Array.isArray(arr) && arr[0];
+      if (!q) return res.status(404).json({ message: 'No quote' });
+      const updates: any = {};
+      if (q.price !== undefined) updates.price = Number(q.price);
+      if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
+      if (q.change !== undefined) updates.daily_change = Number(q.change);
+      if (q.changesPercentage !== undefined) updates.daily_change_percent = Number(q.changesPercentage);
+      const { error } = await supabase.from('sp500_companies').update(updates).eq('symbol', symbol);
+      if (error) return res.status(500).json({ message: 'DB update error', error });
+      return res.json({ status: 'ok', symbol, updates });
+    } catch (e) {
+      console.error('sp500/update-price error:', e);
+      return res.status(500).json({ message: 'Failed to update price' });
+    }
+  });
+
   app.post('/api/nasdaq100/update-prices', async (_req, res) => {
     try {
       await import('tsx/esm');
