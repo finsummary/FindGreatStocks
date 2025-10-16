@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
 import { setupRoutes, setupStripeWebhook } from './routes.js';
+import { DataScheduler } from './scheduler.js';
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
@@ -32,6 +33,25 @@ app.use(express.json());
 setupRoutes(app, supabase);
 
 const port = process.env.PORT || 5002;
+const scheduler = new DataScheduler(port);
 app.listen(port, () => {
   console.log(`🚀 Server running on port ${port}`);
+  try {
+    scheduler.start();
+    console.log('📊 Data scheduler started');
+  } catch (e) {
+    console.error('Scheduler start error:', e);
+  }
+});
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  try { scheduler.stop(); } catch {}
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  try { scheduler.stop(); } catch {}
+  process.exit(0);
 });
