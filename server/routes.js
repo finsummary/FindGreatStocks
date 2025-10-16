@@ -991,6 +991,109 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Prices: update one symbol across all tables (companies + indexes)
+  app.post('/api/prices/update-symbol', async (req, res) => {
+    try {
+      const symbol = (req.query.symbol || req.body?.symbol || '').toString().trim().toUpperCase();
+      if (!symbol) return res.status(400).json({ message: 'symbol is required' });
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      const url = `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${apiKey}`;
+      const r = await fetch(url);
+      if (!r.ok) return res.status(502).json({ message: 'FMP error', status: r.status });
+      const arr = await r.json();
+      const q = Array.isArray(arr) && arr[0];
+      if (!q) return res.status(404).json({ message: 'No quote' });
+      const updates = {};
+      if (q.price !== undefined) updates.price = Number(q.price);
+      if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
+      if (q.change !== undefined) updates.daily_change = Number(q.change);
+      if (q.changesPercentage !== undefined) updates.daily_change_percent = Number(q.changesPercentage);
+
+      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies'];
+      const results = [];
+      for (const t of tables) {
+        const { data: exists, error: readErr } = await supabase.from(t).select('symbol').eq('symbol', symbol).limit(1);
+        if (readErr) { results.push({ table: t, updated: false, error: readErr.message }); continue; }
+        if (Array.isArray(exists) && exists.length) {
+          const { error: upErr } = await supabase.from(t).update(updates).eq('symbol', symbol);
+          results.push({ table: t, updated: !upErr, error: upErr?.message });
+        } else {
+          results.push({ table: t, updated: false, error: 'not found' });
+        }
+      }
+      return res.json({ status: 'ok', symbol, updates, results });
+    } catch (e) {
+      console.error('prices/update-symbol error:', e);
+      return res.status(500).json({ message: 'Failed to update symbol price' });
+    }
+  });
+
+  // Prices: bulk update for all tables (fire-and-forget)
+  app.post('/api/prices/update-all', async (_req, res) => {
+    try {
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      res.json({ status: 'started' }); // respond immediately
+
+      // background task
+      (async () => {
+        const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies'];
+        const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
+        const fetchQuotes = async (symbols) => {
+          const url = `https://financialmodelingprep.com/api/v3/quote/${symbols.join(',')}?apikey=${apiKey}`;
+          const r = await fetch(url);
+          if (!r.ok) throw new Error(`FMP quote ${r.status}`);
+          const arr = await r.json();
+          const map = new Map();
+          for (const q of (Array.isArray(arr) ? arr : [])) {
+            if (!q?.symbol) continue;
+            map.set(q.symbol.toUpperCase(), q);
+          }
+          return map;
+        };
+        const applyUpdate = (q) => {
+          const updates = {};
+          if (q.price !== undefined) updates.price = Number(q.price);
+          if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
+          if (q.change !== undefined) updates.daily_change = Number(q.change);
+          if (q.changesPercentage !== undefined) updates.daily_change_percent = Number(q.changesPercentage);
+          return updates;
+        };
+
+        for (const t of tables) {
+          try {
+            const { data, error } = await supabase.from(t).select('symbol');
+            if (error) { console.warn('read symbols error', t, error); continue; }
+            const symbols = (data || []).map(r => (r?.symbol || '').toUpperCase()).filter(Boolean);
+            for (const group of chunk(symbols, 50)) {
+              try {
+                const qmap = await fetchQuotes(group);
+                // update each symbol in group
+                for (const sym of group) {
+                  const q = qmap.get(sym);
+                  if (!q) continue;
+                  const updates = applyUpdate(q);
+                  if (Object.keys(updates).length === 0) continue;
+                  await supabase.from(t).update(updates).eq('symbol', sym);
+                }
+                // small delay to avoid hitting rate limits hard
+                await new Promise(r => setTimeout(r, 200));
+              } catch (e) {
+                console.warn('chunk update error', t, e?.message || e);
+              }
+            }
+          } catch (e) {
+            console.warn('table update error', t, e?.message || e);
+          }
+        }
+      })().catch(e => console.error('prices/update-all bg error', e));
+    } catch (e) {
+      console.error('prices/update-all error:', e);
+      return res.status(500).json({ message: 'Failed to start bulk update' });
+    }
+  });
+
   // Watchlist endpoints
   app.get('/api/watchlist', isAuthenticated, async (req, res) => {
     try {
