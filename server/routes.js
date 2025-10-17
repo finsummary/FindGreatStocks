@@ -1146,16 +1146,23 @@ export function setupRoutes(app, supabase) {
   app.post('/api/stripe/create-checkout-session', isAuthenticated, async (req, res) => {
     try {
       if (!process.env.STRIPE_SECRET_KEY) return res.status(400).json({ error: { message: 'Stripe not configured' } });
-      const { priceId } = req.body || {};
-      if (!priceId) return res.status(400).json({ error: { message: 'Price ID is required' } });
+      const { priceId, plan } = req.body || {};
+      let resolvedPriceId = priceId;
+      if (!resolvedPriceId && plan) {
+        const annual = process.env.STRIPE_ANNUAL_PRICE_ID || process.env.STRIPE_PRICE_ANNUAL;
+        const quarterly = process.env.STRIPE_QUARTERLY_PRICE_ID || process.env.STRIPE_PRICE_QUARTERLY;
+        if (String(plan).toLowerCase() === 'annual' && annual) resolvedPriceId = annual;
+        if (String(plan).toLowerCase() === 'quarterly' && quarterly) resolvedPriceId = quarterly;
+      }
+      if (!resolvedPriceId) return res.status(400).json({ error: { message: 'Price ID is required' } });
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' });
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
-        line_items: [{ price: priceId, quantity: 1 }],
+        line_items: [{ price: resolvedPriceId, quantity: 1 }],
         mode: 'subscription',
         success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.CLIENT_URL}/payment-cancelled`,
-        metadata: { userId: req.user.id, priceId },
+        metadata: { userId: req.user.id, priceId: resolvedPriceId, plan: plan || null },
       });
       return res.json({ sessionId: session.id });
     } catch (e) {

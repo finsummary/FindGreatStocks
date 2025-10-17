@@ -23,7 +23,7 @@ import {
 interface UpgradeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpgrade: (priceId: string) => void;
+  onUpgrade: (args: { priceId?: string; plan: 'annual' | 'quarterly' }) => void;
 }
 
 const features = [
@@ -50,7 +50,8 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
   const quarterlyPriceId = import.meta.env.VITE_STRIPE_QUARTERLY_PRICE_ID;
   const annualPriceId = import.meta.env.VITE_STRIPE_ANNUAL_PRICE_ID;
 
-  const [selectedPriceId, setSelectedPriceId] = useState<string>(annualPriceId);
+  const [selectedPlan, setSelectedPlan] = useState<'annual' | 'quarterly'>('annual');
+  const selectedPriceId = selectedPlan === 'annual' ? annualPriceId : quarterlyPriceId;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -93,16 +94,16 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
         <DialogFooter className="flex-col gap-3 bg-zinc-50 dark:bg-zinc-800/60 p-6">
           <div className="flex w-full flex-col sm:flex-row gap-2">
             <div
-              onClick={() => setSelectedPriceId(quarterlyPriceId)}
-              className={`cursor-pointer rounded-lg border bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm p-4 flex-1 flex flex-col h-auto text-center transition-all ${selectedPriceId === quarterlyPriceId ? 'border-primary ring-2 ring-primary' : 'border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'}`}
+              onClick={() => setSelectedPlan('quarterly')}
+              className={`cursor-pointer rounded-lg border bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm p-4 flex-1 flex flex-col h-auto text-center transition-all ${selectedPlan === 'quarterly' ? 'border-primary ring-2 ring-primary' : 'border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'}`}
             >
               <span className="font-semibold text-lg">Quarterly Plan</span>
               <span className="text-2xl font-bold">$9</span>
               <span className="text-xs text-muted-foreground">billed every 3 months</span>
             </div>
             <div
-              onClick={() => setSelectedPriceId(annualPriceId)}
-              className={`cursor-pointer rounded-lg border bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm p-4 pt-6 flex-1 flex flex-col h-auto text-center relative transition-all ${selectedPriceId === annualPriceId ? 'border-primary ring-2 ring-primary' : 'border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'}`}
+              onClick={() => setSelectedPlan('annual')}
+              className={`cursor-pointer rounded-lg border bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm p-4 pt-6 flex-1 flex flex-col h-auto text-center relative transition-all ${selectedPlan === 'annual' ? 'border-primary ring-2 ring-primary' : 'border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'}`}
             >
               <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[11px] font-semibold px-2.5 py-0.5 rounded-full shadow-sm border border-primary/20">
                 Save 19%
@@ -113,7 +114,7 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
             </div>
           </div>
           <div className="w-full">
-            <Button size="lg" className="w-full" onClick={() => onUpgrade(selectedPriceId)} disabled={!selectedPriceId}>
+            <Button size="lg" className="w-full" onClick={() => onUpgrade({ priceId: selectedPriceId, plan: selectedPlan })}>
               Upgrade
             </Button>
             <p className="text-xs text-center text-muted-foreground pt-2">

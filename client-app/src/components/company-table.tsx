@@ -219,7 +219,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     showUpgradeButton: !authLoading && !isPaidUser
   });
 
-  const handleUpgradeClick = async (priceId: string) => {
+  const handleUpgradeClick = async ({ priceId, plan }: { priceId?: string; plan: 'annual' | 'quarterly' }) => {
     console.log(`[1/5] handleUpgradeClick triggered with priceId: ${priceId}`);
 
     if (!session) {
@@ -232,15 +232,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       return;
     }
 
-    if (!priceId) {
-      console.error("[FAIL] Aborted: priceId is missing or undefined.");
-      toast({
-        title: "Configuration Error",
-        description: "Price ID is missing. Please contact support.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // priceId может подставиться на бэке по плану
 
     console.log("[2/5] Closing the upgrade modal.");
     setIsUpgradeModalOpen(false);
@@ -252,7 +244,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ priceId }),
+        body: JSON.stringify({ priceId, plan }),
       }, session.access_token);
 
       console.log("[4/5] Received response from authFetch:", response);
