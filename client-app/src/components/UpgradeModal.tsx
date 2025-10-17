@@ -102,9 +102,9 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
             </div>
             <div
               onClick={() => setSelectedPriceId(annualPriceId)}
-              className={`cursor-pointer rounded-lg border bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm p-4 flex-1 flex flex-col h-auto text-center relative transition-all ${selectedPriceId === annualPriceId ? 'border-primary ring-2 ring-primary' : 'border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'}`}
+              className={`cursor-pointer rounded-lg border bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm p-4 pt-6 flex-1 flex flex-col h-auto text-center relative transition-all ${selectedPriceId === annualPriceId ? 'border-primary ring-2 ring-primary' : 'border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'}`}
             >
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-semibold px-2 py-0.5 rounded-full">
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[11px] font-semibold px-2.5 py-0.5 rounded-full shadow-sm border border-primary/20">
                 Save 19%
               </div>
               <span className="font-semibold text-lg">Annual Plan</span>
