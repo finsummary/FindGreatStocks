@@ -4,9 +4,7 @@
  * after market close using Financial Modeling Prep API
  */
 
-import { db, supabase } from "./db";
-import { nasdaq100Companies } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { supabase } from "./db";
 import { batcher } from "./utils/batcher";
 import { FinancialDataService } from "./financial-data.ts";
 import { updateDcfMetricsForCompany } from "./dcf-daily-updater"; // Import the new function
@@ -73,14 +71,11 @@ async function updateCompanyPrice(symbol: string) {
     }
 
     // Prepare update data
-    const updateData: any = {
-      lastUpdated: new Date()
-    };
-    
-    if (quoteData.price) updateData.price = quoteData.price.toString();
-    if (quoteData.change) updateData.dailyChange = quoteData.change.toString();
-    if (quoteData.changesPercentage) updateData.dailyChangePercent = quoteData.changesPercentage.toString();
-    if (quoteData.marketCap) updateData.marketCap = quoteData.marketCap.toString();
+    const updateData: any = {};
+    if (quoteData.price !== undefined) updateData.price = Number(quoteData.price);
+    if (quoteData.change !== undefined) updateData.daily_change = Number(quoteData.change);
+    if (quoteData.changesPercentage !== undefined) updateData.daily_change_percent = Number(quoteData.changesPercentage);
+    if (quoteData.marketCap !== undefined) updateData.market_cap = Number(quoteData.marketCap);
     // Do not overwrite EPS daily
 
     // Some FMP responses include yield as 'yield' or 'dividendYield'
@@ -100,11 +95,11 @@ async function updateCompanyPrice(symbol: string) {
       } catch {}
     }
 
-    // Update database
-    await db
-      .update(nasdaq100Companies)
-      .set(updateData)
-      .where(eq(nasdaq100Companies.symbol, symbol));
+    // Update database via Supabase (snake_case)
+    await supabase
+      .from('nasdaq100_companies')
+      .update(updateData)
+      .eq('symbol', symbol);
     
     console.log(`✅ Updated ${symbol}: $${quoteData.price} (${quoteData.changesPercentage > 0 ? '+' : ''}${quoteData.changesPercentage.toFixed(2)}%)`);
 
@@ -112,7 +107,7 @@ async function updateCompanyPrice(symbol: string) {
     if (quoteData.marketCap) {
       try {
         const { updateDcfMetricsForCompany } = await import('./dcf-daily-updater');
-        await updateDcfMetricsForCompany(nasdaq100Companies as any, symbol, quoteData.marketCap);
+        await updateDcfMetricsForCompany({ table: 'nasdaq100_companies' } as any, symbol, quoteData.marketCap);
       } catch (e) {
         console.warn(`[${symbol}] DCF update skipped:`, e);
       }

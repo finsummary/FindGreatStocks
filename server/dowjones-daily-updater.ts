@@ -1,6 +1,4 @@
-import { db, supabase } from './db';
-import { dowJonesCompanies } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { supabase } from './db';
 import { batcher } from './utils/batcher';
 import { FinancialDataService } from "./financial-data.ts";
 import { updateDcfMetricsForCompany } from "./dcf-daily-updater"; // Import the new function
@@ -34,14 +32,14 @@ async function updateDowJonesPrices() {
         
         if (quotes && quotes.length > 0) {
             for (const quote of quotes) {
-                if (quote.symbol && quote.price && quote.marketCap) {
+                if (quote.symbol && (quote.price !== undefined) && (quote.marketCap !== undefined)) {
                     try {
                         const updateData: any = {
-                          price: quote.price,
-                          marketCap: String(quote.marketCap),
+                          price: Number(quote.price),
+                          market_cap: Number(quote.marketCap),
                         };
-                        if (quote.change !== undefined) updateData.dailyChange = String(quote.change);
-                        if (quote.changesPercentage !== undefined) updateData.dailyChangePercent = String(quote.changesPercentage);
+                        if (quote.change !== undefined) updateData.daily_change = Number(quote.change);
+                        if (quote.changesPercentage !== undefined) updateData.daily_change_percent = Number(quote.changesPercentage);
                         // Preserve EPS (TTM) between quarter updates; don't overwrite daily
                         // if (quote.eps !== undefined) updateData.eps = String(quote.eps);
 
@@ -71,15 +69,16 @@ async function updateDowJonesPrices() {
                           console.warn(`[${quote.symbol}] Dividend yield fetch failed or unavailable.`);
                         }
 
-                        await db.update(dowJonesCompanies)
-                            .set(updateData)
-                            .where(eq(dowJonesCompanies.symbol, quote.symbol));
+                        await supabase
+                          .from('dow_jones_companies')
+                          .update(updateData)
+                          .eq('symbol', quote.symbol);
                         
                         console.log(`[${quote.symbol}] 💾 Price & MCap updated to ${quote.price} / ${quote.marketCap}`);
                         updatedCount++;
 
                         // Now, trigger the DCF metrics update
-                        await updateDcfMetricsForCompany(dowJonesCompanies, quote.symbol, quote.marketCap);
+                        await updateDcfMetricsForCompany({ table: 'dow_jones_companies' } as any, quote.symbol, quote.marketCap);
 
                     } catch (error) {
                         failedCount++;
