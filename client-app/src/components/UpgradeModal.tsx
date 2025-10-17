@@ -54,14 +54,14 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[650px] p-0 grid grid-rows-[auto_1fr_auto] max-h-[90vh]">
+      <DialogContent className="sm:max-w-[650px] p-0 grid grid-rows-[auto_1fr_auto] max-h-[90vh] bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-50">
         <DialogHeader className="p-6 pb-4">
           <DialogTitle className="text-2xl font-bold">Upgrade to Premium</DialogTitle>
           <DialogDescription>
             Unlock the full power of FindGreatStocks and get access to exclusive features.
           </DialogDescription>
         </DialogHeader>
-        <div className="px-6 py-4 border-t overflow-y-auto">
+        <div className="px-6 py-4 border-t overflow-y-auto bg-white/95 dark:bg-zinc-900/95">
           <h3 className="text-lg font-semibold mb-4">Premium Features</h3>
           <ul className="space-y-1.5">
             {features.map((feature, index) => {
@@ -73,8 +73,8 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
                 const parts = text.split(termToBold);
                 return (
                   <li key={index} className="flex items-start gap-3">
-                    <IconComponent className="h-5 w-5 mt-0.5 text-gray-600 flex-shrink-0" />
-                    <span className="text-muted-foreground flex-1">
+                    <IconComponent className="h-5 w-5 mt-0.5 text-zinc-700 dark:text-zinc-300 flex-shrink-0" />
+                    <span className="text-zinc-700 dark:text-zinc-200 flex-1">
                       <strong className="font-semibold text-foreground">{termToBold}</strong>
                       {parts[1]}
                     </span>
@@ -83,18 +83,18 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
               }
               return (
                 <li key={index} className="flex items-start gap-3">
-                  <IconComponent className="h-5 w-5 mt-0.5 text-gray-600 flex-shrink-0" />
-                  <span className="text-muted-foreground flex-1">{text}</span>
+                  <IconComponent className="h-5 w-5 mt-0.5 text-zinc-700 dark:text-zinc-300 flex-shrink-0" />
+                  <span className="text-zinc-700 dark:text-zinc-200 flex-1">{text}</span>
                 </li>
               );
             })}
           </ul>
         </div>
-        <DialogFooter className="flex-col gap-3 bg-muted/50 p-6">
+        <DialogFooter className="flex-col gap-3 bg-zinc-50 dark:bg-zinc-800/60 p-6">
           <div className="flex w-full flex-col sm:flex-row gap-2">
             <div
               onClick={() => setSelectedPriceId(quarterlyPriceId)}
-              className={`cursor-pointer rounded-lg border bg-card text-card-foreground shadow-sm p-4 flex-1 flex flex-col h-auto text-center transition-all ${selectedPriceId === quarterlyPriceId ? 'border-primary ring-2 ring-primary' : 'border-muted hover:border-muted-foreground/50'}`}
+              className={`cursor-pointer rounded-lg border bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm p-4 flex-1 flex flex-col h-auto text-center transition-all ${selectedPriceId === quarterlyPriceId ? 'border-primary ring-2 ring-primary' : 'border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'}`}
             >
               <span className="font-semibold text-lg">Quarterly Plan</span>
               <span className="text-2xl font-bold">$9</span>
@@ -102,7 +102,7 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
             </div>
             <div
               onClick={() => setSelectedPriceId(annualPriceId)}
-              className={`cursor-pointer rounded-lg border bg-card text-card-foreground shadow-sm p-4 flex-1 flex flex-col h-auto text-center relative transition-all ${selectedPriceId === annualPriceId ? 'border-primary ring-2 ring-primary' : 'border-muted hover:border-muted-foreground/50'}`}
+              className={`cursor-pointer rounded-lg border bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm p-4 flex-1 flex flex-col h-auto text-center relative transition-all ${selectedPriceId === annualPriceId ? 'border-primary ring-2 ring-primary' : 'border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'}`}
             >
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-semibold px-2 py-0.5 rounded-full">
                 Save 19%
