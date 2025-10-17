@@ -352,9 +352,11 @@ export function setupRoutes(app, supabase) {
                 if (val !== null && val !== undefined) r[key] = val;
               }
             };
-            // Always prefer fresher price and market cap from master companies
-            if (m.price !== null && m.price !== undefined) r.price = m.price;
-            if (m.market_cap !== null && m.market_cap !== undefined) r.market_cap = m.market_cap;
+            // Prefer fresher price/market cap from master only if they are valid (> 0)
+            const mPriceNum = Number(m.price);
+            if (isFinite(mPriceNum) && mPriceNum > 0) r.price = mPriceNum;
+            const mCapNum = Number(m.market_cap);
+            if (isFinite(mCapNum) && mCapNum > 0) r.market_cap = mCapNum;
             // Best-effort overlay for daily change fields if present in master
             if (m.daily_change !== null && m.daily_change !== undefined) r.daily_change = m.daily_change;
             if (m.daily_change_percent !== null && m.daily_change_percent !== undefined) r.daily_change_percent = m.daily_change_percent;
