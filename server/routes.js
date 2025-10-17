@@ -337,7 +337,7 @@ export function setupRoutes(app, supabase) {
       }
       const rows = Array.isArray(data) ? data : [];
 
-      // Fallback enrichment from master companies table for missing metrics
+      // Overlay/fallback enrichment from master companies table for fresher metrics
       const symbols = rows.map(r => r.symbol).filter(Boolean);
       if (symbols.length) {
         const cols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth';
@@ -352,8 +352,12 @@ export function setupRoutes(app, supabase) {
                 if (val !== null && val !== undefined) r[key] = val;
               }
             };
-            applyIfMissing('price', m.price);
-            applyIfMissing('market_cap', m.market_cap);
+            // Always prefer fresher price and market cap from master companies
+            if (m.price !== null && m.price !== undefined) r.price = m.price;
+            if (m.market_cap !== null && m.market_cap !== undefined) r.market_cap = m.market_cap;
+            // Best-effort overlay for daily change fields if present in master
+            if (m.daily_change !== null && m.daily_change !== undefined) r.daily_change = m.daily_change;
+            if (m.daily_change_percent !== null && m.daily_change_percent !== undefined) r.daily_change_percent = m.daily_change_percent;
             applyIfMissing('pe_ratio', m.pe_ratio);
             if (r.price_to_sales_ratio == null || Number(r.price_to_sales_ratio) === 0) {
               if (m.price_to_sales_ratio != null && Number(m.price_to_sales_ratio) !== 0) {
