@@ -189,7 +189,7 @@ export function setupRoutes(app, supabase) {
       let query = supabase
         .from('companies')
         .select('*', { count: 'exact' })
-        .order(orderCol, { ascending: sortOrder })
+        .order(orderCol, { ascending: sortOrder, nullsFirst: false })
         .range(offset, offset + limit - 1);
       if (search) {
         query = query.or(`name.ilike.%${search}%,symbol.ilike.%${search}%`);
@@ -325,7 +325,7 @@ export function setupRoutes(app, supabase) {
       let query = supabase
         .from(tableName)
         .select('*', { count: 'exact' })
-        .order(orderCol, { ascending: sortOrder })
+        .order(orderCol, { ascending: sortOrder, nullsFirst: false })
         .range(offset, offset + limit - 1);
       if (search) {
         query = query.or(`name.ilike.%${search}%,symbol.ilike.%${search}%`);

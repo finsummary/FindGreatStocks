@@ -798,13 +798,21 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   // }, [columnVisibility]);
 
   const handleSort = (column: string) => {
+    const numericColumns = new Set([
+      'arMddRatio3Year','arMddRatio5Year','arMddRatio10Year',
+      'return3Year','return5Year','return10Year',
+      'maxDrawdown3Year','maxDrawdown5Year','maxDrawdown10Year',
+      'price','marketCap','peRatio','priceToSalesRatio','dividendYield'
+    ]);
+    let nextOrder: 'asc' | 'desc' = 'asc';
     if (sortBy === column) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+      nextOrder = sortOrder === 'asc' ? 'desc' : 'asc';
     } else {
-      setSortBy(column);
-      setSortOrder('asc');
+      nextOrder = numericColumns.has(column) ? 'desc' : 'asc';
     }
-    setPage(0); // Reset to first page when sorting changes
+    setSortBy(column);
+    setSortOrder(nextOrder);
+    setPage(0);
   };
 
   const SortIcon = ({ column }: { column: string }) => {
