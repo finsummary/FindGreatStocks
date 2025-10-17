@@ -223,12 +223,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     console.log(`[1/5] handleUpgradeClick triggered with priceId: ${priceId}`);
 
     if (!session) {
-      console.error("[FAIL] Aborted: No user session found in auth context.");
-      toast({
-        title: "Authentication Error",
-        description: "You must be logged in to upgrade. Please log in and try again.",
-        variant: "destructive",
-      });
+      // redirect unauthenticated users to login/signup flow
+      window.location.href = '/login';
       return;
     }
 
