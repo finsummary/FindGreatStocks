@@ -43,6 +43,18 @@ export class DataScheduler {
     }, null, true, 'UTC');
     this.jobs.push(prices0100);
 
+    // 02:00 UTC — резервное обновление цен (на случай пропуска 01:00)
+    const prices0200 = new CronJob('0 0 2 * * *', async () => {
+      this.log('Run: backup prices update (all tables)');
+      await Promise.all([
+        this.safePost('/api/companies/update-prices'),
+        this.safePost('/api/sp500/update-prices'),
+        this.safePost('/api/nasdaq100/update-prices'),
+        this.safePost('/api/dowjones/update-prices'),
+      ]);
+    }, null, true, 'UTC');
+    this.jobs.push(prices0200);
+
     // 01:20 UTC — финансы/метрики DCF
     const financials0120 = new CronJob('0 20 1 * * *', async () => {
       this.log('Run: financial data enhancement');
@@ -76,6 +88,21 @@ export class DataScheduler {
     this.jobs.push(indices2030);
 
     this.log('Started', this.jobs.length, 'cron jobs');
+
+    // Catch-up запуск при старте: если сервер поднят в ночное окно, запустить обновление цен один раз
+    const hour = new Date().getUTCHours();
+    const catchupEnabled = (process.env.SCHEDULER_CATCHUP_ENABLED || 'true').toLowerCase() !== 'false';
+    if (catchupEnabled && hour >= 0 && hour <= 6) {
+      setTimeout(() => {
+        this.log('Catch-up: triggering prices update shortly after start');
+        Promise.all([
+          this.safePost('/api/companies/update-prices'),
+          this.safePost('/api/sp500/update-prices'),
+          this.safePost('/api/nasdaq100/update-prices'),
+          this.safePost('/api/dowjones/update-prices'),
+        ]).catch(e => this.log('Catch-up error', e?.message || e));
+      }, 30000);
+    }
   }
 
   stop() {
