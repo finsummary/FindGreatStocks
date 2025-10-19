@@ -295,6 +295,18 @@ export function setupRoutes(app, supabase) {
           if (r.dcf_enterprise_value == null && fb.dcfEnterpriseValue != null) r.dcf_enterprise_value = fb.dcfEnterpriseValue;
           if (r.margin_of_safety == null && fb.marginOfSafety != null) r.margin_of_safety = fb.marginOfSafety;
           if (r.dcf_implied_growth == null && fb.dcfImpliedGrowth != null) r.dcf_implied_growth = fb.dcfImpliedGrowth;
+
+          // Guard: clamp unrealistic DCF vs MarketCap
+          const mcapNum = Number(r.market_cap);
+          const dcfNum = Number(r.dcf_enterprise_value);
+          if (isFinite(mcapNum) && mcapNum > 0 && isFinite(dcfNum) && dcfNum > 0) {
+            const ratio = dcfNum / mcapNum;
+            if (ratio > 50) {
+              r.dcf_enterprise_value = null;
+              r.margin_of_safety = null;
+              r.dcf_implied_growth = null;
+            }
+          }
         }
       }
 
@@ -919,6 +931,27 @@ export function setupRoutes(app, supabase) {
     } catch (e) {
       console.error('override-returns-null error:', e);
       return res.status(500).json({ message: 'Failed to override returns' });
+    }
+  });
+
+  // Admin: force-clear DCF metrics for given symbols in all tables
+  app.post('/api/dcf/clear', async (req, res) => {
+    try {
+      const symbolsParam = (req.query.symbols || req.body?.symbols || '').toString();
+      const symbols = symbolsParam.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      if (!symbols.length) return res.status(400).json({ message: 'Provide symbols as comma-separated list in ?symbols=' });
+      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies'];
+      const results = [];
+      for (const sym of symbols) {
+        const upd = { dcf_enterprise_value: null, margin_of_safety: null, dcf_implied_growth: null };
+        for (const t of tables) {
+          await supabase.from(t).update(upd).eq('symbol', sym);
+        }
+        results.push({ symbol: sym, cleared: true });
+      }
+      return res.json({ status: 'ok', results });
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to clear DCF' });
     }
   });
 
