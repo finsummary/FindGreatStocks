@@ -506,13 +506,41 @@ export function setupRoutes(app, supabase) {
     }
   });
 
-  // Daily price updates
+  // Helpers: bulk price updates (inline JS, no TS deps)
+  async function bulkUpdatePricesFor(tableName) {
+    const apiKey = process.env.FMP_API_KEY;
+    if (!apiKey) throw new Error('FMP_API_KEY missing');
+    const { data: rows, error } = await supabase.from(tableName).select('symbol');
+    if (error) throw error;
+    const symbols = (rows || []).map(r => r.symbol).filter(Boolean);
+    const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
+    const chunks = chunk(symbols, 50);
+    for (const group of chunks) {
+      try {
+        const url = `https://financialmodelingprep.com/api/v3/quote/${group.join(',')}?apikey=${apiKey}`;
+        const r = await fetch(url);
+        if (!r.ok) { console.warn('FMP group error', tableName, r.status); continue; }
+        const arr = await r.json();
+        for (const q of (Array.isArray(arr) ? arr : [])) {
+          if (!q?.symbol) continue;
+          const updates = {};
+          if (q.price !== undefined) updates.price = Number(q.price);
+          if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
+          if (q.change !== undefined) updates.daily_change = Number(q.change);
+          if (q.changesPercentage !== undefined) updates.daily_change_percent = Number(q.changesPercentage);
+          try { await supabase.from(tableName).update(updates).eq('symbol', q.symbol); } catch {}
+        }
+        await new Promise(r => setTimeout(r, 150));
+      } catch (e) {
+        console.warn('bulk update chunk error', tableName, e?.message || e);
+      }
+    }
+  }
+
+  // Daily price updates (inline)
   app.post('/api/sp500/update-prices', async (_req, res) => {
     try {
-      await import('tsx/esm');
-      import('./sp500-daily-updater.ts')
-        .then(mod => mod.updateSp500Prices())
-        .catch(e => console.error('sp500 update async error:', e));
+      (async () => { await bulkUpdatePricesFor('sp500_companies'); })();
       return res.json({ status: 'started' });
     } catch (e) {
       console.error('sp500 update error:', e);
@@ -549,10 +577,7 @@ export function setupRoutes(app, supabase) {
 
   app.post('/api/nasdaq100/update-prices', async (_req, res) => {
     try {
-      await import('tsx/esm');
-      import('./nasdaq100-daily-updater.ts')
-        .then(mod => mod.updateNasdaq100Prices())
-        .catch(e => console.error('nasdaq100 update async error:', e));
+      (async () => { await bulkUpdatePricesFor('nasdaq100_companies'); })();
       return res.json({ status: 'started' });
     } catch (e) {
       console.error('nasdaq100 update error:', e);
@@ -637,10 +662,7 @@ export function setupRoutes(app, supabase) {
 
   app.post('/api/dowjones/update-prices', async (_req, res) => {
     try {
-      await import('tsx/esm');
-      import('./dowjones-daily-updater.ts')
-        .then(mod => mod.updateDowJonesPrices())
-        .catch(e => console.error('dowjones update async error:', e));
+      (async () => { await bulkUpdatePricesFor('dow_jones_companies'); })();
       return res.json({ status: 'started' });
     } catch (e) {
       console.error('dowjones update error:', e);
@@ -651,10 +673,7 @@ export function setupRoutes(app, supabase) {
   // General companies table price update (fills marketCap/price in companies)
   app.post('/api/companies/update-prices', async (_req, res) => {
     try {
-      await import('tsx/esm');
-      import('./daily-price-updater.ts')
-        .then(mod => mod.dailyPriceUpdater.updateAllPrices())
-        .catch(e => console.error('companies price update async error:', e));
+      (async () => { await bulkUpdatePricesFor('companies'); })();
       return res.json({ status: 'started' });
     } catch (e) {
       console.error('companies price update error:', e);
