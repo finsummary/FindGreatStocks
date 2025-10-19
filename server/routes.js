@@ -301,7 +301,7 @@ export function setupRoutes(app, supabase) {
           const dcfNum = Number(r.dcf_enterprise_value);
           if (isFinite(mcapNum) && mcapNum > 0 && isFinite(dcfNum) && dcfNum > 0) {
             const ratio = dcfNum / mcapNum;
-            if (ratio > 50) {
+            if (ratio > 20) {
               r.dcf_enterprise_value = null;
               r.margin_of_safety = null;
               r.dcf_implied_growth = null;
@@ -1104,16 +1104,15 @@ export function setupRoutes(app, supabase) {
             dcf = dcf / cnyUsd;
           }
 
-          // Fix unit scale if DCF is orders of magnitude off vs market cap
-          if (isFinite(mcap) && mcap > 0) {
-            const ratio = dcf / mcap;
-            if (ratio > 1000) dcf = dcf / 1_000_000; // likely recorded in millions
-            else if (ratio > 50) dcf = dcf / 1_000; // likely thousands
+          // Recompute margin of safety in USD, if возможна
+          let mos = null;
+          if (isFinite(mcap) && mcap > 0 && isFinite(dcf) && dcf > 0) {
+            mos = (dcf - mcap) / mcap;
           }
 
           // write back to all tables where symbol exists
           for (const t of tables) {
-            await supabase.from(t).update({ dcf_enterprise_value: dcf }).eq('symbol', sym);
+            await supabase.from(t).update({ dcf_enterprise_value: dcf, margin_of_safety: mos }).eq('symbol', sym);
           }
           results.push({ symbol: sym, updated: true, currency, dcf });
         } catch (e) {
