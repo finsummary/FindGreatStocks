@@ -524,7 +524,11 @@ export function setupRoutes(app, supabase) {
         for (const q of (Array.isArray(arr) ? arr : [])) {
           if (!q?.symbol) continue;
           const updates = {};
-          if (q.price !== undefined) updates.price = Number(q.price);
+          // Use latest daily close when available for consistency (previousClose preferred)
+          const closePrice = (q.previousClose !== undefined && q.previousClose !== null)
+            ? Number(q.previousClose)
+            : (q.price !== undefined ? Number(q.price) : undefined);
+          if (closePrice !== undefined) updates.price = closePrice;
           if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
           if (q.change !== undefined) updates.daily_change = Number(q.change);
           if (q.changesPercentage !== undefined) updates.daily_change_percent = Number(q.changesPercentage);
