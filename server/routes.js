@@ -1139,6 +1139,48 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Watchlist: return full company objects for the user's watchlist
+  app.get('/api/watchlist/companies', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const { data: wl, error: wlErr } = await supabase
+        .from('watchlist')
+        .select('company_symbol')
+        .eq('user_id', userId);
+      if (wlErr) return res.status(500).json({ message: 'Failed to fetch watchlist' });
+      const symbols = (wl || []).map(r => r.company_symbol).filter(Boolean);
+      if (!symbols.length) return res.json([]);
+
+      // First try master companies table
+      const { data: master } = await supabase.from('companies').select('*').in('symbol', symbols);
+      const bySym = new Map((master || []).map(r => [r.symbol, r]));
+
+      // For missing symbols, try index tables
+      const missing = symbols.filter(s => !bySym.has(s));
+      if (missing.length) {
+        const [sp500, ndx, dji] = await Promise.all([
+          supabase.from('sp500_companies').select('*').in('symbol', missing),
+          supabase.from('nasdaq100_companies').select('*').in('symbol', missing),
+          supabase.from('dow_jones_companies').select('*').in('symbol', missing),
+        ]);
+        for (const src of [sp500?.data, ndx?.data, dji?.data]) {
+          if (Array.isArray(src)) {
+            for (const r of src) {
+              if (r?.symbol && !bySym.has(r.symbol)) bySym.set(r.symbol, r);
+            }
+          }
+        }
+      }
+
+      // Keep original order of symbols
+      const rows = symbols.map(sym => bySym.get(sym)).filter(Boolean);
+      return res.json(rows.map(mapDbRowToCompany));
+    } catch (e) {
+      console.error('watchlist/companies error:', e);
+      return res.status(500).json({ message: 'Failed to fetch watchlist companies' });
+    }
+  });
+
   app.post('/api/watchlist', isAuthenticated, async (req, res) => {
     try {
       const { companySymbol } = req.body || {};
