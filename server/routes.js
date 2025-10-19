@@ -380,9 +380,10 @@ export function setupRoutes(app, supabase) {
             applyIfMissing('max_drawdown_3_year', m.max_drawdown_3_year);
             applyIfMissing('max_drawdown_5_year', m.max_drawdown_5_year);
             applyIfMissing('max_drawdown_10_year', m.max_drawdown_10_year);
-            applyIfMissing('dcf_enterprise_value', m.dcf_enterprise_value);
-            applyIfMissing('margin_of_safety', m.margin_of_safety);
-            applyIfMissing('dcf_implied_growth', m.dcf_implied_growth);
+            // Always prefer master DCF metrics when present to avoid stale/index-specific anomalies
+            if (m.dcf_enterprise_value !== null && m.dcf_enterprise_value !== undefined) r.dcf_enterprise_value = m.dcf_enterprise_value;
+            if (m.margin_of_safety !== null && m.margin_of_safety !== undefined) r.margin_of_safety = m.margin_of_safety;
+            if (m.dcf_implied_growth !== null && m.dcf_implied_growth !== undefined) r.dcf_implied_growth = m.dcf_implied_growth;
           }
         }
       }
