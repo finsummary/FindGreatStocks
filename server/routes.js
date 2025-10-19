@@ -1023,6 +1023,76 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Admin: normalize DCF to USD and fix unit scale for given symbols
+  app.post('/api/dcf/normalize', async (req, res) => {
+    try {
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      const symbolsParam = (req.query.symbols || req.body?.symbols || '').toString();
+      const symbols = symbolsParam.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      if (!symbols.length) return res.status(400).json({ message: 'Provide symbols as comma-separated list in ?symbols=' });
+
+      // helper: fetch JSON
+      const fetchJson = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); };
+
+      // get USD/CNY once
+      let cnyUsd = 7.0;
+      try {
+        const fx = await fetchJson(`https://financialmodelingprep.com/api/v3/fx/CNYUSD?apikey=${apiKey}`);
+        const rate = Array.isArray(fx) && fx[0]?.price; if (rate) cnyUsd = Number(rate);
+      } catch {}
+
+      const results = [];
+      for (const sym of symbols) {
+        try {
+          // read current row (prefer companies then index tables)
+          const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies'];
+          let foundTable = null; let row = null;
+          for (const t of tables) {
+            const { data } = await supabase.from(t).select('symbol, dcf_enterprise_value, market_cap').eq('symbol', sym).limit(1);
+            if (Array.isArray(data) && data[0]) { foundTable = t; row = data[0]; break; }
+          }
+          if (!row) { results.push({ symbol: sym, updated: false, error: 'not found' }); continue; }
+
+          let dcf = Number(row.dcf_enterprise_value);
+          const mcap = Number(row.market_cap);
+          if (!isFinite(dcf) || dcf <= 0) { results.push({ symbol: sym, updated: false, error: 'dcf missing' }); continue; }
+
+          // currency from profile
+          let currency = 'USD';
+          try {
+            const prof = await fetchJson(`https://financialmodelingprep.com/api/v3/profile/${sym}?apikey=${apiKey}`);
+            const p = Array.isArray(prof) && prof[0]; if (p?.currency) currency = String(p.currency).toUpperCase();
+          } catch {}
+
+          // Convert to USD if CNY
+          if (currency === 'CNY') {
+            dcf = dcf / cnyUsd;
+          }
+
+          // Fix unit scale if DCF is orders of magnitude off vs market cap
+          if (isFinite(mcap) && mcap > 0) {
+            const ratio = dcf / mcap;
+            if (ratio > 1000) dcf = dcf / 1_000_000; // likely recorded in millions
+            else if (ratio > 50) dcf = dcf / 1_000; // likely thousands
+          }
+
+          // write back to all tables where symbol exists
+          for (const t of tables) {
+            await supabase.from(t).update({ dcf_enterprise_value: dcf }).eq('symbol', sym);
+          }
+          results.push({ symbol: sym, updated: true, currency, dcf });
+        } catch (e) {
+          results.push({ symbol: sym, updated: false, error: e?.message || 'unknown' });
+        }
+      }
+      return res.json({ status: 'ok', results });
+    } catch (e) {
+      console.error('dcf/normalize error:', e);
+      return res.status(500).json({ message: 'Failed to normalize DCF' });
+    }
+  });
+
   // Prices: update one symbol across all tables (companies + indexes)
   app.post('/api/prices/update-symbol', async (req, res) => {
     try {
