@@ -1126,6 +1126,84 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Recompute DCF from financial statements (FCF → perpetuity) with FX normalization to USD
+  app.post('/api/dcf/recompute', async (req, res) => {
+    try {
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      const symbolsParam = (req.query.symbols || req.body?.symbols || '').toString();
+      const symbols = symbolsParam.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      if (!symbols.length) return res.status(400).json({ message: 'Provide symbols as comma-separated list in ?symbols=' });
+
+      const fetchJson = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); };
+
+      const results = [];
+      for (const sym of symbols) {
+        try {
+          // Profile (currency) and market cap
+          let currency = 'USD'; let marketCap = null; let revenueGrowth10y = null;
+          try {
+            const prof = await fetchJson(`https://financialmodelingprep.com/api/v3/profile/${sym}?apikey=${apiKey}`);
+            const p = Array.isArray(prof) && prof[0];
+            if (p?.currency) currency = String(p.currency).toUpperCase();
+            if (p?.mktCap) marketCap = Number(p.mktCap);
+          } catch {}
+          // Try DB market cap if not provided
+          if (!(isFinite(marketCap) && marketCap > 0)) {
+            const { data } = await supabase.from('companies').select('market_cap,revenue_growth_10y').eq('symbol', sym).limit(1);
+            if (Array.isArray(data) && data[0]) { marketCap = Number(data[0].market_cap); revenueGrowth10y = Number(data[0].revenue_growth_10y); }
+          }
+
+          // Fetch last 5y cash flows
+          const cash = await fetchJson(`https://financialmodelingprep.com/api/v3/cash-flow-statement/${sym}?limit=5&apikey=${apiKey}`);
+          const series = Array.isArray(cash) ? cash : [];
+          const fcfs = series.map(r => Number(r.freeCashFlow)).filter(v => isFinite(v));
+          const fcfBase = fcfs.length ? (fcfs.slice(0, 3).reduce((a, b) => a + b, 0) / Math.min(3, fcfs.length)) : null;
+          if (!(isFinite(fcfBase) && fcfBase !== 0)) { results.push({ symbol: sym, updated: false, error: 'no FCF' }); continue; }
+
+          // FX to USD
+          let fcfUsd = fcfBase;
+          if (currency && currency !== 'USD') {
+            try {
+              const pair = `${currency}USD`;
+              const fx = await fetchJson(`https://financialmodelingprep.com/api/v3/fx/${pair}?apikey=${apiKey}`);
+              const rate = Array.isArray(fx) && fx[0]?.price; if (rate) fcfUsd = fcfUsd * Number(rate);
+            } catch {}
+          }
+
+          // Growth and discount assumptions
+          const g = Math.max(0.02, Math.min(0.08, isFinite(revenueGrowth10y) ? (Number(revenueGrowth10y) / 100) : 0.05));
+          const wacc = 0.10;
+          if (g >= wacc) { results.push({ symbol: sym, updated: false, error: 'g>=WACC' }); continue; }
+          const fcf1 = fcfUsd * (1 + g);
+          const dcfEv = fcf1 / (wacc - g);
+
+          // Margin of safety
+          let mos = null;
+          if (isFinite(marketCap) && marketCap > 0 && isFinite(dcfEv) && dcfEv > 0) mos = (dcfEv - marketCap) / marketCap;
+
+          // Guard: hide insane values
+          const tooHigh = (isFinite(marketCap) && marketCap > 0 && isFinite(dcfEv) && dcfEv / marketCap > 20);
+          const writeVal = tooHigh ? null : dcfEv;
+          const writeMos = tooHigh ? null : mos;
+
+          const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies'];
+          for (const t of tables) {
+            await supabase.from(t).update({ dcf_enterprise_value: writeVal, margin_of_safety: writeMos, dcf_implied_growth: g }).eq('symbol', sym);
+          }
+          results.push({ symbol: sym, updated: true, dcf: writeVal, mos: writeMos, g, currency });
+        } catch (e) {
+          results.push({ symbol: sym, updated: false, error: e?.message || 'unknown' });
+        }
+        await new Promise(r => setTimeout(r, 200));
+      }
+      return res.json({ status: 'ok', results });
+    } catch (e) {
+      console.error('dcf/recompute error:', e);
+      return res.status(500).json({ message: 'Failed to recompute DCF' });
+    }
+  });
+
   // Prices: update one symbol across all tables (companies + indexes)
   app.post('/api/prices/update-symbol', async (req, res) => {
     try {
