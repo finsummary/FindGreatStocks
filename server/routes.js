@@ -1,7 +1,7 @@
 import express from 'express';
 import Stripe from 'stripe';
 
-export function setupStripeWebhook(app) {
+export function setupStripeWebhook(app, supabase) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
     // Fallback dummy endpoint to avoid 404 if webhook not configured
@@ -12,7 +12,89 @@ export function setupStripeWebhook(app) {
     try {
       const sig = req.headers['stripe-signature'];
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' });
-      stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+      const event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+
+      const updateUserTier = async ({ userId, email, tier, customerId, subscriptionId }) => {
+        const payload = {
+          subscription_tier: tier,
+          stripe_customer_id: customerId || null,
+          stripe_subscription_id: subscriptionId || null,
+          updated_at: new Date().toISOString(),
+        };
+        if (userId) {
+          await supabase.from('users').update(payload).eq('id', userId);
+        } else if (email) {
+          await supabase.from('users').update(payload).eq('email', email);
+        }
+      };
+
+      switch (event.type) {
+        case 'checkout.session.completed': {
+          const session = event.data.object;
+          const userId = session.metadata?.userId || null;
+          const plan = (session.metadata?.plan || '').toString().toLowerCase();
+          const customerId = (session.customer && typeof session.customer === 'string') ? session.customer : null;
+          const subscriptionId = (session.subscription && typeof session.subscription === 'string') ? session.subscription : null;
+          let tier = 'paid';
+          if (plan === 'annual') tier = 'annual';
+          else if (plan === 'quarterly') tier = 'quarterly';
+          // If plan not provided, try to infer from subscription price
+          try {
+            if (!plan && subscriptionId) {
+              const sub = await stripe.subscriptions.retrieve(subscriptionId, { expand: ['items.data.price'] });
+              const price = sub?.items?.data?.[0]?.price;
+              const nickname = (price?.nickname || '').toString().toLowerCase();
+              if (nickname.includes('annual')) tier = 'annual';
+              else if (nickname.includes('quarter')) tier = 'quarterly';
+            }
+          } catch {}
+          await updateUserTier({ userId, email: session.customer_details?.email, tier, customerId, subscriptionId });
+          break;
+        }
+        case 'customer.subscription.updated': {
+          const sub = event.data.object;
+          const status = (sub.status || '').toString();
+          const customerId = (sub.customer && typeof sub.customer === 'string') ? sub.customer : null;
+          const subscriptionId = (sub.id || null);
+          let tier = (status === 'active' || status === 'trialing') ? 'paid' : 'free';
+          // try to map plan from price nickname
+          try {
+            const price = sub?.items?.data?.[0]?.price;
+            const nickname = (price?.nickname || '').toString().toLowerCase();
+            if (nickname.includes('annual')) tier = (status === 'active' || status === 'trialing') ? 'annual' : 'free';
+            else if (nickname.includes('quarter')) tier = (status === 'active' || status === 'trialing') ? 'quarterly' : 'free';
+          } catch {}
+          // try find user by stripe_customer_id
+          try {
+            const { data } = await supabase.from('users').select('id,email').eq('stripe_customer_id', customerId).limit(1);
+            const user = Array.isArray(data) && data[0];
+            await updateUserTier({ userId: user?.id || null, email: user?.email || null, tier, customerId, subscriptionId });
+          } catch {}
+          break;
+        }
+        case 'customer.subscription.deleted': {
+          const sub = event.data.object;
+          const customerId = (sub.customer && typeof sub.customer === 'string') ? sub.customer : null;
+          try {
+            const { data } = await supabase.from('users').select('id,email').eq('stripe_customer_id', customerId).limit(1);
+            const user = Array.isArray(data) && data[0];
+            await updateUserTier({ userId: user?.id || null, email: user?.email || null, tier: 'free', customerId, subscriptionId: null });
+          } catch {}
+          break;
+        }
+        case 'invoice.payment_failed': {
+          const inv = event.data.object;
+          const customerId = (inv.customer && typeof inv.customer === 'string') ? inv.customer : null;
+          try {
+            const { data } = await supabase.from('users').select('id,email').eq('stripe_customer_id', customerId).limit(1);
+            const user = Array.isArray(data) && data[0];
+            await updateUserTier({ userId: user?.id || null, email: user?.email || null, tier: 'free', customerId, subscriptionId: inv.subscription || null });
+          } catch {}
+          break;
+        }
+        default:
+          break;
+      }
       return res.json({ received: true });
     } catch (e) {
       console.error('Stripe webhook error', e);
@@ -1320,42 +1402,153 @@ export function setupRoutes(app, supabase) {
     }
   });
 
-  // Watchlist: return full company objects for the user's watchlist
+  // Watchlist: return full company objects with enrichment from index tables (fill missing metrics)
   app.get('/api/watchlist/companies', isAuthenticated, async (req, res) => {
     try {
       const userId = req.user?.id;
+      const limit = parseInt(req.query.limit) || 50;
+      const offset = parseInt(req.query.offset) || 0;
+      const sortBy = (req.query.sortBy || 'marketCap').toString();
+      const sortOrder = ((req.query.sortOrder || 'desc').toString() === 'asc') ? 'asc' : 'desc';
       const { data: wl, error: wlErr } = await supabase
         .from('watchlist')
         .select('company_symbol')
         .eq('user_id', userId);
       if (wlErr) return res.status(500).json({ message: 'Failed to fetch watchlist' });
       const symbols = (wl || []).map(r => r.company_symbol).filter(Boolean);
-      if (!symbols.length) return res.json([]);
+      if (!symbols.length) return res.json({ companies: [], total: 0, limit, offset, hasMore: false });
 
-      // First try master companies table
+      // Load master rows
       const { data: master } = await supabase.from('companies').select('*').in('symbol', symbols);
       const bySym = new Map((master || []).map(r => [r.symbol, r]));
 
-      // For missing symbols, try index tables
-      const missing = symbols.filter(s => !bySym.has(s));
-      if (missing.length) {
-        const [sp500, ndx, dji] = await Promise.all([
-          supabase.from('sp500_companies').select('*').in('symbol', missing),
-          supabase.from('nasdaq100_companies').select('*').in('symbol', missing),
-          supabase.from('dow_jones_companies').select('*').in('symbol', missing),
-        ]);
-        for (const src of [sp500?.data, ndx?.data, dji?.data]) {
-          if (Array.isArray(src)) {
-            for (const r of src) {
-              if (r?.symbol && !bySym.has(r.symbol)) bySym.set(r.symbol, r);
+      // Load fallbacks from index tables for ALL symbols (not only missing)
+      const selectCols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth';
+      const [sp500, ndx, dji] = await Promise.all([
+        supabase.from('sp500_companies').select(selectCols).in('symbol', symbols),
+        supabase.from('nasdaq100_companies').select(selectCols).in('symbol', symbols),
+        supabase.from('dow_jones_companies').select(selectCols).in('symbol', symbols),
+      ]);
+
+      // Build fallback map with first non-null values (preference order: nasdaq100, sp500, dowjones for tech-heavy)
+      const fallback = new Map();
+      const merge = (rows) => {
+        if (rows && Array.isArray(rows.data)) {
+          for (const r of rows.data) {
+            if (!r?.symbol) continue;
+            const prev = fallback.get(r.symbol) || {};
+            const next = { ...prev };
+            const keys = ['price','market_cap','pe_ratio','price_to_sales_ratio','dividend_yield','revenue','net_income','free_cash_flow','return_3_year','return_5_year','return_10_year','max_drawdown_3_year','max_drawdown_5_year','max_drawdown_10_year','dcf_enterprise_value','margin_of_safety','dcf_implied_growth'];
+            for (const k of keys) {
+              const val = r[k];
+              if ((next[k] === undefined || next[k] === null) && (val !== undefined && val !== null)) next[k] = val;
             }
+            fallback.set(r.symbol, next);
           }
         }
+      };
+      // Prefer Nasdaq100 values when есть (для BIIB и др.), затем S&P, затем Dow
+      merge(ndx); merge(sp500); merge(dji);
+
+      // Build final rows preserving order, overlaying missing fields from fallback
+      let rows = [];
+      for (const sym of symbols) {
+        let r = bySym.get(sym);
+        const fb = fallback.get(sym) || null;
+        if (!r && fb) {
+          // No master row — take fallback row as base
+          r = { symbol: sym, name: sym, ...fb };
+        }
+        if (!r) continue;
+        if (fb) {
+          const applyIfMissing = (key, fbKey) => {
+            if (r[key] === null || r[key] === undefined || (typeof r[key] === 'number' && r[key] === 0)) {
+              if (fb[fbKey] !== null && fb[fbKey] !== undefined) r[key] = fb[fbKey];
+            }
+          };
+          applyIfMissing('price', 'price');
+          applyIfMissing('market_cap', 'market_cap');
+          applyIfMissing('pe_ratio', 'pe_ratio');
+          if (r.price_to_sales_ratio == null || Number(r.price_to_sales_ratio) === 0) {
+            if (fb.price_to_sales_ratio != null && Number(fb.price_to_sales_ratio) !== 0) {
+              r.price_to_sales_ratio = fb.price_to_sales_ratio;
+            } else {
+              const mc = Number(r.market_cap);
+              const rev = Number(r.revenue ?? fb.revenue);
+              if (isFinite(mc) && isFinite(rev) && rev > 0) r.price_to_sales_ratio = mc / rev;
+            }
+          }
+          applyIfMissing('dividend_yield', 'dividend_yield');
+          applyIfMissing('revenue', 'revenue');
+          applyIfMissing('net_income', 'net_income');
+          applyIfMissing('free_cash_flow', 'free_cash_flow');
+          applyIfMissing('return_3_year', 'return_3_year');
+          applyIfMissing('return_5_year', 'return_5_year');
+          applyIfMissing('return_10_year', 'return_10_year');
+          applyIfMissing('max_drawdown_3_year', 'max_drawdown_3_year');
+          applyIfMissing('max_drawdown_5_year', 'max_drawdown_5_year');
+          applyIfMissing('max_drawdown_10_year', 'max_drawdown_10_year');
+          // Prefer master DCF when есть, иначе fallback
+          if (r.dcf_enterprise_value == null && fb.dcf_enterprise_value != null) r.dcf_enterprise_value = fb.dcf_enterprise_value;
+          if (r.margin_of_safety == null && fb.margin_of_safety != null) r.margin_of_safety = fb.margin_of_safety;
+          if (r.dcf_implied_growth == null && fb.dcf_implied_growth != null) r.dcf_implied_growth = fb.dcf_implied_growth;
+        }
+        rows.push(r);
       }
 
-      // Keep original order of symbols
-      const rows = symbols.map(sym => bySym.get(sym)).filter(Boolean);
-      return res.json(rows.map(mapDbRowToCompany));
+      // Sorting in-memory using sortMap
+      const orderCol = sortMap[sortBy] || 'market_cap';
+      const getVal = (r) => {
+        switch (orderCol) {
+          case 'name': return (r?.name || '').toString();
+          case 'rank': return Number(r?.rank ?? 0);
+          case 'market_cap': return Number(r?.market_cap ?? 0);
+          case 'price': return Number(r?.price ?? 0);
+          case 'revenue': return Number(r?.revenue ?? 0);
+          case 'net_income': return Number(r?.net_income ?? 0);
+          case 'pe_ratio': return Number(r?.pe_ratio ?? 0);
+          case 'dividend_yield': return Number(r?.dividend_yield ?? 0);
+          case 'free_cash_flow': return Number(r?.free_cash_flow ?? 0);
+          case 'price_to_sales_ratio': return Number(r?.price_to_sales_ratio ?? 0);
+          case 'net_profit_margin': return Number(r?.net_profit_margin ?? 0);
+          case 'revenue_growth_3y': return Number(r?.revenue_growth_3y ?? 0);
+          case 'revenue_growth_5y': return Number(r?.revenue_growth_5y ?? 0);
+          case 'revenue_growth_10y': return Number(r?.revenue_growth_10y ?? 0);
+          case 'return_3_year': return Number(r?.return_3_year ?? -99999);
+          case 'return_5_year': return Number(r?.return_5_year ?? -99999);
+          case 'return_10_year': return Number(r?.return_10_year ?? -99999);
+          case 'max_drawdown_3_year': return Number(r?.max_drawdown_3_year ?? 99999);
+          case 'max_drawdown_5_year': return Number(r?.max_drawdown_5_year ?? 99999);
+          case 'max_drawdown_10_year': return Number(r?.max_drawdown_10_year ?? 99999);
+          case 'dcf_enterprise_value': return Number(r?.dcf_enterprise_value ?? 0);
+          case 'margin_of_safety': return Number(r?.margin_of_safety ?? -99999);
+          case 'dcf_implied_growth': return Number(r?.dcf_implied_growth ?? -99999);
+          case 'asset_turnover': return Number(r?.asset_turnover ?? 0);
+          case 'financial_leverage': return Number(r?.financial_leverage ?? 0);
+          case 'roe': return Number(r?.roe ?? 0);
+          default: return Number(r?.market_cap ?? 0);
+        }
+      };
+      rows.sort((a, b) => {
+        const va = getVal(a); const vb = getVal(b);
+        if (typeof va === 'string' || typeof vb === 'string') {
+          return sortOrder === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+        }
+        // Nulls last
+        if (!isFinite(va)) return 1;
+        if (!isFinite(vb)) return -1;
+        return sortOrder === 'asc' ? (va - vb) : (vb - va);
+      });
+
+      const total = rows.length;
+      const page = rows.slice(offset, offset + limit);
+      return res.json({
+        companies: page.map(mapDbRowToCompany),
+        total,
+        limit,
+        offset,
+        hasMore: (offset + limit) < total,
+      });
     } catch (e) {
       console.error('watchlist/companies error:', e);
       return res.status(500).json({ message: 'Failed to fetch watchlist companies' });

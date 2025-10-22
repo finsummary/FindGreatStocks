@@ -26,7 +26,7 @@ app.use(cors({
 }));
 
 // Stripe webhook (raw body)
-setupStripeWebhook(app);
+setupStripeWebhook(app, supabase);
 
 app.use(express.json());
 

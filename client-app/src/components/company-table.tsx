@@ -165,8 +165,8 @@ const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlis
 
 interface CompanyTableProps {
   searchQuery: string;
-  dataset: 'sp500' | 'nasdaq100' | 'ftse100' | 'dowjones';
-  activeTab: 'sp500' | 'nasdaq100' | 'dowjones';
+  dataset: 'sp500' | 'nasdaq100' | 'ftse100' | 'dowjones' | 'watchlist';
+  activeTab: 'sp500' | 'nasdaq100' | 'dowjones' | 'watchlist';
 }
 
 export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTableProps) {
@@ -391,6 +391,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     case 'dowjones':
       apiEndpoint = '/api/dowjones';
       break;
+    case 'watchlist':
+      apiEndpoint = '/api/watchlist/companies';
+      break;
     default:
       apiEndpoint = '/api/companies';
   }
@@ -423,10 +426,43 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
 
       params.append("_", new Date().getTime().toString());
 
-      const response = await fetch(`https://findgreatstocks-production.up.railway.app${url}?${params.toString()}`, { cache: 'no-store' });
-      if (!response.ok) {
-        throw new Error("Failed to fetch companies");
+      const qs = params.toString();
+      // Watchlist endpoints требуют авторизации — используем authFetch
+      if (url.startsWith('/api/watchlist')) {
+        if (!session?.access_token) throw new Error('Unauthorized');
+        // Абсолютно независим от бэкенда: строим список из /api/watchlist + /api/companies-all и сортируем/пагинируем на клиенте
+        const wlArr = await authFetch('/api/watchlist', undefined, session.access_token);
+        const wlSymbols: string[] = Array.isArray(wlArr) ? wlArr.map((i: any) => i.companySymbol).filter(Boolean) : [];
+        const allRes = await fetch(`https://findgreatstocks-production.up.railway.app/api/companies-all?limit=1000&_=${Date.now()}`, { cache: 'no-store' });
+        if (!allRes.ok) throw new Error('Failed to fetch companies-all');
+        const allJson = await allRes.json();
+        const allBySym = new Map((allJson?.companies || []).map((c: any) => [c.symbol, c]));
+        let rows = wlSymbols.map(sym => allBySym.get(sym)).filter(Boolean);
+        // Фильтрация по поиску (если задан)
+        if (search) {
+          const s = String(search).toLowerCase();
+          rows = rows.filter((r: any) => String(r.name || '').toLowerCase().includes(s) || String(r.symbol || '').toLowerCase().includes(s));
+        }
+        // Клиентская сортировка по ключу currentSortBy
+        const sortKey = currentSortBy && currentSortBy !== 'none' ? currentSortBy : 'marketCap';
+        const asc = (String(sortOrder).toLowerCase() === 'asc');
+        const getVal = (r: any) => r?.[sortKey];
+        rows.sort((a: any, b: any) => {
+          const va = getVal(a); const vb = getVal(b);
+          const na = Number(va); const nb = Number(vb);
+          const aNull = (va === null || va === undefined);
+          const bNull = (vb === null || vb === undefined);
+          if (aNull && bNull) return 0; if (aNull) return 1; if (bNull) return -1; // nulls last
+          if (!Number.isNaN(na) && !Number.isNaN(nb)) return asc ? (na - nb) : (nb - na);
+          return asc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+        });
+        const limitNum = Number(params.get('limit') || 50);
+        const offsetNum = Number(params.get('offset') || 0);
+        const pageRows = rows.slice(offsetNum, offsetNum + limitNum);
+        return { companies: pageRows, total: rows.length, limit: limitNum, offset: offsetNum, hasMore: (offsetNum + limitNum) < rows.length };
       }
+      const response = await fetch(`https://findgreatstocks-production.up.railway.app${url}?${qs}`, { cache: 'no-store' });
+      if (!response.ok) throw new Error("Failed to fetch companies");
       return response.json();
     },
     // Тянуть всегда свежие данные после серверных обновлений
@@ -434,6 +470,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     staleTime: 0,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
+    keepPreviousData: true,
   });
 
   const tableData = useMemo(() => {
@@ -737,6 +774,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getRowId: (row) => row.symbol, // стабильный идентификатор строки для предотвращения мигания при пересортировке
     manualPagination: true,
     pageCount: data?.total ? Math.ceil(data.total / limit) : -1,
     onRowSelectionChange: setRowSelection,
@@ -833,7 +871,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     );
   }
 
-  const showSkeletons = isLoading || authLoading;
+  const showSkeletons = ((!data && isLoading) || authLoading);
 
   return (
     <div className="space-y-6">
