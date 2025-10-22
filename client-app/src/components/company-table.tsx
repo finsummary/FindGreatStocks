@@ -180,6 +180,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [watchlistPending, setWatchlistPending] = useState<Record<string, boolean>>({});
   const [watchOverrides, setWatchOverrides] = useState<Record<string, boolean>>({});
+  const [didLoadPrefs, setDidLoadPrefs] = useState(false);
   const { user, session, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -189,11 +190,13 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
 
   useEffect(() => {
     setSelectedLayout(null);
+    setDidLoadPrefs(false);
   }, [dataset]);
 
   useEffect(() => {
     if (authLoading) return;
     if (selectedLayout) return;
+    if (didLoadPrefs) return;
 
     const lockedColumns = [
       'maxDrawdown5Year', 'maxDrawdown10Year',
@@ -209,7 +212,56 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     }, {} as VisibilityState);
 
     setColumnVisibility(defaultVisibility);
-  }, [authLoading, isPaidUser, dataset, selectedLayout]);
+  }, [authLoading, isPaidUser, dataset, selectedLayout, didLoadPrefs]);
+
+  // Load saved preferences (columns visibility, sort) from localStorage once per dataset
+  useEffect(() => {
+    if (authLoading || didLoadPrefs) return;
+    try {
+      const key = `fgs:prefs:${dataset}`;
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const prefs = JSON.parse(raw || '{}') as {
+          sortBy?: string;
+          sortOrder?: 'asc' | 'desc';
+          selectedLayout?: string | null;
+          columnVisibility?: VisibilityState;
+        };
+        if (prefs.sortBy) setSortBy(prefs.sortBy);
+        if (prefs.sortOrder) setSortOrder(prefs.sortOrder);
+        if (typeof prefs.selectedLayout !== 'undefined') setSelectedLayout(prefs.selectedLayout as any);
+
+        const lockedColumns = [
+          'maxDrawdown5Year', 'maxDrawdown10Year',
+          'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
+          'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
+          'assetTurnover', 'financialLeverage', 'roe'
+        ];
+        const vis = { ...(prefs.columnVisibility || {}) } as VisibilityState;
+        if (!isPaidUser && dataset !== 'dowjones') {
+          for (const id of lockedColumns) {
+            (vis as any)[id] = false;
+          }
+        }
+        if (Object.keys(vis).length) setColumnVisibility(vis);
+      }
+    } catch {}
+    setDidLoadPrefs(true);
+  }, [authLoading, isPaidUser, dataset, didLoadPrefs]);
+
+  // Save preferences to localStorage on changes
+  useEffect(() => {
+    try {
+      const key = `fgs:prefs:${dataset}`;
+      const payload = {
+        sortBy,
+        sortOrder,
+        selectedLayout,
+        columnVisibility,
+      };
+      localStorage.setItem(key, JSON.stringify(payload));
+    } catch {}
+  }, [dataset, sortBy, sortOrder, selectedLayout, columnVisibility]);
 
   console.log('[Auth Debug] In CompanyTable:', {
     authLoading,
