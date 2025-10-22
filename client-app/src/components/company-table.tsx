@@ -398,7 +398,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       apiEndpoint = '/api/companies';
   }
 
-  const { data, isLoading, error } = useQuery<{ companies: Company[], total: number, hasMore: boolean }>({
+  const { data, isLoading, error } = useQuery<any>({
     queryKey: [apiEndpoint, page, sortBy, sortOrder, searchQuery],
     queryFn: async ({ queryKey }) => {
       const [url, page, currentSortBy, sortOrder, search] = queryKey as [
@@ -470,7 +470,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     staleTime: 0,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    keepPreviousData: true,
+    // Вместо keepPreviousData в v5: удерживаем предыдущие данные
+    placeholderData: (prev) => prev as any,
   });
 
   const tableData = useMemo(() => {
