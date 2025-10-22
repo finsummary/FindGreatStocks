@@ -784,6 +784,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
 
   // Prefetch данных для соседних вкладок, чтобы переключение было мгновенным
   useEffect(() => {
+    // Для watchlist пропускаем префетч (требуется авторизация и иной источник данных)
+    if (dataset === 'watchlist') {
+      return;
+    }
     const datasets: Array<{ key: CompanyTableProps['dataset']; endpoint: string }> = [
       { key: 'sp500', endpoint: '/api/sp500' },
       { key: 'nasdaq100', endpoint: '/api/nasdaq100' },
