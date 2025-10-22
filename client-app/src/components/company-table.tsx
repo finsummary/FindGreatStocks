@@ -471,13 +471,13 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     // Вместо keepPreviousData в v5: удерживаем предыдущие данные
-    placeholderData: (prev) => prev as any,
+    placeholderData: (prev: any) => prev,
   });
 
   const tableData = useMemo(() => {
     if (data?.companies) {
       const watchlistSymbols = new Set(watchlistData?.map((item) => item.companySymbol) || []);
-      return data.companies.map(company => {
+      return data.companies.map((company: any) => {
         const override = watchOverrides[company.symbol];
         const explicit = (company as any).isWatched;
         const base = typeof explicit === 'boolean' ? explicit : watchlistSymbols.has(company.symbol);
