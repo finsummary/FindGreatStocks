@@ -619,7 +619,7 @@ export function setupRoutes(app, supabase) {
         for (const q of (Array.isArray(arr) ? arr : [])) {
           if (!q?.symbol) continue;
           const updates = {};
-          // Use latest daily close when available for consistency (previousClose preferred)
+          // всегда используем последнюю закрытую цену (previousClose), fallback к price
           const closePrice = (q.previousClose !== undefined && q.previousClose !== null)
             ? Number(q.previousClose)
             : (q.price !== undefined ? Number(q.price) : undefined);
@@ -661,7 +661,11 @@ export function setupRoutes(app, supabase) {
       const q = Array.isArray(arr) && arr[0];
       if (!q) return res.status(404).json({ message: 'No quote' });
       const updates = {};
-      if (q.price !== undefined) updates.price = Number(q.price);
+      // записываем последнюю закрытую цену, а не текущую
+      const closePrice = (q.previousClose !== undefined && q.previousClose !== null)
+        ? Number(q.previousClose)
+        : (q.price !== undefined ? Number(q.price) : undefined);
+      if (closePrice !== undefined) updates.price = closePrice;
       if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
       if (q.change !== undefined) updates.daily_change = Number(q.change);
       if (q.changesPercentage !== undefined) updates.daily_change_percent = Number(q.changesPercentage);
@@ -698,7 +702,10 @@ export function setupRoutes(app, supabase) {
       const q = Array.isArray(arr) && arr[0];
       if (!q) return res.status(404).json({ message: 'No quote' });
       const updates = {};
-      if (q.price !== undefined) updates.price = Number(q.price);
+      const closePrice = (q.previousClose !== undefined && q.previousClose !== null)
+        ? Number(q.previousClose)
+        : (q.price !== undefined ? Number(q.price) : undefined);
+      if (closePrice !== undefined) updates.price = closePrice;
       if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
       if (q.change !== undefined) updates.daily_change = Number(q.change);
       if (q.changesPercentage !== undefined) updates.daily_change_percent = Number(q.changesPercentage);
@@ -1300,7 +1307,10 @@ export function setupRoutes(app, supabase) {
       const q = Array.isArray(arr) && arr[0];
       if (!q) return res.status(404).json({ message: 'No quote' });
       const updates = {};
-      if (q.price !== undefined) updates.price = Number(q.price);
+      const closePrice = (q.previousClose !== undefined && q.previousClose !== null)
+        ? Number(q.previousClose)
+        : (q.price !== undefined ? Number(q.price) : undefined);
+      if (closePrice !== undefined) updates.price = closePrice;
       if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
       if (q.change !== undefined) updates.daily_change = Number(q.change);
       if (q.changesPercentage !== undefined) updates.daily_change_percent = Number(q.changesPercentage);
@@ -1349,7 +1359,10 @@ export function setupRoutes(app, supabase) {
         };
         const applyUpdate = (q) => {
           const updates = {};
-          if (q.price !== undefined) updates.price = Number(q.price);
+          const closePrice = (q.previousClose !== undefined && q.previousClose !== null)
+            ? Number(q.previousClose)
+            : (q.price !== undefined ? Number(q.price) : undefined);
+          if (closePrice !== undefined) updates.price = closePrice;
           if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
           if (q.change !== undefined) updates.daily_change = Number(q.change);
           if (q.changesPercentage !== undefined) updates.daily_change_percent = Number(q.changesPercentage);
