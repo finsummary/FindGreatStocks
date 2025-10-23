@@ -446,11 +446,9 @@ export function setupRoutes(app, supabase) {
                 if (val !== null && val !== undefined) r[key] = val;
               }
             };
-            // Prefer fresher price/market cap from master only if they are valid (> 0)
-            const mPriceNum = Number(m.price);
-            if (isFinite(mPriceNum) && mPriceNum > 0) r.price = mPriceNum;
-            const mCapNum = Number(m.market_cap);
-            if (isFinite(mCapNum) && mCapNum > 0) r.market_cap = mCapNum;
+            // Не переопределяем цены/капитализацию из индексных таблиц; только заполняем если пусто
+            applyIfMissing('price', m.price);
+            applyIfMissing('market_cap', m.market_cap);
             // Best-effort overlay for daily change fields if present in master
             if (m.daily_change !== null && m.daily_change !== undefined) r.daily_change = m.daily_change;
             if (m.daily_change_percent !== null && m.daily_change_percent !== undefined) r.daily_change_percent = m.daily_change_percent;

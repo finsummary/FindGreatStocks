@@ -30,9 +30,9 @@ export class DataScheduler {
   }
 
   start() {
-    // 01:00 UTC — обновить цены во всех таблицах
-    const prices0100 = new CronJob('0 0 1 * * *', async () => {
-      this.log('Run: nightly prices update (all tables)');
+    // 05:00 UTC — обновить цены во всех таблицах (после того как провайдеры обновят previousClose)
+    const prices0500 = new CronJob('0 0 5 * * *', async () => {
+      this.log('Run: nightly prices update (all tables) 05:00 UTC');
       // Обновляем отдельные таблицы, чтобы распараллелить/разгрузить
       await Promise.all([
         this.safePost('/api/companies/update-prices'),
@@ -41,11 +41,11 @@ export class DataScheduler {
         this.safePost('/api/dowjones/update-prices'),
       ]);
     }, null, true, 'UTC');
-    this.jobs.push(prices0100);
+    this.jobs.push(prices0500);
 
-    // 02:00 UTC — резервное обновление цен (на случай пропуска 01:00)
-    const prices0200 = new CronJob('0 0 2 * * *', async () => {
-      this.log('Run: backup prices update (all tables)');
+    // 06:00 UTC — резервное обновление цен (на случай пропуска 05:00)
+    const prices0600 = new CronJob('0 0 6 * * *', async () => {
+      this.log('Run: backup prices update (all tables) 06:00 UTC');
       await Promise.all([
         this.safePost('/api/companies/update-prices'),
         this.safePost('/api/sp500/update-prices'),
@@ -53,7 +53,7 @@ export class DataScheduler {
         this.safePost('/api/dowjones/update-prices'),
       ]);
     }, null, true, 'UTC');
-    this.jobs.push(prices0200);
+    this.jobs.push(prices0600);
 
     // 01:20 UTC — финансы/метрики DCF
     const financials0120 = new CronJob('0 20 1 * * *', async () => {
