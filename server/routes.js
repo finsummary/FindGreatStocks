@@ -617,10 +617,10 @@ export function setupRoutes(app, supabase) {
         for (const q of (Array.isArray(arr) ? arr : [])) {
           if (!q?.symbol) continue;
           const updates = {};
-          // всегда используем последнюю закрытую цену (previousClose), fallback к price
-          const closePrice = (q.previousClose !== undefined && q.previousClose !== null)
-            ? Number(q.previousClose)
-            : (q.price !== undefined ? Number(q.price) : undefined);
+          // используем цену котировки (обычно равна последнему закрытию после конца сессии), fallback к previousClose
+          const closePrice = (q.price !== undefined && q.price !== null)
+            ? Number(q.price)
+            : (q.previousClose !== undefined ? Number(q.previousClose) : undefined);
           if (closePrice !== undefined) updates.price = closePrice;
           if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
           if (q.change !== undefined) updates.daily_change = Number(q.change);
@@ -659,10 +659,10 @@ export function setupRoutes(app, supabase) {
       const q = Array.isArray(arr) && arr[0];
       if (!q) return res.status(404).json({ message: 'No quote' });
       const updates = {};
-      // записываем последнюю закрытую цену, а не текущую
-      const closePrice = (q.previousClose !== undefined && q.previousClose !== null)
-        ? Number(q.previousClose)
-        : (q.price !== undefined ? Number(q.price) : undefined);
+      // записываем цену котировки (последнее закрытие после конца сессии), fallback к previousClose
+      const closePrice = (q.price !== undefined && q.price !== null)
+        ? Number(q.price)
+        : (q.previousClose !== undefined ? Number(q.previousClose) : undefined);
       if (closePrice !== undefined) updates.price = closePrice;
       if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
       if (q.change !== undefined) updates.daily_change = Number(q.change);
