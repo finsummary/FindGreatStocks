@@ -4,6 +4,10 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/favicon.ico",
+      "destination": "/favicon.svg"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "https://findgreatstocks-production.up.railway.app/api/$1"
     },
