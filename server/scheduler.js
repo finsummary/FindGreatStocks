@@ -31,6 +31,7 @@ export class DataScheduler {
 
   start() {
     // Ежечасное обновление цен (берём quote.price) — минимальная задержка на 15-й минуте каждого часа
+    // Перезапуск безопасен: задача короткая и идемпотентная
     const hourlyPrices = new CronJob('0 15 * * * *', async () => {
       this.log('Run: hourly prices update (all tables)');
       await this.safePost('/api/prices/update-all');

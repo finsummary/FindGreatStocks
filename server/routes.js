@@ -1358,9 +1358,10 @@ export function setupRoutes(app, supabase) {
         };
         const applyUpdate = (q) => {
           const updates = {};
-          const closePrice = (q.previousClose !== undefined && q.previousClose !== null)
-            ? Number(q.previousClose)
-            : (q.price !== undefined ? Number(q.price) : undefined);
+          // use quote.price as primary (real-time/last close), fallback to previousClose
+          const closePrice = (q.price !== undefined && q.price !== null)
+            ? Number(q.price)
+            : (q.previousClose !== undefined ? Number(q.previousClose) : undefined);
           if (closePrice !== undefined) updates.price = closePrice;
           if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
           if (q.change !== undefined) updates.daily_change = Number(q.change);
