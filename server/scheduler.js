@@ -30,7 +30,14 @@ export class DataScheduler {
   }
 
   start() {
-    // 05:00 UTC — обновить цены во всех таблицах (после того как провайдеры обновят previousClose)
+    // Ежечасное обновление цен (берём quote.price) — минимальная задержка на 15-й минуте каждого часа
+    const hourlyPrices = new CronJob('0 15 * * * *', async () => {
+      this.log('Run: hourly prices update (all tables)');
+      await this.safePost('/api/prices/update-all');
+    }, null, true, 'UTC');
+    this.jobs.push(hourlyPrices);
+
+    // 05:00 UTC — дополнительное ночное обновление (резерв)
     const prices0500 = new CronJob('0 0 5 * * *', async () => {
       this.log('Run: nightly prices update (all tables) 05:00 UTC');
       // Обновляем отдельные таблицы, чтобы распараллелить/разгрузить
