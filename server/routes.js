@@ -427,7 +427,8 @@ export function setupRoutes(app, supabase) {
       const { data, count, error } = await query;
       if (error) {
         console.error(`Supabase error in listFromTable(${tableName}):`, error);
-        return res.status(500).json({ message: 'Failed to fetch companies' });
+        // Возвращаем пустой результат вместо 500, чтобы не падал фронт при префетче
+        return res.json({ companies: [], total: 0, limit, offset, hasMore: false });
       }
       const rows = Array.isArray(data) ? data : [];
 
