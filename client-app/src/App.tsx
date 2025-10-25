@@ -1,4 +1,5 @@
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
+import { useAnalytics } from './hooks/use-analytics';
 import { HomePage as Home } from "./pages/home";
 import { LoginPage } from "./pages/login";
 import { WatchlistPage as Watchlist } from "./pages/watchlist";
@@ -20,6 +21,7 @@ import { supabase } from "./lib/supabaseClient";
 import Footer from "./components/footer";
 
 function App() {
+  useAnalytics();
   const { user } = useAuth();
   const navigate = useNavigate();
 

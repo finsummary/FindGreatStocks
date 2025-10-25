@@ -433,7 +433,7 @@ const BlogPostPage: React.FC = () => {
   
   if (!post) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Post Not Found</h1>
           <p className="text-gray-600 mb-8">The blog post you're looking for doesn't exist.</p>
@@ -459,7 +459,7 @@ const BlogPostPage: React.FC = () => {
           tags: post.tags
         }}
       />
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

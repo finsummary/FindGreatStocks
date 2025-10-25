@@ -7,8 +7,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ErrorBoundary from './components/error-boundary';
 import { AuthProvider } from './providers/AuthProvider';
 import { HelmetProvider } from 'react-helmet-async';
+import { initGA } from './lib/analytics';
+import { ThemeProvider } from './components/theme-provider';
 
 const queryClient = new QueryClient();
+
+// Initialize Google Analytics
+initGA();
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -17,7 +22,9 @@ createRoot(document.getElementById("root")!).render(
         <ErrorBoundary>
           <QueryClientProvider client={queryClient}>
             <AuthProvider>
-              <App />
+              <ThemeProvider defaultTheme="light">
+                <App />
+              </ThemeProvider>
             </AuthProvider>
           </QueryClientProvider>
         </ErrorBoundary>

@@ -7,6 +7,16 @@
     <meta name="description" content="Professional market intelligence platform for S&P 500, Nasdaq 100, and Dow Jones companies with real-time data and advanced analytics." />
   </head>
   <body>
+    <script>
+      try {
+        const root = document.documentElement;
+        const body = document.body;
+        root.classList.remove('dark');
+        body && body.classList.remove('dark');
+        root.classList.add('light');
+        body && body.classList.add('light');
+      } catch {}
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

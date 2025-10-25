@@ -6,6 +6,7 @@
 @import './styles/blog.css';
 
 :root {
+  color-scheme: light;
   --background: hsl(0, 0%, 100%);
   --foreground: hsl(240, 10%, 3.9%);
   --muted: hsl(240, 4.8%, 95.9%);
@@ -71,6 +72,11 @@
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+
+/* Force white background on root/body as a hard fallback */
+html, body {
+  background-color: hsl(0, 0%, 100%) !important;
+}
 
   /* Custom scrollbar */
   ::-webkit-scrollbar {
