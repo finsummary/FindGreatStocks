@@ -8,8 +8,6 @@ import { PaymentCancelledPage } from './pages/payment-cancelled';
 import { useAuth } from "@/providers/AuthProvider";
 import { ProfilePage } from './pages/profile';
 import { BillingPage } from './pages/billing';
-import BlogPage from './pages/blog';
-import BlogPostPage from './pages/blog-post';
 import TermsPage from './pages/terms';
 import PrivacyPage from './pages/privacy';
 import DisclaimerPage from './pages/disclaimer';
@@ -42,9 +40,6 @@ function App() {
           <span className="ml-2 text-lg font-semibold">FindGreatStocks.com</span>
         </Link>
         <nav className="ml-auto flex items-center gap-4 sm:gap-6">
-          <Button asChild variant="ghost">
-            <Link to="/blog">Blog</Link>
-          </Button>
           <Button asChild variant="outline">
             <Link to="/watchlist">Watchlist</Link>
           </Button>
@@ -84,8 +79,7 @@ function App() {
           <Route path="/watchlist" element={<Watchlist />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/billing" element={<BillingPage />} />
-          <Route path="/blog" element={<BlogPage />} />
-          <Route path="/blog/:slug" element={<BlogPostPage />} />
+          {/* Blog routes temporarily disabled */}
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/disclaimer" element={<DisclaimerPage />} />
