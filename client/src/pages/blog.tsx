@@ -88,7 +88,7 @@ const BlogPage: React.FC = () => {
                 </div>
                 
                 <h2 className="text-xl font-semibold text-gray-900 mb-3 hover:text-blue-600 transition-colors">
-                  <Link to={`/blog/${post.slug}`}>
+                  <Link to={`/blog/${post.slug}`} target="_blank" rel="noopener noreferrer">
                     {post.title}
                   </Link>
                 </h2>
@@ -110,6 +110,8 @@ const BlogPage: React.FC = () => {
                 
                 <Link
                   to={`/blog/${post.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors"
                 >
                   Read more

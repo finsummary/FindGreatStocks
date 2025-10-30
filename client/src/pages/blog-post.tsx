@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import SEOHead from '../components/SEOHead';
 
@@ -428,6 +428,16 @@ const blogPosts: { [key: string]: BlogPost } = {
 
 const BlogPostPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
+  const contentRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const root = contentRef.current;
+    if (!root) return;
+    // ensure links open in new tab
+    root.querySelectorAll('a[href]').forEach(a => {
+      (a as HTMLAnchorElement).target = '_blank';
+      (a as HTMLAnchorElement).rel = 'noopener noreferrer';
+    });
+  }, [slug]);
   
   const post = slug ? blogPosts[slug] : null;
   
@@ -492,8 +502,18 @@ const BlogPostPage: React.FC = () => {
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <article className="bg-white rounded-lg shadow-md p-8">
-          <div 
-            className="prose prose-lg max-w-none"
+          <style>{`
+            .blog-article h1 { font-size: 1.875rem; line-height: 2.25rem; margin: 1.25rem 0; font-weight: 700; }
+            .blog-article h2 { font-size: 1.5rem; line-height: 2rem; margin: 1rem 0; font-weight: 700; }
+            .blog-article h3 { font-size: 1.25rem; line-height: 1.75rem; margin: 0.75rem 0; font-weight: 600; }
+            .blog-article h4 { font-size: 1.125rem; line-height: 1.75rem; margin: 0.5rem 0; font-weight: 600; }
+            .blog-article p { margin: 1rem 0; line-height: 1.8; }
+            .blog-article ul, .blog-article ol { margin: 1rem 0; padding-left: 1.5rem; }
+            .blog-article li { margin: 0.25rem 0; }
+          `}</style>
+          <div
+            ref={contentRef}
+            className="blog-article"
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
         </article>
