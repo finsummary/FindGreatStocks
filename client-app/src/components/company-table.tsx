@@ -1087,7 +1087,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       {/* Table */}
       <Card className="overflow-hidden">
         <div className="w-full overflow-x-auto">
-          <Table className="w-full min-w-[1200px] table-fixed">
+          <Table className="w-full min-w-[900px] sm:min-w-[1200px] table-fixed text-xs sm:text-sm">
             <TableHeader>
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow key={headerGroup.id} className="bg-muted/50">
