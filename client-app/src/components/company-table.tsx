@@ -524,6 +524,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     refetchOnReconnect: true,
     // Вместо keepPreviousData в v5: удерживаем предыдущие данные
     placeholderData: (prev: any) => prev,
+    enabled: !(dataset === 'watchlist' && !session?.access_token),
   });
 
   const tableData = useMemo(() => {

@@ -62,7 +62,7 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
             Unlock the full power of FindGreatStocks and get access to exclusive features.
           </DialogDescription>
         </DialogHeader>
-        <div className="px-6 py-4 border-t overflow-y-auto bg-white/95 dark:bg-zinc-900/95">
+        <div className="px-6 pt-5 pb-4 border-t overflow-y-auto bg-white/95 dark:bg-zinc-900/95">
           <h3 className="text-lg font-semibold mb-4">Premium Features</h3>
           <ul className="space-y-1.5">
             {features.map((feature, index) => {
@@ -103,14 +103,14 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
             </div>
             <div
               onClick={() => setSelectedPlan('annual')}
-              className={`cursor-pointer rounded-lg border bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm p-4 pt-6 flex-1 flex flex-col h-auto text-center relative transition-all ${selectedPlan === 'annual' ? 'border-primary ring-2 ring-primary' : 'border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'}`}
+              className={`cursor-pointer rounded-lg border bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm p-4 flex-1 flex flex-col h-auto text-center transition-all ${selectedPlan === 'annual' ? 'border-primary ring-2 ring-primary' : 'border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'}`}
             >
-              <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[11px] font-semibold px-2.5 py-0.5 rounded-full shadow-sm border border-primary/20">
-                Save 19%
-              </div>
               <span className="font-semibold text-lg">Annual Plan</span>
               <span className="text-2xl font-bold">$29</span>
               <span className="text-xs text-muted-foreground">billed once a year</span>
+              <span className="mt-2 inline-block bg-primary/10 text-primary text-[11px] font-semibold px-2 py-0.5 rounded-full">
+                Save 19%
+              </span>
             </div>
           </div>
           <div className="w-full">

@@ -18,7 +18,7 @@ export function HomePage() {
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-950">
       
       <main className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
             <Button
               variant={activeTab === 'dowjones' ? 'secondary' : 'outline'}
@@ -42,7 +42,7 @@ export function HomePage() {
               Nasdaq 100
             </Button>
           </div>
-          <form onSubmit={handleSearch} className="flex w-full max-w-sm items-center space-x-2">
+          <form onSubmit={handleSearch} className="flex w-full sm:max-w-sm items-center space-x-2">
             <Input 
               type="text" 
               placeholder="Search by company or ticker..."
