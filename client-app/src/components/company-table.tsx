@@ -969,7 +969,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
             </SelectContent>
           </Select>
 
-          <div className="flex-1 flex justify-end items-center gap-2">
+          <div className="w-full flex flex-wrap items-stretch sm:items-center gap-2 sm:gap-4 justify-start sm:justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="w-full sm:w-auto text-sm">
@@ -1086,8 +1086,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
 
       {/* Table */}
       <Card className="overflow-hidden">
-        <div className="w-full overflow-x-auto">
-          <Table className="w-full min-w-[900px] sm:min-w-[1200px] table-fixed text-xs sm:text-sm [&_th]:p-2 [&_td]:p-2 sm:[&_th]:p-3 sm:[&_td]:p-3">
+        <div className="w-full overflow-x-auto -mx-4 px-4">
+          <Table className="w-full min-w-[700px] sm:min-w-[1200px] table-fixed text-xs sm:text-sm [&_th]:p-2 [&_td]:p-2 sm:[&_th]:p-3 sm:[&_td]:p-3">
             <TableHeader>
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow key={headerGroup.id} className="bg-muted/50">
@@ -1163,6 +1163,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
             </Table>
           </div>
         </Card>
+
+      {/* Mobile scroll-hint */}
+      <div className="sm:hidden text-xs text-muted-foreground mt-2">Swipe horizontally to see more →</div>
 
       {/* Pagination */}
       {data && data.total > limit && (

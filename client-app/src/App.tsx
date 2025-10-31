@@ -37,10 +37,10 @@ function App() {
             alt="FindGreatStocks Logo" 
             className="h-8 w-8"
           />
-          <span className="ml-2 text-lg font-semibold">FindGreatStocks.com</span>
+          <span className="ml-2 text-lg font-semibold hidden sm:inline">FindGreatStocks.com</span>
         </Link>
         <nav className="ml-auto flex items-center gap-4 sm:gap-6">
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" size="sm">
             <Link to="/watchlist">Watchlist</Link>
           </Button>
           {user ? (
@@ -66,7 +66,7 @@ function App() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button asChild>
+            <Button asChild size="sm">
               <Link to="/login">Login</Link>
             </Button>
           )}
