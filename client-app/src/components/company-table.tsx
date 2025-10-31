@@ -59,36 +59,36 @@ interface ColumnConfig {
 }
 
 export const ALL_COLUMNS: ColumnConfig[] = [
-  { id: 'watchlist', label: 'Watchlist', width: 'w-[44px] sm:w-[50px]', defaultVisible: true },
-  { id: 'rank', label: 'Rank', width: 'w-[26px] sm:w-[30px]', defaultVisible: true },
-  { id: 'name', label: 'Company Name', width: 'w-[160px] sm:w-[220px]', defaultVisible: true },
-  { id: 'marketCap', label: 'Market Cap', width: 'w-[90px] sm:w-[110px]', defaultVisible: true },
-  { id: 'price', label: 'Price', width: 'w-[64px] sm:w-[80px]', defaultVisible: true },
-  { id: 'revenue', label: 'Revenue', width: 'w-[100px] sm:w-[110px]', defaultVisible: true },
-  { id: 'netIncome', label: 'Earnings', width: 'w-[100px] sm:w-[110px]', defaultVisible: true },
-  { id: 'peRatio', label: 'P/E Ratio', width: 'w-[64px] sm:w-[75px]', defaultVisible: true },
-  { id: 'priceToSalesRatio', label: 'P/S Ratio', width: 'w-[64px] sm:w-[75px]', defaultVisible: false },
-  { id: 'dividendYield', label: 'Dividend Yield', width: 'w-[84px] sm:w-[100px]', defaultVisible: true },
-  { id: 'netProfitMargin', label: 'Net Profit Margin', width: 'w-[100px] sm:w-[120px]', defaultVisible: false },
-  { id: 'freeCashFlow', label: 'Free Cash Flow', width: 'w-[110px] sm:w-[120px]', defaultVisible: true },
-  { id: 'revenueGrowth3Y', label: 'Rev G 3Y', width: 'w-[80px] sm:w-[90px]', defaultVisible: false },
-  { id: 'revenueGrowth5Y', label: 'Rev G 5Y', width: 'w-[80px] sm:w-[90px]', defaultVisible: false },
-  { id: 'revenueGrowth10Y', label: 'Rev G 10Y', width: 'w-[80px] sm:w-[90px]', defaultVisible: true },
-  { id: 'return3Year', label: '3Y Return', width: 'w-[80px] sm:w-[85px]', defaultVisible: true },
-  { id: 'return5Year', label: '5Y Return', width: 'w-[80px] sm:w-[85px]', defaultVisible: true },
-  { id: 'return10Year', label: '10Y Return', width: 'w-[80px] sm:w-[85px]', defaultVisible: true },
-  { id: 'maxDrawdown3Year', label: '3Y Max Drawdown', width: 'w-[110px] sm:w-[120px]', defaultVisible: false },
-  { id: 'maxDrawdown5Year', label: '5Y Max Drawdown', width: 'w-[110px] sm:w-[120px]', defaultVisible: false },
-  { id: 'maxDrawdown10Year', label: '10Y Max Drawdown', width: 'w-[110px] sm:w-[120px]', defaultVisible: true },
-  { id: 'arMddRatio3Year', label: '3Y AR/MDD Ratio', width: 'w-[110px] sm:w-[120px]', defaultVisible: false },
-  { id: 'arMddRatio5Year', label: '5Y AR/MDD Ratio', width: 'w-[110px] sm:w-[120px]', defaultVisible: false },
-  { id: 'arMddRatio10Year', label: '10Y AR/MDD Ratio', width: 'w-[110px] sm:w-[120px]', defaultVisible: true },
-  { id: 'dcfEnterpriseValue', label: 'DCF Enterprise Value', width: 'w-[120px] sm:w-[130px]', defaultVisible: true },
-  { id: 'marginOfSafety', label: 'Margin of Safety', width: 'w-[100px] sm:w-[110px]', defaultVisible: true },
-  { id: 'dcfImpliedGrowth', label: 'DCF Implied Growth', width: 'w-[110px] sm:w-[130px]', defaultVisible: true },
-  { id: 'assetTurnover', label: 'Asset Turnover', width: 'w-[90px] sm:w-[110px]', defaultVisible: true },
-  { id: 'financialLeverage', label: 'Financial Leverage', width: 'w-[90px] sm:w-[110px]', defaultVisible: true },
-  { id: 'roe', label: 'ROE %', width: 'w-[90px] sm:w-[110px]', defaultVisible: true },
+  { id: 'watchlist', label: 'Watchlist', width: 'w-[40px] sm:w-[50px]', defaultVisible: true },
+  { id: 'rank', label: 'Rank', width: 'w-[24px] sm:w-[30px]', defaultVisible: true },
+  { id: 'name', label: 'Company Name', width: 'w-[140px] sm:w-[220px]', defaultVisible: true },
+  { id: 'marketCap', label: 'Market Cap', width: 'w-[80px] sm:w-[110px]', defaultVisible: true },
+  { id: 'price', label: 'Price', width: 'w-[60px] sm:w-[80px]', defaultVisible: true },
+  { id: 'revenue', label: 'Revenue', width: 'w-[90px] sm:w-[110px]', defaultVisible: true },
+  { id: 'netIncome', label: 'Earnings', width: 'w-[90px] sm:w-[110px]', defaultVisible: true },
+  { id: 'peRatio', label: 'P/E Ratio', width: 'w-[60px] sm:w-[75px]', defaultVisible: true },
+  { id: 'priceToSalesRatio', label: 'P/S Ratio', width: 'w-[60px] sm:w-[75px]', defaultVisible: false },
+  { id: 'dividendYield', label: 'Dividend Yield', width: 'w-[80px] sm:w-[100px]', defaultVisible: true },
+  { id: 'netProfitMargin', label: 'Net Profit Margin', width: 'w-[96px] sm:w-[120px]', defaultVisible: false },
+  { id: 'freeCashFlow', label: 'Free Cash Flow', width: 'w-[100px] sm:w-[120px]', defaultVisible: true },
+  { id: 'revenueGrowth3Y', label: 'Rev G 3Y', width: 'w-[72px] sm:w-[90px]', defaultVisible: false },
+  { id: 'revenueGrowth5Y', label: 'Rev G 5Y', width: 'w-[72px] sm:w-[90px]', defaultVisible: false },
+  { id: 'revenueGrowth10Y', label: 'Rev G 10Y', width: 'w-[72px] sm:w-[90px]', defaultVisible: true },
+  { id: 'return3Year', label: '3Y Return', width: 'w-[72px] sm:w-[85px]', defaultVisible: true },
+  { id: 'return5Year', label: '5Y Return', width: 'w-[72px] sm:w-[85px]', defaultVisible: true },
+  { id: 'return10Year', label: '10Y Return', width: 'w-[72px] sm:w-[85px]', defaultVisible: true },
+  { id: 'maxDrawdown3Year', label: '3Y Max Drawdown', width: 'w-[100px] sm:w-[120px]', defaultVisible: false },
+  { id: 'maxDrawdown5Year', label: '5Y Max Drawdown', width: 'w-[100px] sm:w-[120px]', defaultVisible: false },
+  { id: 'maxDrawdown10Year', label: '10Y Max Drawdown', width: 'w-[100px] sm:w-[120px]', defaultVisible: true },
+  { id: 'arMddRatio3Year', label: '3Y AR/MDD Ratio', width: 'w-[100px] sm:w-[120px]', defaultVisible: false },
+  { id: 'arMddRatio5Year', label: '5Y AR/MDD Ratio', width: 'w-[100px] sm:w-[120px]', defaultVisible: false },
+  { id: 'arMddRatio10Year', label: '10Y AR/MDD Ratio', width: 'w-[100px] sm:w-[120px]', defaultVisible: true },
+  { id: 'dcfEnterpriseValue', label: 'DCF Enterprise Value', width: 'w-[110px] sm:w-[130px]', defaultVisible: true },
+  { id: 'marginOfSafety', label: 'Margin of Safety', width: 'w-[96px] sm:w-[110px]', defaultVisible: true },
+  { id: 'dcfImpliedGrowth', label: 'DCF Implied Growth', width: 'w-[96px] sm:w-[130px]', defaultVisible: true },
+  { id: 'assetTurnover', label: 'Asset Turnover', width: 'w-[84px] sm:w-[110px]', defaultVisible: true },
+  { id: 'financialLeverage', label: 'Financial Leverage', width: 'w-[84px] sm:w-[110px]', defaultVisible: true },
+  { id: 'roe', label: 'ROE %', width: 'w-[84px] sm:w-[110px]', defaultVisible: true },
 ];
 
 const PRESET_LAYOUTS = {
@@ -554,7 +554,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           <TooltipProvider delayDuration={100}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className={`flex items-center ${colConfig.id === 'name' ? 'justify-start' : 'justify-center'} gap-1`}>
+                <div className={`flex items-center ${colConfig.id === 'name' ? 'justify-start' : 'justify-center'} gap-1 text-[11px] sm:text-xs truncate`}>
                   {colConfig.id === 'watchlist' ? <Star className="h-4 w-4" /> : colConfig.label}
                   {colConfig.id !== 'watchlist' && <SortIcon column={colConfig.id} />}
                 </div>
@@ -1087,14 +1087,14 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       {/* Table */}
       <Card className="overflow-hidden">
         <div className="w-full overflow-x-auto -mx-4 px-4">
-          <Table className="w-full min-w-[700px] sm:min-w-[1200px] table-fixed text-xs sm:text-sm [&_th]:p-2 [&_td]:p-2 sm:[&_th]:p-3 sm:[&_td]:p-3">
+          <Table className="w-full min-w-[600px] sm:min-w-[1200px] table-fixed text-xs sm:text-sm [&_th]:p-2 [&_td]:p-2 sm:[&_th]:p-3 sm:[&_td]:p-3">
             <TableHeader>
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow key={headerGroup.id} className="bg-muted/50">
                   {headerGroup.headers.map(header => (
                     <TableHead
                       key={header.id}
-                      className={`text-right cursor-pointer hover:bg-muted/80 transition-colors ${ (header.column.columnDef.meta as any)?.columnConfig.width } ${
+                      className={`text-right whitespace-nowrap overflow-hidden cursor-pointer hover:bg-muted/80 transition-colors ${ (header.column.columnDef.meta as any)?.columnConfig.width } ${
                         sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
                       }`}
                       onClick={header.column.getToggleSortingHandler()}
@@ -1114,14 +1114,14 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                 {showSkeletons ? (
                   // Loading skeleton
                   Array.from({ length: 10 }).map((_, i) => (
-                    <TableRow key={i}>
+                <TableRow key={i}>
                       {table.getVisibleFlatColumns().map(column => (
                         <TableCell key={column.id} className={
                           (column.columnDef.meta as any)?.columnConfig.id === 'rank' || (column.columnDef.meta as any)?.columnConfig.id === 'watchlist'
                             ? 'text-center'
                             : (column.columnDef.meta as any)?.columnConfig.id === 'name'
                             ? ''
-                            : 'text-right'
+                            : 'text-right whitespace-nowrap'
                         }>
                           <Skeleton className="h-6" />
                         </TableCell>
@@ -1151,7 +1151,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                             ? 'text-center'
                             : (cell.column.columnDef.meta as any)?.columnConfig.id === 'name'
                             ? ''
-                            : 'text-right'
+                            : 'text-right whitespace-nowrap'
                         }>
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
