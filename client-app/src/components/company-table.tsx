@@ -554,7 +554,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           <TooltipProvider delayDuration={100}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className={`flex items-center ${colConfig.id === 'name' ? 'justify-start' : 'justify-center'} gap-1 text-[11px] sm:text-xs truncate`}>
+                <div className={`flex items-center ${colConfig.id === 'name' ? 'justify-start' : 'justify-center'} gap-1`}>
                   {colConfig.id === 'watchlist' ? <Star className="h-4 w-4" /> : colConfig.label}
                   {colConfig.id !== 'watchlist' && <SortIcon column={colConfig.id} />}
                 </div>
@@ -1087,14 +1087,14 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       {/* Table */}
       <Card className="overflow-hidden">
         <div className="w-full overflow-x-auto -mx-4 px-4">
-          <Table className="w-full min-w-[600px] sm:min-w-[1200px] table-fixed text-xs sm:text-sm [&_th]:p-2 [&_td]:p-2 sm:[&_th]:p-3 sm:[&_td]:p-3">
+          <Table className="w-full min-w-[700px] sm:min-w-[1200px] table-fixed text-xs sm:text-sm [&_th]:p-2 [&_td]:p-2 sm:[&_th]:p-3 sm:[&_td]:p-3">
             <TableHeader>
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow key={headerGroup.id} className="bg-muted/50">
                   {headerGroup.headers.map(header => (
                     <TableHead
                       key={header.id}
-                      className={`text-right whitespace-nowrap overflow-hidden cursor-pointer hover:bg-muted/80 transition-colors ${ (header.column.columnDef.meta as any)?.columnConfig.width } ${
+                      className={`text-right cursor-pointer hover:bg-muted/80 transition-colors ${ (header.column.columnDef.meta as any)?.columnConfig.width } ${
                         sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
                       }`}
                       onClick={header.column.getToggleSortingHandler()}
@@ -1121,7 +1121,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                             ? 'text-center'
                             : (column.columnDef.meta as any)?.columnConfig.id === 'name'
                             ? ''
-                            : 'text-right whitespace-nowrap'
+                            : 'text-right'
                         }>
                           <Skeleton className="h-6" />
                         </TableCell>
@@ -1151,7 +1151,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                             ? 'text-center'
                             : (cell.column.columnDef.meta as any)?.columnConfig.id === 'name'
                             ? ''
-                            : 'text-right whitespace-nowrap'
+                            : 'text-right'
                         }>
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
