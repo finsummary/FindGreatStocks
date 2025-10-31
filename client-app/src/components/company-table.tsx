@@ -847,15 +847,11 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   const isReverseDcfMobile = selectedLayout === 'reverseDcf' && isMobile;
 
   const getWidthClass = (id: string): string => {
-    if (!isReverseDcfMobile) return (ALL_COLUMNS.find(c => c.id === id as any)?.width) || '';
-    switch (id) {
-      case 'name': return 'w-[140px]';
-      case 'marketCap': return 'w-[72px]';
-      case 'price': return 'w-[64px]';
-      case 'revenueGrowth10Y': return 'w-[72px]';
-      case 'dcfImpliedGrowth': return 'w-[72px]';
-      default: return (ALL_COLUMNS.find(c => c.id === id as any)?.width) || '';
+    // На мобильных даём auto‑ширины (адаптивно), оставив минимальную ширину только для name
+    if (isMobile) {
+      return id === 'name' ? 'min-w-[140px]' : '';
     }
+    return (ALL_COLUMNS.find(c => c.id === id as any)?.width) || '';
   };
 
   // Prefetch данных для соседних вкладок, чтобы переключение было мгновенным
@@ -1123,7 +1119,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       {/* Table */}
       <Card className="overflow-hidden">
         <div className="w-full overflow-x-auto -mx-4 px-4">
-          <Table className={`w-full ${isReverseDcfMobile ? 'min-w-[560px]' : 'min-w-[700px]'} sm:min-w-[1200px] table-fixed text-xs sm:text-sm [&_th]:p-2 [&_td]:p-2 sm:[&_th]:p-3 sm:[&_td]:p-3`}>
+          <Table className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 sm:[&_td]:p-3`}>
             <TableHeader>
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow key={headerGroup.id} className="bg-muted/50">
