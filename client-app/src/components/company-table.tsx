@@ -972,7 +972,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           <div className="flex-1 flex justify-end items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="w-full sm:w-auto text-sm">
+                <Button variant="outline" size="sm" className="w-full sm:w-auto text-sm">
                   <Settings2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                   Visible Columns
                 </Button>
@@ -1018,7 +1018,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="w-full sm:w-auto">
+                <Button variant="outline" size="sm" className="w-full sm:w-auto text-sm">
                   <span className="flex items-center">
                     Choose Layout
                   </span>
@@ -1058,7 +1058,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
               </DropdownMenuContent>
             </DropdownMenu>
             {!authLoading && !isPaidUser && (
-               <Button onClick={() => setIsUpgradeModalOpen(true)}>
+               <Button size="sm" onClick={() => setIsUpgradeModalOpen(true)}>
                 <Unlock className="mr-2 h-4 w-4" />
                 Upgrade
               </Button>
@@ -1087,7 +1087,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       {/* Table */}
       <Card className="overflow-hidden">
         <div className="w-full overflow-x-auto">
-          <Table className="w-full min-w-[900px] sm:min-w-[1200px] table-fixed text-xs sm:text-sm">
+          <Table className="w-full min-w-[900px] sm:min-w-[1200px] table-fixed text-xs sm:text-sm [&_th]:p-2 [&_td]:p-2 sm:[&_th]:p-3 sm:[&_td]:p-3">
             <TableHeader>
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow key={headerGroup.id} className="bg-muted/50">
