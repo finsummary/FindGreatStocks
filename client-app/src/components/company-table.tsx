@@ -170,6 +170,7 @@ interface CompanyTableProps {
 }
 
 export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTableProps) {
+  const [isMobile, setIsMobile] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<string>('none'); // Default to 'none' for placeholder
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(0);
@@ -182,6 +183,14 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   const [watchOverrides, setWatchOverrides] = useState<Record<string, boolean>>({});
   const [didLoadPrefs, setDidLoadPrefs] = useState(false);
   const { user, session, loading: authLoading } = useAuth();
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -835,6 +844,20 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     manualSorting: true,
   });
 
+  const isReverseDcfMobile = selectedLayout === 'reverseDcf' && isMobile;
+
+  const getWidthClass = (id: string): string => {
+    if (!isReverseDcfMobile) return (ALL_COLUMNS.find(c => c.id === id as any)?.width) || '';
+    switch (id) {
+      case 'name': return 'w-[140px]';
+      case 'marketCap': return 'w-[72px]';
+      case 'price': return 'w-[64px]';
+      case 'revenueGrowth10Y': return 'w-[72px]';
+      case 'dcfImpliedGrowth': return 'w-[72px]';
+      default: return (ALL_COLUMNS.find(c => c.id === id as any)?.width) || '';
+    }
+  };
+
   // Prefetch данных для соседних вкладок, чтобы переключение было мгновенным
   useEffect(() => {
     // Для watchlist пропускаем префетч (требуется авторизация и иной источник данных)
@@ -1100,14 +1123,14 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       {/* Table */}
       <Card className="overflow-hidden">
         <div className="w-full overflow-x-auto -mx-4 px-4">
-          <Table className="w-full min-w-[700px] sm:min-w-[1200px] table-fixed text-xs sm:text-sm [&_th]:p-2 [&_td]:p-2 sm:[&_th]:p-3 sm:[&_td]:p-3">
+          <Table className={`w-full ${isReverseDcfMobile ? 'min-w-[560px]' : 'min-w-[700px]'} sm:min-w-[1200px] table-fixed text-xs sm:text-sm [&_th]:p-2 [&_td]:p-2 sm:[&_th]:p-3 sm:[&_td]:p-3`}>
             <TableHeader>
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow key={headerGroup.id} className="bg-muted/50">
                   {headerGroup.headers.map(header => (
                     <TableHead
                       key={header.id}
-                      className={`text-right cursor-pointer hover:bg-muted/80 transition-colors ${ (header.column.columnDef.meta as any)?.columnConfig.width } ${
+                      className={`text-right cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(((header.column.columnDef.meta as any)?.columnConfig.id) as string) } ${
                         sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
                       }`}
                       onClick={header.column.getToggleSortingHandler()}
