@@ -524,7 +524,28 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       }
       const response = await fetch(`https://findgreatstocks-production.up.railway.app${url}?${qs}`, { cache: 'no-store' });
       if (!response.ok) throw new Error("Failed to fetch companies");
-      return response.json();
+      const json = await response.json();
+      try {
+        if (json?.companies && currentSortBy && currentSortBy !== 'none') {
+          const rows = [...json.companies];
+          const asc = (String(sortOrder).toLowerCase() === 'asc');
+          rows.sort((a: any, b: any) => {
+            const va = a?.[currentSortBy];
+            const vb = b?.[currentSortBy];
+            const aNull = (va === null || va === undefined || va === '');
+            const bNull = (vb === null || vb === undefined || vb === '');
+            if (aNull && bNull) return 0;
+            if (aNull) return 1; // nulls last
+            if (bNull) return -1;
+            const na = Number(va);
+            const nb = Number(vb);
+            if (!Number.isNaN(na) && !Number.isNaN(nb)) return asc ? (na - nb) : (nb - na);
+            return asc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+          });
+          json.companies = rows;
+        }
+      } catch {}
+      return json;
     },
     // Тянуть всегда свежие данные после серверных обновлений
     refetchOnMount: 'always',
