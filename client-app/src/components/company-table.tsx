@@ -1068,6 +1068,18 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         </div>
       </div>
 
+      {/* Watchlist requires auth */}
+      {dataset === 'watchlist' && !isLoggedIn && (
+        <Card className="p-4 bg-amber-50 border-amber-200 text-amber-900">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm">Sign in to view and manage your Watchlist.</div>
+            <Button asChild size="sm" variant="outline">
+              <a href="/login">Login</a>
+            </Button>
+          </div>
+        </Card>
+      )}
+
       {/* Layout Description Box */}
       {selectedLayout && LAYOUT_DESCRIPTIONS[selectedLayout] && (
         <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 transition-all">

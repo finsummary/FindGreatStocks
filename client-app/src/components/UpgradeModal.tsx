@@ -62,7 +62,7 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
             Unlock the full power of FindGreatStocks and get access to exclusive features.
           </DialogDescription>
         </DialogHeader>
-        <div className="px-6 pt-5 pb-4 border-t overflow-y-auto bg-white/95 dark:bg-zinc-900/95">
+        <div className="px-6 pt-5 pb-24 sm:pb-4 border-t overflow-y-auto bg-white/95 dark:bg-zinc-900/95">
           <h3 className="text-lg font-semibold mb-4">Premium Features</h3>
           <ul className="space-y-1.5">
             {features.map((feature, index) => {
