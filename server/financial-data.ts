@@ -440,6 +440,7 @@ export class FinancialDataService {
       operatingIncome: fmpCompany.financials?.operatingIncome ? parseInteger(fmpCompany.financials.operatingIncome) : null,
       netIncome: fmpCompany.financials?.netIncome ? parseInteger(fmpCompany.financials.netIncome) : null,
       totalAssets: fmpCompany.financials?.totalAssets ? parseInteger(fmpCompany.financials.totalAssets) : null,
+      totalEquity: (fmpCompany as any).financials?.totalStockholdersEquity ? parseInteger((fmpCompany as any).financials.totalStockholdersEquity) : null,
       totalDebt: fmpCompany.financials?.totalDebt ? parseInteger(fmpCompany.financials.totalDebt) : null,
       cashAndEquivalents: fmpCompany.financials?.cashAndCashEquivalents ? parseInteger(fmpCompany.financials.cashAndCashEquivalents) : null,
     };
