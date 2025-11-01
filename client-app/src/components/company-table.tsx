@@ -1196,7 +1196,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                 <TableRow key={i}>
                       {table.getVisibleFlatColumns().map(column => (
                         <TableCell key={column.id} className={
-                          (column.columnDef.meta as any)?.columnConfig.id === 'rank' || (column.columnDef.meta as any)?.columnConfig.id === 'watchlist'
+                          (column.columnDef.meta as any)?.columnConfig.id === 'rank' ||
+                          (column.columnDef.meta as any)?.columnConfig.id === 'watchlist' ||
+                          (column.columnDef.meta as any)?.columnConfig.id === 'dcfVerdict'
                             ? 'text-center'
                             : (column.columnDef.meta as any)?.columnConfig.id === 'name'
                             ? ''
@@ -1226,7 +1228,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                     >
                       {row.getVisibleCells().map(cell => (
                         <TableCell key={cell.id} className={
-                          (cell.column.columnDef.meta as any)?.columnConfig.id === 'rank' || (cell.column.columnDef.meta as any)?.columnConfig.id === 'watchlist'
+                          (cell.column.columnDef.meta as any)?.columnConfig.id === 'rank' ||
+                          (cell.column.columnDef.meta as any)?.columnConfig.id === 'watchlist' ||
+                          (cell.column.columnDef.meta as any)?.columnConfig.id === 'dcfVerdict'
                             ? 'text-center'
                             : (cell.column.columnDef.meta as any)?.columnConfig.id === 'name'
                             ? ''
