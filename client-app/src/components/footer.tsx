@@ -31,7 +31,11 @@ const Footer: React.FC = () => {
                   Home
                 </Link>
               </li>
-              
+              <li>
+                <a href="https://blog.findgreatstocks.com" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors">
+                  Blog
+                </a>
+              </li>
               <li>
                 <Link to="/watchlist" className="text-gray-300 hover:text-white transition-colors">
                   Watchlist

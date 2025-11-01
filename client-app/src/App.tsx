@@ -40,6 +40,9 @@ function App() {
           <span className="ml-2 whitespace-nowrap font-semibold text-sm sm:text-lg">FindGreatStocks.com</span>
         </Link>
         <nav className="ml-auto flex items-center gap-4 sm:gap-6">
+          <Button asChild variant="ghost" size="sm">
+            <a href="https://blog.findgreatstocks.com" target="_blank" rel="noopener noreferrer">Blog</a>
+          </Button>
           <Button asChild variant="outline" size="sm">
             <Link to="/watchlist">Watchlist</Link>
           </Button>
