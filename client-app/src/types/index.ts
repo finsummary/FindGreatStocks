@@ -17,6 +17,8 @@ export interface Company {
   priceToSalesRatio: number | string | null;
   revenue: number | string | null;
   netIncome: number | string | null;
+  totalAssets: number | string | null;
+  totalEquity: number | string | null;
   freeCashFlow: number | string | null;
   revenueGrowth3Y: number | string | null;
   revenueGrowth5Y: number | string | null;
