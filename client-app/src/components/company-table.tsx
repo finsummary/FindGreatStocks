@@ -158,8 +158,8 @@ const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlis
   dcfEnterpriseValue: 'The estimated total value of the company based on projected future free cash flows, discounted to their present value.',
   marginOfSafety: 'The percentage difference between the DCF Enterprise Value and the current Market Cap. A positive value suggests undervaluation.',
   dcfImpliedGrowth: 'The Free Cash Flow growth rate required to justify the current stock price. Compared visually to the 10Y Revenue Growth.',
-  // Verdict compares implied FCF growth vs historical 10Y revenue growth
-  dcfVerdict: 'Implied growth vs 10Y revenue growth: Lower (green) or Higher (red).',
+  // Verdict combines valuation (by Margin of Safety) and growth comparison (implied vs 10Y)
+  dcfVerdict: 'Undervalued/Overvalued by DCF + note if implied growth is Lower or Higher than 10Y revenue growth.',
   assetTurnover: 'Measures how efficiently a company uses its assets to generate revenue. Calculated as Total Revenue / Total Assets.',
   financialLeverage: 'Measures the extent to which a company uses debt to finance its assets. Calculated as Total Assets / Total Equity.',
   roe: 'Return on Equity measures a company\'s profitability in relation to stockholders\' equity. Calculated as Net Income / Total Equity.',
@@ -769,22 +769,26 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
             case 'dcfVerdict': {
               const impliedRaw = (row as any).dcfImpliedGrowth;
               const rev10yRaw = (row as any).revenueGrowth10Y;
+              const mosRaw = (row as any).marginOfSafety;
               const implied = impliedRaw !== null && impliedRaw !== undefined ? Number(impliedRaw) : null; // decimal fraction (e.g., 0.12)
               const rev10y = rev10yRaw !== null && rev10yRaw !== undefined ? Number(rev10yRaw) / 100 : null; // percent -> decimal
-              if (implied === null || rev10y === null || Number.isNaN(implied) || Number.isNaN(rev10y)) {
+              const mos = mosRaw !== null && mosRaw !== undefined ? Number(mosRaw) : null; // decimal (e.g., 0.18)
+              if (implied === null || rev10y === null || Number.isNaN(implied) || Number.isNaN(rev10y) || mos === null || Number.isNaN(mos)) {
                 cellContent = <span className="text-muted-foreground">N/A</span>;
                 break;
               }
               const lower = implied < rev10y;
+              const isUndervalued = mos > 0;
+              const label = `${isUndervalued ? 'Undervalued' : 'Overvalued'} — ${lower ? 'Lower than 10Y' : 'Higher than 10Y'}`;
               cellContent = (
                 <Badge
                   variant="outline"
-                  className={`font-medium ${lower
+                  className={`font-medium ${isUndervalued
                     ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950'
                     : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'
                   }`}
                 >
-                  {lower ? 'Lower than 10Y' : 'Higher than 10Y'}
+                  {label}
                 </Badge>
               );
               break;
