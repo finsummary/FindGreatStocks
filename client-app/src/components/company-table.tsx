@@ -52,7 +52,7 @@ import {
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 interface ColumnConfig {
-  id: keyof Company | 'rank' | 'name' | 'watchlist' | 'none'; // 'none' for the placeholder
+  id: keyof Company | 'rank' | 'name' | 'watchlist' | 'none' | 'dcfVerdict'; // 'none' for the placeholder
   label: string;
   width: string;
   defaultVisible: boolean;
@@ -86,6 +86,7 @@ export const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'dcfEnterpriseValue', label: 'DCF Enterprise Value', width: 'w-[110px] sm:w-[130px]', defaultVisible: true },
   { id: 'marginOfSafety', label: 'Margin of Safety', width: 'w-[96px] sm:w-[110px]', defaultVisible: true },
   { id: 'dcfImpliedGrowth', label: 'DCF Implied Growth', width: 'w-[96px] sm:w-[130px]', defaultVisible: true },
+  { id: 'dcfVerdict', label: 'Model Verdict', width: 'w-[110px] sm:w-[130px]', defaultVisible: true },
   { id: 'assetTurnover', label: 'Asset Turnover', width: 'w-[84px] sm:w-[110px]', defaultVisible: true },
   { id: 'financialLeverage', label: 'Financial Leverage', width: 'w-[84px] sm:w-[110px]', defaultVisible: true },
   { id: 'roe', label: 'ROE %', width: 'w-[84px] sm:w-[110px]', defaultVisible: true },
@@ -102,7 +103,7 @@ const PRESET_LAYOUTS = {
   },
   'reverseDcf': {
     name: 'Reverse DCF',
-    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'revenue', 'revenueGrowth10Y', 'dcfImpliedGrowth'],
+    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'revenue', 'revenueGrowth10Y', 'dcfImpliedGrowth', 'dcfVerdict'],
   },
   'dupontRoe': {
     name: 'DuPont ROE Decomposition',
@@ -157,6 +158,8 @@ const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlis
   dcfEnterpriseValue: 'The estimated total value of the company based on projected future free cash flows, discounted to their present value.',
   marginOfSafety: 'The percentage difference between the DCF Enterprise Value and the current Market Cap. A positive value suggests undervaluation.',
   dcfImpliedGrowth: 'The Free Cash Flow growth rate required to justify the current stock price. Compared visually to the 10Y Revenue Growth.',
+  // @ts-ignore add verdict help
+  dcfVerdict: 'Model verdict based on DCF: Undervalued (EV>Market Cap) or Overvalued (EV<Market Cap).',
   assetTurnover: 'Measures how efficiently a company uses its assets to generate revenue. Calculated as Total Revenue / Total Assets.',
   financialLeverage: 'Measures the extent to which a company uses debt to finance its assets. Calculated as Total Assets / Total Equity.',
   roe: 'Return on Equity measures a company\'s profitability in relation to stockholders\' equity. Calculated as Net Income / Total Equity.',
@@ -763,6 +766,27 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                 </Badge>
               ) : <span className="text-muted-foreground">-</span>;
               break;
+            case 'dcfVerdict': {
+              const mosRaw = (row as any).marginOfSafety;
+              const mos = mosRaw !== null && mosRaw !== undefined ? Number(mosRaw) : null;
+              if (mos === null || Number.isNaN(mos)) {
+                cellContent = <span className="text-muted-foreground">N/A</span>;
+                break;
+              }
+              const isUndervalued = mos > 0;
+              cellContent = (
+                <Badge
+                  variant="outline"
+                  className={`font-medium ${isUndervalued
+                    ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950'
+                    : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'
+                  }`}
+                >
+                  {isUndervalued ? 'Undervalued' : 'Overvalued'}
+                </Badge>
+              );
+              break;
+            }
             case 'assetTurnover':
               const atValue = row.assetTurnover as number | null;
               if (atValue === null || atValue === undefined) {
