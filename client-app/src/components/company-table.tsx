@@ -767,13 +767,15 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
               ) : <span className="text-muted-foreground">-</span>;
               break;
             case 'dcfVerdict': {
-              const mosRaw = (row as any).marginOfSafety;
-              const mos = mosRaw !== null && mosRaw !== undefined ? Number(mosRaw) : null; // decimal (e.g., 0.18)
-              if (mos === null || Number.isNaN(mos)) {
+              const impliedRaw = (row as any).dcfImpliedGrowth; // decimal (e.g., 0.12)
+              const rev10yRaw = (row as any).revenueGrowth10Y; // percent (e.g., 15)
+              const implied = impliedRaw !== null && impliedRaw !== undefined ? Number(impliedRaw) : null;
+              const rev10y = rev10yRaw !== null && rev10yRaw !== undefined ? Number(rev10yRaw) / 100 : null;
+              if (implied === null || rev10y === null || Number.isNaN(implied) || Number.isNaN(rev10y)) {
                 cellContent = <span className="text-muted-foreground">N/A</span>;
                 break;
               }
-              const isUndervalued = mos > 0;
+              const isUndervalued = implied < rev10y; // market implies lower growth than historical
               cellContent = (
                 <Badge
                   variant="outline"
