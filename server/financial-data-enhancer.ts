@@ -8,7 +8,6 @@ interface FinancialMetrics {
   freeCashFlow: number;
   totalDebt: number;
   totalAssets: number;
-  totalEquity: number;
   peRatio: number;
   eps: number;
   grossProfit: number;
@@ -101,7 +100,6 @@ class FinancialDataEnhancer {
         freeCashFlow: cashFlowData?.freeCashFlow || 0,
         totalDebt: balanceData?.totalDebt || 0,
         totalAssets: balanceData?.totalAssets || 0,
-        totalEquity: balanceData?.totalStockholdersEquity || 0,
         peRatio: quoteData?.pe || 0,
         eps: quoteData?.eps || incomeData?.epsdiluted || 0
       };
@@ -143,8 +141,7 @@ class FinancialDataEnhancer {
                 netIncome: metrics.netIncome.toString(),
                 grossProfit: metrics.grossProfit.toString(),
                 operatingIncome: metrics.operatingIncome.toString(),
-                totalAssets: metrics.totalAssets.toString(),
-                totalEquity: metrics.totalEquity.toString(),
+                // totalAssets/totalEquity are populated by populate-dupont.ts only
                 totalDebt: metrics.totalDebt.toString(),
                 peRatio: metrics.peRatio.toString(),
                 eps: metrics.eps.toString()
@@ -196,13 +193,12 @@ class FinancialDataEnhancer {
         const metrics = await this.getFinancialMetrics(symbol);
         
         if (metrics) {
-          await storage.updateCompany(symbol, {
+            await storage.updateCompany(symbol, {
             revenue: metrics.revenue.toString(),
             netIncome: metrics.netIncome.toString(),
             grossProfit: metrics.grossProfit.toString(),
             operatingIncome: metrics.operatingIncome.toString(),
-            totalAssets: metrics.totalAssets.toString(),
-              totalEquity: metrics.totalEquity.toString(),
+              // totalAssets/totalEquity are populated by populate-dupont.ts only
             totalDebt: metrics.totalDebt.toString(),
             peRatio: metrics.peRatio.toString(),
             eps: metrics.eps.toString()

@@ -439,8 +439,7 @@ export class FinancialDataService {
       grossProfit: fmpCompany.financials?.grossProfit ? parseInteger(fmpCompany.financials.grossProfit) : null,
       operatingIncome: fmpCompany.financials?.operatingIncome ? parseInteger(fmpCompany.financials.operatingIncome) : null,
       netIncome: fmpCompany.financials?.netIncome ? parseInteger(fmpCompany.financials.netIncome) : null,
-      totalAssets: fmpCompany.financials?.totalAssets ? parseInteger(fmpCompany.financials.totalAssets) : null,
-      totalEquity: (fmpCompany as any).financials?.totalStockholdersEquity ? parseInteger((fmpCompany as any).financials.totalStockholdersEquity) : null,
+      // totalAssets/totalEquity are populated by populate-dupont.ts only
       totalDebt: fmpCompany.financials?.totalDebt ? parseInteger(fmpCompany.financials.totalDebt) : null,
       cashAndEquivalents: fmpCompany.financials?.cashAndCashEquivalents ? parseInteger(fmpCompany.financials.cashAndCashEquivalents) : null,
     };
