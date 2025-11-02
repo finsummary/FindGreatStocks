@@ -1,6 +1,9 @@
 import express from 'express';
 import Stripe from 'stripe';
 
+// Build/Deploy commit identifier (works on Vercel/Railway if env vars are present)
+const COMMIT_SHA = process.env.VERCEL_GIT_COMMIT_SHA || process.env.RAILWAY_GIT_COMMIT_SHA || process.env.COMMIT_SHA || 'unknown';
+
 export function setupStripeWebhook(app, supabase) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
@@ -207,7 +210,10 @@ function mapDbRowToCompany(row) {
 export function setupRoutes(app, supabase) {
   const isAuthenticated = createAuthMiddleware(supabase);
 
-  app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+  app.get('/api/health', (_req, res) => {
+    try { res.set('x-app-commit', COMMIT_SHA); } catch {}
+    return res.json({ status: 'ok', commit: COMMIT_SHA, timestamp: new Date().toISOString() });
+  });
 
   app.get('/api/auth/me', isAuthenticated, async (req, res) => {
     try {
