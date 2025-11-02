@@ -22,6 +22,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/providers/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import type { Company, Nasdaq100Company } from "../types";
+import { supabase } from "@/lib/supabaseClient";
 
 type DisplayCompany = Company & { isWatched?: boolean };
 import { authFetch } from "@/lib/authFetch";
@@ -532,6 +533,36 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       const response = await fetch(`https://findgreatstocks-production.up.railway.app${url}?${qs}`, { cache: 'no-store' });
       if (!response.ok) throw new Error("Failed to fetch companies");
       const json = await response.json();
+
+      // Enrich missing Total Assets / Total Equity directly from Supabase index tables (client-side fallback)
+      try {
+        const rows = Array.isArray(json?.companies) ? json.companies : [];
+        const symbols: string[] = rows.map((r: any) => r?.symbol).filter(Boolean);
+        if (symbols.length) {
+          const tableByDataset: Record<string, string> = {
+            sp500: 'sp500_companies',
+            nasdaq100: 'nasdaq100_companies',
+            dowjones: 'dow_jones_companies',
+          };
+          const tableName = tableByDataset[dataset] || 'companies';
+          const { data: supaRows, error: supaErr } = await supabase
+            .from(tableName)
+            .select('symbol, total_assets, total_equity')
+            .in('symbol', symbols);
+          if (!supaErr && Array.isArray(supaRows)) {
+            const map = new Map<string, any>();
+            for (const r of supaRows) {
+              if (r?.symbol) map.set(r.symbol, r);
+            }
+            for (const r of rows) {
+              const m = map.get(r.symbol);
+              if (!m) continue;
+              if (r.totalAssets == null && m.total_assets != null) r.totalAssets = m.total_assets;
+              if (r.totalEquity == null && m.total_equity != null) r.totalEquity = m.total_equity;
+            }
+          }
+        }
+      } catch {}
       try {
         if (json?.companies && currentSortBy && currentSortBy !== 'none') {
           const rows = [...json.companies];
