@@ -30,16 +30,16 @@ function App() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="px-4 lg:px-6 h-14 flex items-center">
-        <Link className="flex items-center justify-center" to="/">
-          <img 
-            src="/logo.svg" 
-            alt="FindGreatStocks Logo" 
-            className="h-8 w-8"
+      <header className="px-4 lg:px-6 min-h-14 h-auto flex items-center flex-wrap gap-2">
+        <Link className="flex items-center justify-center gap-2 min-w-0" to="/">
+          <img
+            src="/logo.svg"
+            alt="FindGreatStocks Logo"
+            className="h-8 w-8 flex-shrink-0"
           />
-          <span className="ml-2 whitespace-nowrap font-semibold text-sm sm:text-lg">FindGreatStocks.com</span>
+          <span className="truncate font-semibold text-xs sm:text-lg">FindGreatStocks.com</span>
         </Link>
-        <nav className="ml-auto flex items-center gap-4 sm:gap-6">
+        <nav className="ml-auto w-full sm:w-auto flex items-center justify-start sm:justify-end gap-2 sm:gap-4">
           <Button asChild variant="ghost" size="sm">
             <a href="https://blog.findgreatstocks.com" target="_blank" rel="noopener noreferrer">Blog</a>
           </Button>
@@ -53,7 +53,7 @@ function App() {
                   <Avatar className="h-6 w-6">
                     <AvatarFallback>{(user.email || 'U').slice(0,1).toUpperCase()}</AvatarFallback>
                   </Avatar>
-                  <span className="text-sm hidden sm:inline">{user.email}</span>
+                  <span className="text-sm hidden sm:inline max-w-[180px] truncate">{user.email}</span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
