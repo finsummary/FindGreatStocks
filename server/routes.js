@@ -1705,7 +1705,7 @@ export function setupRoutes(app, supabase) {
       }
 
       const session = await stripe.checkout.sessions.create(sessionParams);
-      return res.json({ sessionId: session.id });
+      return res.json({ sessionId: session.id, url: session.url });
     } catch (e) {
       console.error('Stripe checkout error:', e);
       return res.status(500).json({ error: { message: 'Failed to create checkout session' } });
