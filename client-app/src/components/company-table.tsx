@@ -568,18 +568,17 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         if (json?.companies && currentSortBy && currentSortBy !== 'none') {
           const rows = [...json.companies];
           const asc = (String(sortOrder).toLowerCase() === 'asc');
+          const toNum = (v: any) => {
+            if (v === null || v === undefined) return Number.NEGATIVE_INFINITY;
+            if (typeof v === 'number') return v;
+            const n = parseFloat(String(v).replace(/[%,$\s]/g, ''));
+            return Number.isNaN(n) ? Number.NEGATIVE_INFINITY : n;
+          };
           rows.sort((a: any, b: any) => {
-            const va = a?.[currentSortBy];
-            const vb = b?.[currentSortBy];
-            const aNull = (va === null || va === undefined || va === '');
-            const bNull = (vb === null || vb === undefined || vb === '');
-            if (aNull && bNull) return 0;
-            if (aNull) return 1; // nulls last
-            if (bNull) return -1;
-            const na = Number(va);
-            const nb = Number(vb);
-            if (!Number.isNaN(na) && !Number.isNaN(nb)) return asc ? (na - nb) : (nb - na);
-            return asc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+            const na = toNum(a?.[currentSortBy]);
+            const nb = toNum(b?.[currentSortBy]);
+            if (na === nb) return 0;
+            return asc ? (na - nb) : (nb - na);
           });
           json.companies = rows;
         }
@@ -910,6 +909,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         if (newSorting.length > 0) {
           setSortBy(newSorting[0].id);
           setSortOrder(newSorting[0].desc ? 'desc' : 'asc');
+          setPage(0);
         } else {
           setSortBy('none');
         }
@@ -918,6 +918,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         if (newSorting.length > 0) {
           setSortBy(newSorting[0].id);
           setSortOrder(newSorting[0].desc ? 'desc' : 'asc');
+          setPage(0);
         } else {
           setSortBy('none');
         }
