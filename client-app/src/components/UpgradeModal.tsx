@@ -52,7 +52,7 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[650px] p-0 flex flex-col max-h-[90vh] overflow-y-auto bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-50">
         <DialogHeader className="p-6 pb-4">
-          <DialogTitle className="text-2xl font-bold">Lifetime Access</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">Lifetime Access (Limited-time Offer)</DialogTitle>
           <DialogDescription>
             One-time payment. All current and future premium features included.
           </DialogDescription>
@@ -98,6 +98,9 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
             <Button size="lg" className="w-full" onClick={() => onUpgrade({ priceId: lifetimePriceId, plan: 'lifetime' })}>
               Get Lifetime Access
             </Button>
+            <p className="text-xs text-center text-muted-foreground pt-2">
+              Limited-time offer
+            </p>
           </div>
         </DialogFooter>
       </DialogContent>
