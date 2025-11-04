@@ -99,7 +99,7 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
               Get Lifetime Access
             </Button>
             <p className="text-xs text-center text-muted-foreground pt-2">
-              Limited-time offer
+              Limited-time offer — available to the first 1,000 users only
             </p>
           </div>
         </DialogFooter>
