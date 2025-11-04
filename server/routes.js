@@ -26,8 +26,18 @@ export function setupStripeWebhook(app, supabase) {
         };
         if (userId) {
           await supabase.from('users').update(payload).eq('id', userId);
-        } else if (email) {
+          return;
+        }
+        if (email) {
           await supabase.from('users').update(payload).eq('email', email);
+          return;
+        }
+        if (customerId) {
+          const { data } = await supabase.from('users').select('id').eq('stripe_customer_id', customerId).limit(1);
+          const found = Array.isArray(data) && data[0]?.id;
+          if (found) {
+            await supabase.from('users').update(payload).eq('id', found);
+          }
         }
       };
 
@@ -93,6 +103,22 @@ export function setupStripeWebhook(app, supabase) {
             const { data } = await supabase.from('users').select('id,email').eq('stripe_customer_id', customerId).limit(1);
             const user = Array.isArray(data) && data[0];
             await updateUserTier({ userId: user?.id || null, email: user?.email || null, tier: 'free', customerId, subscriptionId: inv.subscription || null });
+          } catch {}
+          break;
+        }
+        case 'charge.refunded': {
+          // On refund, revert user to free (handles lifetime one‑time refunds as well)
+          const charge = event.data.object;
+          const customerId = (charge.customer && typeof charge.customer === 'string') ? charge.customer : null;
+          const email = charge.billing_details?.email || null;
+          try {
+            if (customerId) {
+              const { data } = await supabase.from('users').select('id,email').eq('stripe_customer_id', customerId).limit(1);
+              const user = Array.isArray(data) && data[0];
+              await updateUserTier({ userId: user?.id || null, email: user?.email || email || null, tier: 'free', customerId, subscriptionId: null });
+            } else if (email) {
+              await updateUserTier({ userId: null, email, tier: 'free', customerId: null, subscriptionId: null });
+            }
           } catch {}
           break;
         }
@@ -1623,14 +1649,32 @@ export function setupRoutes(app, supabase) {
       if (!resolvedPriceId) return res.status(400).json({ error: { message: 'Price ID is required' } });
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' });
       const isLifetime = planLower === 'lifetime';
-      const session = await stripe.checkout.sessions.create({
+      // Try to reuse existing Stripe customer; otherwise create one via Checkout
+      let customerId = null; let userEmail = null;
+      try {
+        const { data: dbUser } = await supabase
+          .from('users')
+          .select('stripe_customer_id,email')
+          .eq('id', req.user.id)
+          .single();
+        customerId = dbUser?.stripe_customer_id || null;
+        userEmail = dbUser?.email || req.user?.email || null;
+      } catch {}
+
+      const baseParams = {
         payment_method_types: ['card'],
         line_items: [{ price: resolvedPriceId, quantity: 1 }],
         mode: isLifetime ? 'payment' : 'subscription',
         success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.CLIENT_URL}/payment-cancelled`,
         metadata: { userId: req.user.id, priceId: resolvedPriceId, plan: planLower || null },
-      });
+      };
+
+      const sessionParams = customerId
+        ? { ...baseParams, customer: customerId, customer_update: { name: 'auto', address: 'auto' } }
+        : { ...baseParams, customer_email: userEmail || undefined, customer_creation: 'always' };
+
+      const session = await stripe.checkout.sessions.create(sessionParams);
       return res.json({ sessionId: session.id });
     } catch (e) {
       console.error('Stripe checkout error:', e);
