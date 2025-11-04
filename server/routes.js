@@ -108,18 +108,37 @@ export function setupStripeWebhook(app, supabase) {
         }
         case 'charge.refunded': {
           // On refund, revert user to free (handles lifetime one‑time refunds as well)
-          const charge = event.data.object;
-          const customerId = (charge.customer && typeof charge.customer === 'string') ? charge.customer : null;
-          const email = charge.billing_details?.email || null;
+          const charge = /** @type {any} */ (event.data.object);
+          const customerId = (charge?.customer && typeof charge.customer === 'string') ? charge.customer : null;
+          const email = (charge?.billing_details && charge.billing_details.email) ? String(charge.billing_details.email) : null;
+          let handled = false;
           try {
             if (customerId) {
               const { data } = await supabase.from('users').select('id,email').eq('stripe_customer_id', customerId).limit(1);
               const user = Array.isArray(data) && data[0];
-              await updateUserTier({ userId: user?.id || null, email: user?.email || email || null, tier: 'free', customerId, subscriptionId: null });
-            } else if (email) {
-              await updateUserTier({ userId: null, email, tier: 'free', customerId: null, subscriptionId: null });
+              if (user?.id) {
+                await updateUserTier({ userId: user.id, email: user.email || email || null, tier: 'free', customerId, subscriptionId: null });
+                handled = true;
+              }
             }
-          } catch {}
+            if (!handled && email) {
+              await updateUserTier({ userId: null, email, tier: 'free', customerId: null, subscriptionId: null });
+              handled = true;
+            }
+            // As a final fallback, try to resolve userId from PaymentIntent metadata (only for newer checkouts)
+            if (!handled && charge?.payment_intent) {
+              try {
+                const pi = await stripe.paymentIntents.retrieve(typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent.id);
+                const uid = pi?.metadata?.userId;
+                if (uid) {
+                  await updateUserTier({ userId: String(uid), email: email || null, tier: 'free', customerId: customerId || null, subscriptionId: null });
+                  handled = true;
+                }
+              } catch (e) {}
+            }
+          } catch (e) {
+            console.warn('charge.refunded handling error:', e?.message || e);
+          }
           break;
         }
         default:
@@ -1673,6 +1692,17 @@ export function setupRoutes(app, supabase) {
       const sessionParams = customerId
         ? { ...baseParams, customer: customerId, customer_update: { name: 'auto', address: 'auto' } }
         : { ...baseParams, customer_email: userEmail || undefined, customer_creation: 'always' };
+
+      // Add PI metadata for lifetime (one‑time) so refunds can map back to userId
+      if (isLifetime) {
+        sessionParams.payment_intent_data = Object.assign({}, sessionParams.payment_intent_data || {}, {
+          metadata: Object.assign({
+            userId: String(req.user.id),
+            plan: 'lifetime',
+            priceId: String(resolvedPriceId),
+          }, (sessionParams.payment_intent_data && sessionParams.payment_intent_data.metadata) || {})
+        });
+      }
 
       const session = await stripe.checkout.sessions.create(sessionParams);
       return res.json({ sessionId: session.id });
