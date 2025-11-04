@@ -1637,6 +1637,52 @@ export function setupRoutes(app, supabase) {
       return res.status(500).json({ error: { message: 'Failed to create checkout session' } });
     }
   });
+
+  // Optional fallback: confirm checkout session and set user tier
+  app.post('/api/stripe/confirm', isAuthenticated, async (req, res) => {
+    try {
+      const { sessionId } = req.body || {};
+      if (!sessionId) return res.status(400).json({ message: 'sessionId is required' });
+      if (!process.env.STRIPE_SECRET_KEY) return res.status(500).json({ message: 'Stripe not configured' });
+
+      const stripe = new (require('stripe'))(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' });
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      if (!session) return res.status(404).json({ message: 'Session not found' });
+
+      if (session.payment_status !== 'paid' && session.status !== 'complete') {
+        return res.status(400).json({ message: 'Payment not completed yet' });
+      }
+
+      let tier = 'paid';
+      if (session.mode === 'payment') {
+        // Lifetime one‑time payment
+        tier = 'lifetime';
+      } else if (session.subscription) {
+        try {
+          const sub = await stripe.subscriptions.retrieve(session.subscription, { expand: ['items.data.price'] });
+          const interval = (sub?.items?.data?.[0]?.price?.recurring?.interval) || (sub?.plan?.interval);
+          if (interval === 'year') tier = 'annual';
+          else if (interval === 'quarter') tier = 'quarterly';
+          else tier = 'paid';
+        } catch (e) {
+          // ignore and keep default
+        }
+      }
+
+      const userId = req?.user?.id;
+      if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+      const { error } = await supabase
+        .from('users')
+        .update({ subscription_tier: tier, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+      if (error) return res.status(500).json({ message: 'Failed to update user', error });
+
+      return res.json({ success: true, tier });
+    } catch (e) {
+      console.error('Error in /api/stripe/confirm:', e);
+      return res.status(500).json({ message: 'Failed to confirm session' });
+    }
+  });
 }
 
 

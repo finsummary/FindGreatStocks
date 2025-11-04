@@ -34,7 +34,8 @@ export function BillingPage() {
   };
 
   const tier = (user?.subscriptionTier || 'free').toLowerCase();
-  const planLabel = tier === 'annual' ? 'annual' : tier === 'quarterly' ? 'quarterly' : tier === 'paid' ? 'paid' : 'free';
+  const planLabel = tier === 'lifetime' ? 'lifetime' : tier === 'annual' ? 'annual' : tier === 'quarterly' ? 'quarterly' : tier === 'paid' ? 'paid' : 'free';
+  const isLifetime = planLabel === 'lifetime';
   const isFree = planLabel === 'free';
   const isQuarterly = planLabel === 'quarterly';
   const isAnnual = planLabel === 'annual';
@@ -48,39 +49,44 @@ export function BillingPage() {
           <CardDescription>Manage your subscription</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="text-sm">Current plan: <b>{planLabel}</b></div>
-          {isLegacyPaid && (
+          <div className="text-sm">Current plan: <b>{isLifetime ? 'Lifetime Access' : planLabel}</b></div>
+          {isLegacyPaid && !isLifetime && (
             <div className="text-xs text-muted-foreground">Legacy "paid" plan detected. You can switch to Quarterly or Annual below.</div>
           )}
-          <div className="flex flex-wrap gap-3">
-            {(isFree || isLegacyPaid) && (
-              <Button disabled={loading || isQuarterly} onClick={() => startCheckout(import.meta.env.VITE_STRIPE_QUARTERLY_PRICE_ID)}>
-                {isQuarterly ? 'On Quarterly' : 'Upgrade to Quarterly'}
-              </Button>
-            )}
-            {(isFree || isQuarterly || isLegacyPaid) && (
-              <Button variant="outline" disabled={loading || isAnnual} onClick={() => startCheckout(import.meta.env.VITE_STRIPE_ANNUAL_PRICE_ID)}>
-                {isAnnual ? 'On Annual' : 'Upgrade to Annual'}
-              </Button>
-            )}
-            {isAnnual && !isLegacyPaid && (
-              <div className="text-sm text-muted-foreground self-center">You are on the highest plan.</div>
-            )}
-            {!isFree && (
-              <Button variant="destructive" disabled={loading} onClick={async () => {
-                try {
-                  setLoading(true);
-                  await authFetch('/api/billing/downgrade', { method: 'POST' });
-                  await refreshUser();
-                  toast({ title: 'Plan updated', description: 'You have been downgraded to free (at period end if applicable).' });
-                } catch (e: any) {
-                  toast({ title: 'Downgrade error', description: e?.message || 'Failed to downgrade', variant: 'destructive' });
-                } finally {
-                  setLoading(false);
-                }
-              }}>Downgrade to Free</Button>
-            )}
-          </div>
+          {!isLifetime && (
+            <div className="flex flex-wrap gap-3">
+              {(isFree || isLegacyPaid) && (
+                <Button disabled={loading || isQuarterly} onClick={() => startCheckout(import.meta.env.VITE_STRIPE_QUARTERLY_PRICE_ID)}>
+                  {isQuarterly ? 'On Quarterly' : 'Upgrade to Quarterly'}
+                </Button>
+              )}
+              {(isFree || isQuarterly || isLegacyPaid) && (
+                <Button variant="outline" disabled={loading || isAnnual} onClick={() => startCheckout(import.meta.env.VITE_STRIPE_ANNUAL_PRICE_ID)}>
+                  {isAnnual ? 'On Annual' : 'Upgrade to Annual'}
+                </Button>
+              )}
+              {isAnnual && !isLegacyPaid && (
+                <div className="text-sm text-muted-foreground self-center">You are on the highest plan.</div>
+              )}
+              {!isFree && (
+                <Button variant="destructive" disabled={loading} onClick={async () => {
+                  try {
+                    setLoading(true);
+                    await authFetch('/api/billing/downgrade', { method: 'POST' });
+                    await refreshUser();
+                    toast({ title: 'Plan updated', description: 'You have been downgraded to free (at period end if applicable).' });
+                  } catch (e: any) {
+                    toast({ title: 'Downgrade error', description: e?.message || 'Failed to downgrade', variant: 'destructive' });
+                  } finally {
+                    setLoading(false);
+                  }
+                }}>Downgrade to Free</Button>
+              )}
+            </div>
+          )}
+          {isLifetime && (
+            <div className="text-sm text-green-700 dark:text-green-400">You have Lifetime Access. No further upgrades are required.</div>
+          )}
         </CardContent>
       </Card>
     </div>
