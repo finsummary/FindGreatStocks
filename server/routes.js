@@ -1715,9 +1715,15 @@ export function setupRoutes(app, supabase) {
 
       const userId = req?.user?.id;
       if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+      const updatePayload = {
+        subscription_tier: tier,
+        stripe_customer_id: (typeof session.customer === 'string') ? session.customer : null,
+        stripe_subscription_id: (typeof session.subscription === 'string') ? session.subscription : null,
+        updated_at: new Date().toISOString(),
+      };
       const { error } = await supabase
         .from('users')
-        .update({ subscription_tier: tier, updated_at: new Date().toISOString() })
+        .update(updatePayload)
         .eq('id', userId);
       if (error) return res.status(500).json({ message: 'Failed to update user', error });
 
