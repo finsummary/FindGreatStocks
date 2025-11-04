@@ -39,6 +39,7 @@ export function setupStripeWebhook(app, supabase) {
           const customerId = (session.customer && typeof session.customer === 'string') ? session.customer : null;
           const subscriptionId = (session.subscription && typeof session.subscription === 'string') ? session.subscription : null;
           let tier = 'paid';
+          if (session.mode === 'payment' || plan === 'lifetime') tier = 'lifetime';
           if (plan === 'annual') tier = 'annual';
           else if (plan === 'quarterly') tier = 'quarterly';
           // If plan not provided, try to infer from subscription price
@@ -1609,22 +1610,26 @@ export function setupRoutes(app, supabase) {
     try {
       if (!process.env.STRIPE_SECRET_KEY) return res.status(400).json({ error: { message: 'Stripe not configured' } });
       const { priceId, plan } = req.body || {};
+      const planLower = (plan || '').toString().toLowerCase();
       let resolvedPriceId = priceId;
-      if (!resolvedPriceId && plan) {
+      if (!resolvedPriceId) {
         const annual = process.env.STRIPE_ANNUAL_PRICE_ID || process.env.STRIPE_PRICE_ANNUAL;
         const quarterly = process.env.STRIPE_QUARTERLY_PRICE_ID || process.env.STRIPE_PRICE_QUARTERLY;
-        if (String(plan).toLowerCase() === 'annual' && annual) resolvedPriceId = annual;
-        if (String(plan).toLowerCase() === 'quarterly' && quarterly) resolvedPriceId = quarterly;
+        const lifetime = process.env.STRIPE_LIFETIME_PRICE_ID || process.env.STRIPE_PRICE_LIFETIME;
+        if (planLower === 'annual' && annual) resolvedPriceId = annual;
+        if (planLower === 'quarterly' && quarterly) resolvedPriceId = quarterly;
+        if (planLower === 'lifetime' && lifetime) resolvedPriceId = lifetime;
       }
       if (!resolvedPriceId) return res.status(400).json({ error: { message: 'Price ID is required' } });
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' });
+      const isLifetime = planLower === 'lifetime';
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: [{ price: resolvedPriceId, quantity: 1 }],
-        mode: 'subscription',
+        mode: isLifetime ? 'payment' : 'subscription',
         success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.CLIENT_URL}/payment-cancelled`,
-        metadata: { userId: req.user.id, priceId: resolvedPriceId, plan: plan || null },
+        metadata: { userId: req.user.id, priceId: resolvedPriceId, plan: planLower || null },
       });
       return res.json({ sessionId: session.id });
     } catch (e) {

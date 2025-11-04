@@ -203,7 +203,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   const { toast } = useToast();
 
   const isLoggedIn = !!user || !!session;
-  const isPaidUser = user?.subscriptionTier === 'paid' || user?.subscriptionTier === 'quarterly' || user?.subscriptionTier === 'annual';
+  const tier = (user?.subscriptionTier as any);
+  const isPaidUser = tier === 'paid' || tier === 'quarterly' || tier === 'annual' || tier === 'lifetime';
 
   useEffect(() => {
     setSelectedLayout(null);
@@ -288,7 +289,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     showUpgradeButton: !authLoading && !isPaidUser
   });
 
-  const handleUpgradeClick = async ({ priceId, plan }: { priceId?: string; plan: 'annual' | 'quarterly' }) => {
+  const handleUpgradeClick = async ({ priceId, plan }: { priceId?: string; plan: 'annual' | 'quarterly' | 'lifetime' }) => {
     console.log(`[1/5] handleUpgradeClick triggered with priceId: ${priceId}`);
 
     if (!session) {

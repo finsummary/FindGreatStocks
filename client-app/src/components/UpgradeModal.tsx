@@ -9,7 +9,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { 
-  CheckCircle2, 
   Unlock, 
   Globe, 
   TrendingUp, 
@@ -23,7 +22,7 @@ import {
 interface UpgradeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpgrade: (args: { priceId?: string; plan: 'annual' | 'quarterly' }) => void;
+  onUpgrade: (args: { priceId?: string; plan: 'lifetime' | 'annual' | 'quarterly' }) => void;
 }
 
 const features = [
@@ -47,19 +46,15 @@ const boldTerms = [
 
 
 export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) {
-  const quarterlyPriceId = import.meta.env.VITE_STRIPE_QUARTERLY_PRICE_ID;
-  const annualPriceId = import.meta.env.VITE_STRIPE_ANNUAL_PRICE_ID;
-
-  const [selectedPlan, setSelectedPlan] = useState<'annual' | 'quarterly'>('annual');
-  const selectedPriceId = selectedPlan === 'annual' ? annualPriceId : quarterlyPriceId;
+  const lifetimePriceId = import.meta.env.VITE_STRIPE_LIFETIME_PRICE_ID;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[650px] p-0 flex flex-col max-h-[90vh] overflow-y-auto bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-50">
         <DialogHeader className="p-6 pb-4">
-          <DialogTitle className="text-2xl font-bold">Upgrade to Premium</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">Lifetime Access</DialogTitle>
           <DialogDescription>
-            Unlock the full power of FindGreatStocks and get access to exclusive features.
+            One-time payment. All current and future premium features included.
           </DialogDescription>
         </DialogHeader>
         <div className="px-6 pt-5 pb-6 border-t bg-white/95 dark:bg-zinc-900/95">
@@ -92,34 +87,17 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
           </ul>
         </div>
         <DialogFooter className="flex-col gap-3 bg-zinc-50 dark:bg-zinc-800/60 p-6">
-          <div className="flex w-full flex-col sm:flex-row gap-2">
-            <div
-              onClick={() => setSelectedPlan('quarterly')}
-              className={`cursor-pointer rounded-lg border bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm p-4 flex-1 flex flex-col h-auto text-center transition-all ${selectedPlan === 'quarterly' ? 'border-primary ring-2 ring-primary' : 'border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'}`}
-            >
-              <span className="font-semibold text-lg">Quarterly Plan</span>
-              <span className="text-2xl font-bold">$9</span>
-              <span className="text-xs text-muted-foreground">billed every 3 months</span>
-            </div>
-            <div
-              onClick={() => setSelectedPlan('annual')}
-              className={`cursor-pointer rounded-lg border bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm p-4 flex-1 flex flex-col h-auto text-center transition-all ${selectedPlan === 'annual' ? 'border-primary ring-2 ring-primary' : 'border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'}`}
-            >
-              <span className="font-semibold text-lg">Annual Plan</span>
-              <span className="text-2xl font-bold">$29</span>
-              <span className="text-xs text-muted-foreground">billed once a year</span>
-              <span className="mt-2 inline-block bg-primary/10 text-primary text-[11px] font-semibold px-2 py-0.5 rounded-full">
-                Save 19%
-              </span>
+          <div className="w-full">
+            <div className="rounded-lg border bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm p-4 text-center">
+              <span className="font-semibold text-lg">Lifetime Deal</span>
+              <div className="mt-1 text-3xl font-bold">$49</div>
+              <div className="text-xs text-muted-foreground">one-time payment</div>
             </div>
           </div>
           <div className="w-full">
-            <Button size="lg" className="w-full" onClick={() => onUpgrade({ priceId: selectedPriceId, plan: selectedPlan })}>
-              Upgrade
+            <Button size="lg" className="w-full" onClick={() => onUpgrade({ priceId: lifetimePriceId, plan: 'lifetime' })}>
+              Get Lifetime Access
             </Button>
-            <p className="text-xs text-center text-muted-foreground pt-2">
-              These introductory prices are for the first 1,000 users. The price will increase after.
-            </p>
           </div>
         </DialogFooter>
       </DialogContent>

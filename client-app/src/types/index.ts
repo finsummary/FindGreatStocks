@@ -47,7 +47,7 @@ export interface Company {
 export interface User {
   id: string;
   email: string;
-  subscriptionTier: 'free' | 'paid' | 'quarterly' | 'annual';
+  subscriptionTier: 'free' | 'paid' | 'quarterly' | 'annual' | 'lifetime';
   createdAt: string;
   updatedAt: string;
   stripeCustomerId?: string;
