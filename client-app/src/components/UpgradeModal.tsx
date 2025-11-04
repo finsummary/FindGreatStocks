@@ -95,7 +95,11 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
             </div>
           </div>
           <div className="w-full">
-            <Button size="lg" className="w-full" onClick={() => onUpgrade({ priceId: lifetimePriceId, plan: 'lifetime' })}>
+            <Button
+              size="lg"
+              className="w-full bg-green-500 hover:bg-green-600 text-white border border-green-600"
+              onClick={() => onUpgrade({ priceId: lifetimePriceId, plan: 'lifetime' })}
+            >
               Get Lifetime Access
             </Button>
             <p className="text-xs text-center text-muted-foreground pt-2">
