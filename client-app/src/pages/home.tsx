@@ -72,10 +72,13 @@ export function HomePage() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-accent hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+                  className="inline-flex items-center whitespace-nowrap rounded-md px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
                   type="button"
                 >
-                  Coming Soon
+                  <span className="flex items-center gap-1.5">
+                    <span>Coming Soon</span>
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                  </span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-64">
