@@ -71,13 +71,14 @@ export function HomePage() {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="font-semibold">
+                <Button variant="outline" className="font-semibold text-muted-foreground">
                   Coming Soon
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-64">
                 <DropdownMenuLabel>Global Markets</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem disabled>S&amp;P MidCap 400 (US)</DropdownMenuItem>
                 <DropdownMenuItem disabled>FTSE 100 (UK)</DropdownMenuItem>
                 <DropdownMenuItem disabled>TSX 60 (Canada)</DropdownMenuItem>
                 <DropdownMenuItem disabled>ASX 200 (Australia)</DropdownMenuItem>
