@@ -5,6 +5,14 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuItem
+} from "@/components/ui/dropdown-menu";
 
 // Simple YouTube-like play icon (red rounded rectangle with white triangle)
 const YouTubeIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
@@ -61,6 +69,27 @@ export function HomePage() {
             >
               Nasdaq 100
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="font-semibold">
+                  Coming Soon
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64">
+                <DropdownMenuLabel>Global Markets</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem disabled>FTSE 100 (UK)</DropdownMenuItem>
+                <DropdownMenuItem disabled>TSX 60 (Canada)</DropdownMenuItem>
+                <DropdownMenuItem disabled>ASX 200 (Australia)</DropdownMenuItem>
+                <DropdownMenuItem disabled>DAX 40 (Germany)</DropdownMenuItem>
+                <DropdownMenuItem disabled>CAC 40 (France)</DropdownMenuItem>
+                <DropdownMenuItem disabled>IBEX 35 (Spain)</DropdownMenuItem>
+                <DropdownMenuItem disabled>Nikkei 225 (Japan)</DropdownMenuItem>
+                <DropdownMenuItem disabled>Hang Seng (China)</DropdownMenuItem>
+                <DropdownMenuItem disabled>Nifty 50 (India)</DropdownMenuItem>
+                <DropdownMenuItem disabled>Ibovespa (Brazil)</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           <form onSubmit={handleSearch} className="flex w-full sm:max-w-sm items-center space-x-2">
             <Input 
