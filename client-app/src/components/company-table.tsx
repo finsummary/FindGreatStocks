@@ -970,6 +970,32 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     return (ALL_COLUMNS.find(c => c.id === id as any)?.width) || '';
   };
 
+  // Sticky left columns to keep important context visible during horizontal scroll
+  const getStickyHeaderClass = (id: string): string => {
+    switch (id) {
+      case 'watchlist':
+        return 'sticky left-0 z-30 bg-muted/50 dark:bg-zinc-800';
+      case 'rank':
+        return 'sticky left-[40px] sm:left-[50px] z-30 bg-muted/50 dark:bg-zinc-800';
+      case 'name':
+        return 'sticky left-[64px] sm:left-[80px] z-20 bg-muted/50 dark:bg-zinc-800';
+      default:
+        return '';
+    }
+  };
+  const getStickyCellClass = (id: string): string => {
+    switch (id) {
+      case 'watchlist':
+        return 'sticky left-0 z-20 bg-background dark:bg-zinc-900';
+      case 'rank':
+        return 'sticky left-[40px] sm:left-[50px] z-20 bg-background dark:bg-zinc-900';
+      case 'name':
+        return 'sticky left-[64px] sm:left-[80px] z-10 bg-background dark:bg-zinc-900';
+      default:
+        return '';
+    }
+  };
+
   // Prefetch данных для соседних вкладок, чтобы переключение было мгновенным
   useEffect(() => {
     // Для watchlist пропускаем префетч (требуется авторизация и иной источник данных)
@@ -1249,22 +1275,25 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
             <TableHeader>
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow key={headerGroup.id} className="bg-muted/50">
-                  {headerGroup.headers.map(header => (
-                    <TableHead
-                      key={header.id}
-                      className={`text-right cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(((header.column.columnDef.meta as any)?.columnConfig.id) as string) } ${
-                        sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
-                      }`}
-                      onClick={header.column.getToggleSortingHandler()}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  ))}
+                  {headerGroup.headers.map(header => {
+                    const hid = ((header.column.columnDef.meta as any)?.columnConfig.id) as string;
+                    return (
+                      <TableHead
+                        key={header.id}
+                        className={`text-right cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(hid) } ${ getStickyHeaderClass(hid) } ${
+                          sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
+                        }`}
+                        onClick={header.column.getToggleSortingHandler()}
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
               ))}
             </TableHeader>
@@ -1305,19 +1334,20 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                       key={row.id}
                       className="hover:bg-muted/50 cursor-pointer group transition-colors"
                     >
-                      {row.getVisibleCells().map(cell => (
-                        <TableCell key={cell.id} className={
-                          (cell.column.columnDef.meta as any)?.columnConfig.id === 'rank' ||
-                          (cell.column.columnDef.meta as any)?.columnConfig.id === 'watchlist' ||
-                          (cell.column.columnDef.meta as any)?.columnConfig.id === 'dcfVerdict'
+                      {row.getVisibleCells().map(cell => {
+                        const cid = (cell.column.columnDef.meta as any)?.columnConfig.id as string;
+                        const alignClass =
+                          cid === 'rank' || cid === 'watchlist' || cid === 'dcfVerdict'
                             ? 'text-center'
-                            : (cell.column.columnDef.meta as any)?.columnConfig.id === 'name'
+                            : cid === 'name'
                             ? ''
-                            : 'text-right'
-                        }>
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
+                            : 'text-right';
+                        return (
+                          <TableCell key={cell.id} className={`${alignClass} ${getStickyCellClass(cid)}`}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        );
+                      })}
                     </TableRow>
                   ))
                 )}
