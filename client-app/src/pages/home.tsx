@@ -71,9 +71,12 @@ export function HomePage() {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="font-semibold !text-muted-foreground hover:!text-muted-foreground">
+                <button
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-accent hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+                  type="button"
+                >
                   Coming Soon
-                </Button>
+                </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-64">
                 <DropdownMenuLabel>Global Markets</DropdownMenuLabel>
