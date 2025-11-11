@@ -6,6 +6,77 @@ import path from 'path';
 // Build/Deploy commit identifier (works on Vercel/Railway if env vars are present)
 const COMMIT_SHA = process.env.VERCEL_GIT_COMMIT_SHA || process.env.RAILWAY_GIT_COMMIT_SHA || process.env.COMMIT_SHA || 'unknown';
 
+// In‑memory cache for FMP /profile IPO dates to avoid frequent calls
+const profileCache = new Map(); // symbol -> { ipoDate: string|null, ts: number }
+const PROFILE_TTL_MS = 12 * 60 * 60 * 1000; // 12h
+
+async function fetchProfilesBatch(symbols) {
+  const apiKey = process.env.FMP_API_KEY;
+  if (!apiKey || !symbols.length) return;
+  const chunkSize = 50;
+  const chunks = [];
+  for (let i = 0; i < symbols.length; i += chunkSize) chunks.push(symbols.slice(i, i + chunkSize));
+  for (const group of chunks) {
+    try {
+      const url = `https://financialmodelingprep.com/api/v3/profile/${group.join(',')}?apikey=${apiKey}`;
+      const r = await fetch(url);
+      if (!r.ok) { console.warn('FMP profile batch error', r.status); continue; }
+      const arr = await r.json();
+      for (const p of (Array.isArray(arr) ? arr : [])) {
+        if (!p?.symbol) continue;
+        profileCache.set(String(p.symbol).toUpperCase(), { ipoDate: p.ipoDate || null, ts: Date.now() });
+      }
+    } catch (e) {
+      console.warn('fetchProfilesBatch error', e?.message || e);
+    }
+  }
+}
+
+async function ensureProfilesForSymbols(symbols) {
+  const missing = [];
+  const now = Date.now();
+  for (const s of symbols) {
+    const key = String(s).toUpperCase();
+    const cached = profileCache.get(key);
+    if (!cached || (now - cached.ts) > PROFILE_TTL_MS) {
+      missing.push(key);
+    }
+  }
+  if (missing.length) {
+    await fetchProfilesBatch(missing);
+  }
+}
+
+function applyAgeBasedWindowNulls(rows, ipoMap) {
+  try {
+    const now = Date.now();
+    for (const r of (rows || [])) {
+      const sym = (r && r.symbol) ? String(r.symbol).toUpperCase() : null;
+      if (!sym) continue;
+      const ipo = ipoMap.get(sym);
+      if (!ipo) continue;
+      const d = new Date(ipo);
+      if (isNaN(d.getTime())) continue;
+      const years = (now - d.getTime()) / (365.25 * 24 * 3600 * 1000);
+      if (years < 10) {
+        if ('return_10_year' in r) r.return_10_year = null;
+        if ('ar_mdd_ratio_10_year' in r) r.ar_mdd_ratio_10_year = null;
+        if ('max_drawdown_10_year' in r) r.max_drawdown_10_year = null;
+      }
+      if (years < 5) {
+        if ('return_5_year' in r) r.return_5_year = null;
+        if ('ar_mdd_ratio_5_year' in r) r.ar_mdd_ratio_5_year = null;
+        if ('max_drawdown_5_year' in r) r.max_drawdown_5_year = null;
+      }
+      if (years < 3) {
+        if ('return_3_year' in r) r.return_3_year = null;
+        if ('ar_mdd_ratio_3_year' in r) r.ar_mdd_ratio_3_year = null;
+        if ('max_drawdown_3_year' in r) r.max_drawdown_3_year = null;
+      }
+    }
+  } catch {}
+}
+
 export function setupStripeWebhook(app, supabase) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
@@ -408,6 +479,19 @@ export function setupRoutes(app, supabase) {
       // try to pull them from index-specific tables to avoid empty columns.
       const rows = Array.isArray(data) ? data : [];
       applyRecentIpoOverrides(rows);
+      // Age-based nulling via FMP profile IPO dates
+      try {
+        const syms = rows.map(r => r.symbol).filter(Boolean).map(s => String(s).toUpperCase());
+        if (syms.length) {
+          await ensureProfilesForSymbols(syms);
+          const ipoMap = new Map();
+          for (const s of syms) {
+            const c = profileCache.get(s);
+            if (c && c.ipoDate) ipoMap.set(s, c.ipoDate);
+          }
+          applyAgeBasedWindowNulls(rows, ipoMap);
+        }
+      } catch (e) { console.warn('age-based nulls (companies) error', e?.message || e); }
       const symbols = rows.map(r => r.symbol).filter(Boolean);
       if (symbols.length) {
         const selectCols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth';
@@ -605,8 +689,20 @@ export function setupRoutes(app, supabase) {
           }
         }
       }
-      // Null-out long-horizon metrics for recent IPOs (generic override)
+      // Null-out long-horizon metrics for recent IPOs (generic + IPO-age based)
       applyRecentIpoOverrides(rows);
+      try {
+        const syms = rows.map(r => r.symbol).filter(Boolean).map(s => String(s).toUpperCase());
+        if (syms.length) {
+          await ensureProfilesForSymbols(syms);
+          const ipoMap = new Map();
+          for (const s of syms) {
+            const c = profileCache.get(s);
+            if (c && c.ipoDate) ipoMap.set(s, c.ipoDate);
+          }
+          applyAgeBasedWindowNulls(rows, ipoMap);
+        }
+      } catch (e) { console.warn('age-based nulls (listFromTable) error', e?.message || e); }
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
       return res.json({
         companies: rows.map(mapDbRowToCompany),
@@ -687,6 +783,20 @@ export function setupRoutes(app, supabase) {
         }
         return sortOrder === 'asc' ? (va - vb) : (vb - va);
       });
+
+      // Age-based nulling via IPO dates
+      try {
+        const syms = Array.from(new Set(rows.map(r => r.symbol).filter(Boolean).map(s => String(s).toUpperCase())));
+        if (syms.length) {
+          await ensureProfilesForSymbols(syms);
+          const ipoMap = new Map();
+          for (const s of syms) {
+            const c = profileCache.get(s);
+            if (c && c.ipoDate) ipoMap.set(s, c.ipoDate);
+          }
+          applyAgeBasedWindowNulls(rows, ipoMap);
+        }
+      } catch (e) { console.warn('age-based nulls (companies-all) error', e?.message || e); }
 
       const total = rows.length;
       const page = rows.slice(offset, offset + limit);
