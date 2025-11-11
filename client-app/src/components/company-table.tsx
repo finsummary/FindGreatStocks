@@ -229,6 +229,11 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       return acc;
     }, {} as VisibilityState);
 
+    // Ensure core fundamentals are visible by default
+    for (const id of ['marketCap','price','revenue','netIncome','dividendYield','freeCashFlow'] as const) {
+      (defaultVisibility as any)[id] = true;
+    }
+
     setColumnVisibility(defaultVisibility);
   }, [authLoading, isPaidUser, dataset, selectedLayout, didLoadPrefs]);
 
@@ -260,6 +265,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           for (const id of lockedColumns) {
             (vis as any)[id] = false;
           }
+        }
+        // Guard against broken prefs: always enable core fundamentals
+        for (const id of ['marketCap','price','revenue','netIncome','dividendYield','freeCashFlow'] as const) {
+          (vis as any)[id] = true;
         }
         if (Object.keys(vis).length) setColumnVisibility(vis);
       }

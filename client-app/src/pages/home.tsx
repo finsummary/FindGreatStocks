@@ -4,7 +4,15 @@ import { CompanyTable } from "@/components/company-table";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { PlayCircle, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+
+// Simple YouTube-like play icon (red rounded rectangle with white triangle)
+const YouTubeIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+    <rect x="2" y="6" width="20" height="12" rx="3" fill="#FF0000" />
+    <polygon points="10,9 16,12 10,15" fill="#FFFFFF" />
+  </svg>
+);
 
 export function HomePage() {
   const [activeTab, setActiveTab] = useState<'sp500' | 'nasdaq100' | 'dowjones'>('dowjones');
@@ -77,12 +85,9 @@ export function HomePage() {
                     className="inline-flex items-center justify-start gap-2 w-full whitespace-normal h-auto py-2 min-h-0 text-[13px] sm:text-sm leading-snug"
                     onClick={() => setVideoId('T5SW1BHqZr0')}
                   >
-                    <PlayCircle className="h-4 w-4 flex-shrink-0" />
+                    <YouTubeIcon className="h-4 w-4 flex-shrink-0" />
                     <span className="flex-1 min-w-0 break-words text-left">Which companies have the highest Return on Risk?</span>
                   </Button>
-                  <div className="hidden sm:block text-xs text-muted-foreground">
-                    Find risk‑adjusted winners using AR/MDD over 3/5/10Y.
-                  </div>
                 </div>
                 <div className="flex flex-col items-center text-center gap-1.5">
                   <Button
@@ -91,12 +96,9 @@ export function HomePage() {
                     className="inline-flex items-center justify-start gap-2 w-full whitespace-normal h-auto py-2 min-h-0 text-[13px] sm:text-sm leading-snug"
                     onClick={() => setVideoId('0S_SZV_Qzq4')}
                   >
-                    <PlayCircle className="h-4 w-4 flex-shrink-0" />
+                    <YouTubeIcon className="h-4 w-4 flex-shrink-0" />
                     <span className="flex-1 min-w-0 break-words text-left">Which companies are undervalued by DCF?</span>
                   </Button>
-                  <div className="hidden sm:block text-xs text-muted-foreground">
-                    See intrinsic value and Margin of Safety highlights.
-                  </div>
                 </div>
                 <div className="flex flex-col items-center text-center gap-1.5">
                   <Button
@@ -105,12 +107,9 @@ export function HomePage() {
                     className="inline-flex items-center justify-start gap-2 w-full whitespace-normal h-auto py-2 min-h-0 text-[13px] sm:text-sm leading-snug"
                     onClick={() => setVideoId('WLb_h--jKVw')}
                   >
-                    <PlayCircle className="h-4 w-4 flex-shrink-0" />
+                    <YouTubeIcon className="h-4 w-4 flex-shrink-0" />
                     <span className="flex-1 min-w-0 break-words text-left">What growth is priced in? (Reverse DCF)</span>
                   </Button>
-                  <div className="hidden sm:block text-xs text-muted-foreground">
-                    Compare implied FCF growth to historical growth rates.
-                  </div>
                 </div>
                 <div className="flex flex-col items-center text-center gap-1.5">
                   <Button
@@ -119,12 +118,9 @@ export function HomePage() {
                     className="inline-flex items-center justify-start gap-2 w-full whitespace-normal h-auto py-2 min-h-0 text-[13px] sm:text-sm leading-snug"
                     onClick={() => setVideoId('hjpXE6ZYzLo')}
                   >
-                    <PlayCircle className="h-4 w-4 flex-shrink-0" />
+                    <YouTubeIcon className="h-4 w-4 flex-shrink-0" />
                     <span className="flex-1 min-w-0 break-words text-left">What drives ROE? (DuPont decomposition)</span>
                   </Button>
-                  <div className="hidden sm:block text-xs text-muted-foreground">
-                    Break ROE into profitability, efficiency, and leverage.
-                  </div>
                 </div>
               </div>
             </div>
