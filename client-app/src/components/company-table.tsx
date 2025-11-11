@@ -114,22 +114,26 @@ const PRESET_LAYOUTS = {
   },
 };
 
-const LAYOUT_DESCRIPTIONS: Record<string, { title: string; description: string }> = {
+const LAYOUT_DESCRIPTIONS: Record<string, { title: string; description: string; link: string }> = {
   'returnOnRisk': {
     title: "Return on Risk Analysis",
-    description: "This layout helps you evaluate investment efficiency. It compares the annualized returns of stocks against their maximum drawdowns (the largest drop from a peak). The AR/MDD Ratio is a key metric here: a higher ratio suggests a better return for the amount of risk taken. This is useful for finding resilient stocks that have performed well without extreme volatility."
+    description: "This layout helps you evaluate investment efficiency. It compares the annualized returns of stocks against their maximum drawdowns (the largest drop from a peak). The AR/MDD Ratio is a key metric here: a higher ratio suggests a better return for the amount of risk taken. This is useful for finding resilient stocks that have performed well without extreme volatility.",
+    link: "https://blog.findgreatstocks.com/return-on-risk-how-we-measure-it-at-findgreatstockscom"
   },
   'dcfValuation': {
     title: "DCF Valuation Analysis",
-    description: "This layout focuses on a company's intrinsic value using a Discounted Cash Flow (DCF) model. It estimates the company's value today based on projections of its future free cash flow. The 'Margin of Safety' shows the difference between the estimated DCF value and the current market price, helping you identify potentially undervalued stocks."
+    description: "This layout focuses on a company's intrinsic value using a Discounted Cash Flow (DCF) model. It estimates the company's value today based on projections of its future free cash flow. The 'Margin of Safety' shows the difference between the estimated DCF value and the current market price, helping you identify potentially undervalued stocks.",
+    link: "https://blog.findgreatstocks.com/dcf-valuation-analysis-how-we-estimate-intrinsic-value-at-findgreatstockscom"
   },
   'reverseDcf': {
     title: "Reverse DCF Analysis",
-    description: "This layout uses a Reverse DCF model to determine the growth expectations priced into a stock. The 'DCF Implied Growth' shows the future free cash flow growth rate required to justify the stock's current market price. You can compare this to historical growth rates (like 10Y Revenue Growth) to gauge whether the market's expectations are realistic."
+    description: "This layout uses a Reverse DCF model to determine the growth expectations priced into a stock. The 'DCF Implied Growth' shows the future free cash flow growth rate required to justify the stock's current market price. You can compare this to historical growth rates (like 10Y Revenue Growth) to gauge whether the market's expectations are realistic.",
+    link: "https://blog.findgreatstocks.com/how-to-use-reverse-dcf-to-spot-undervalued-stocks-fast"
   },
   'dupontRoe': {
       title: "DuPont ROE Decomposition",
-      description: "This layout breaks down Return on Equity (ROE) into its key components: Net Profit Margin (profitability), Asset Turnover (efficiency), and Financial Leverage (debt). It helps to understand the drivers behind a company's ROE."
+      description: "This layout breaks down Return on Equity (ROE) into its key components: Net Profit Margin (profitability), Asset Turnover (efficiency), and Financial Leverage (debt). It helps to understand the drivers behind a company's ROE.",
+      link: "https://blog.findgreatstocks.com/dupont-roe-analysis-breaking-down-what-drives-profitability"
   }
 };
 
@@ -253,12 +257,13 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         const prefs = JSON.parse(raw || '{}') as {
           sortBy?: string;
           sortOrder?: 'asc' | 'desc';
-          selectedLayout?: string | null;
+          // selectedLayout intentionally ignored to avoid auto-showing layout description boxes
+          // selectedLayout?: string | null;
           columnVisibility?: VisibilityState;
         };
         if (prefs.sortBy) setSortBy(prefs.sortBy);
         if (prefs.sortOrder) setSortOrder(prefs.sortOrder);
-        if (typeof prefs.selectedLayout !== 'undefined') setSelectedLayout(prefs.selectedLayout as any);
+        // Do not restore selectedLayout automatically
 
         const lockedColumns = [
           'maxDrawdown3Year', 'maxDrawdown5Year', 'maxDrawdown10Year',
@@ -1219,6 +1224,16 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
               <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                 {LAYOUT_DESCRIPTIONS[selectedLayout].description}
               </p>
+              {LAYOUT_DESCRIPTIONS[selectedLayout].link && (
+                <a
+                  className="inline-block mt-2 text-sm font-medium text-blue-800 underline underline-offset-2 hover:opacity-80"
+                  href={LAYOUT_DESCRIPTIONS[selectedLayout].link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Read the full guide
+                </a>
+              )}
             </div>
             <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0" onClick={() => setSelectedLayout(null)}>
               <X className="h-4 w-4" />
