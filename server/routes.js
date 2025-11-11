@@ -1,5 +1,7 @@
 import express from 'express';
 import Stripe from 'stripe';
+import fs from 'fs';
+import path from 'path';
 
 // Build/Deploy commit identifier (works on Vercel/Railway if env vars are present)
 const COMMIT_SHA = process.env.VERCEL_GIT_COMMIT_SHA || process.env.RAILWAY_GIT_COMMIT_SHA || process.env.COMMIT_SHA || 'unknown';
@@ -259,6 +261,56 @@ export function setupRoutes(app, supabase) {
   app.get('/api/health', (_req, res) => {
     try { res.set('x-app-commit', COMMIT_SHA); } catch {}
     return res.json({ status: 'ok', commit: COMMIT_SHA, timestamp: new Date().toISOString() });
+  });
+
+  // Lightweight static-like streaming for tutorial videos with Range support
+  app.get('/videos/:filename', async (req, res) => {
+    try {
+      const raw = (req.params.filename || '').toString();
+      // Prevent path traversal
+      if (!/^[a-zA-Z0-9._-]+$/.test(raw)) return res.status(400).send('Bad filename');
+      const baseDir = path.resolve(process.cwd(), 'server', 'public', 'videos');
+      const filePath = path.resolve(baseDir, raw);
+      if (!filePath.startsWith(baseDir)) return res.status(400).send('Invalid path');
+      if (!fs.existsSync(filePath)) return res.status(404).send('Not found');
+      const stat = fs.statSync(filePath);
+      const fileSize = stat.size;
+      const range = req.headers.range;
+      const ext = path.extname(filePath).toLowerCase();
+      const mime =
+        ext === '.mp4' ? 'video/mp4'
+        : ext === '.webm' ? 'video/webm'
+        : ext === '.mov' ? 'video/quicktime'
+        : 'application/octet-stream';
+      res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      if (range) {
+        const match = /^bytes=(\d*)-(\d*)$/.exec(range);
+        const start = match && match[1] ? parseInt(match[1], 10) : 0;
+        const end = match && match[2] ? parseInt(match[2], 10) : Math.max(0, fileSize - 1);
+        if (isNaN(start) || isNaN(end) || start > end || start >= fileSize) {
+          return res.status(416).setHeader('Content-Range', `bytes */${fileSize}`).end();
+        }
+        const chunkSize = (end - start) + 1;
+        res.writeHead(206, {
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Content-Length': chunkSize,
+          'Content-Type': mime,
+        });
+        const stream = fs.createReadStream(filePath, { start, end });
+        stream.pipe(res);
+      } else {
+        res.writeHead(200, {
+          'Content-Length': fileSize,
+          'Content-Type': mime,
+        });
+        const stream = fs.createReadStream(filePath);
+        stream.pipe(res);
+      }
+    } catch (e) {
+      console.error('Video stream error:', e);
+      res.status(500).send('Server error');
+    }
   });
 
   app.get('/api/auth/me', isAuthenticated, async (req, res) => {
