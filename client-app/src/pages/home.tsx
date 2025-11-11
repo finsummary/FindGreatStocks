@@ -19,7 +19,15 @@ export function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [videoId, setVideoId] = useState<string | null>(null);
-  const [showTutorials, setShowTutorials] = useState<boolean>(false);
+  const [showTutorials, setShowTutorials] = useState<boolean>(() => {
+    try {
+      // default expanded unless explicitly collapsed earlier
+      const collapsed = localStorage.getItem('fgs:tutorials:collapsed');
+      return collapsed === '1' ? false : true;
+    } catch {
+      return true;
+    }
+  });
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -70,7 +78,13 @@ export function HomePage() {
           <button
             type="button"
             className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-amber-900 dark:text-amber-100"
-            onClick={() => setShowTutorials(v => !v)}
+            onClick={() => {
+              setShowTutorials(v => {
+                const nv = !v;
+                try { localStorage.setItem('fgs:tutorials:collapsed', nv ? '0' : '1'); } catch {}
+                return nv;
+              });
+            }}
           >
             <span className="font-bold">How‑To Tutorials</span>
             <ChevronDown className={`h-4 w-4 transition-transform text-amber-800 dark:text-amber-200 ${showTutorials ? 'rotate-180' : ''}`} />

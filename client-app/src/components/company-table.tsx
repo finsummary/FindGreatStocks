@@ -217,10 +217,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     if (didLoadPrefs) return;
 
     const lockedColumns = [
-      'maxDrawdown5Year', 'maxDrawdown10Year',
+      'maxDrawdown3Year', 'maxDrawdown5Year', 'maxDrawdown10Year',
       'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
       'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-      'assetTurnover', 'financialLeverage', 'roe'
+      'assetTurnover', 'financialLeverage', 'roe', 'dcfVerdict'
     ];
 
     const defaultVisibility = ALL_COLUMNS.reduce((acc, col) => {
@@ -235,6 +235,12 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     }
 
     setColumnVisibility(defaultVisibility);
+
+    // Default sorting: Market Cap desc for S&P 500 and Nasdaq 100
+    if (dataset === 'sp500' || dataset === 'nasdaq100') {
+      setSortBy('marketCap');
+      setSortOrder('desc');
+    }
   }, [authLoading, isPaidUser, dataset, selectedLayout, didLoadPrefs]);
 
   // Load saved preferences (columns visibility, sort) from localStorage once per dataset
@@ -255,10 +261,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         if (typeof prefs.selectedLayout !== 'undefined') setSelectedLayout(prefs.selectedLayout as any);
 
         const lockedColumns = [
-          'maxDrawdown5Year', 'maxDrawdown10Year',
+          'maxDrawdown3Year', 'maxDrawdown5Year', 'maxDrawdown10Year',
           'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
           'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-          'assetTurnover', 'financialLeverage', 'roe'
+          'assetTurnover', 'financialLeverage', 'roe', 'dcfVerdict'
         ];
         const vis = { ...(prefs.columnVisibility || {}) } as VisibilityState;
         if (!isPaidUser && dataset !== 'dowjones') {
@@ -271,6 +277,12 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           (vis as any)[id] = true;
         }
         if (Object.keys(vis).length) setColumnVisibility(vis);
+      } else {
+        // No prefs stored: enforce default Market Cap sorting for S&P 500 / Nasdaq 100
+        if (dataset === 'sp500' || dataset === 'nasdaq100') {
+          setSortBy('marketCap');
+          setSortOrder('desc');
+        }
       }
     } catch {}
     setDidLoadPrefs(true);
@@ -1107,10 +1119,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                       if (!column) return null;
 
                       const lockedColumns = [
-                        'maxDrawdown5Year', 'maxDrawdown10Year',
+                        'maxDrawdown3Year', 'maxDrawdown5Year', 'maxDrawdown10Year',
                         'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
                         'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-                        'assetTurnover', 'financialLeverage', 'roe'
+                        'assetTurnover', 'financialLeverage', 'roe', 'dcfVerdict'
                       ];
 
                       const isLocked = !isPaidUser && dataset !== 'dowjones' && lockedColumns.includes(colConfig.id);
