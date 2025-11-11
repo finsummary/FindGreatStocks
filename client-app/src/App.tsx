@@ -40,6 +40,16 @@ function App() {
           <span className="truncate font-semibold text-xs sm:text-lg">FindGreatStocks.com</span>
         </Link>
         <nav className="ml-auto w-full sm:w-auto flex items-center justify-start sm:justify-end gap-2 sm:gap-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground">
+                Education
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem disabled className="text-muted-foreground">Coming Soon</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button asChild variant="ghost" size="sm">
             <a href="https://blog.findgreatstocks.com" target="_blank" rel="noopener noreferrer">Blog</a>
           </Button>
