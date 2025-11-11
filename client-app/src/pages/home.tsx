@@ -71,8 +71,8 @@ export function HomePage() {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="font-semibold text-muted-foreground">
-                  Coming Soon
+                <Button variant="outline" className="font-semibold">
+                  <span className="text-muted-foreground">Coming Soon</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-64">
