@@ -974,11 +974,11 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   const getStickyHeaderClass = (id: string): string => {
     switch (id) {
       case 'watchlist':
-        return 'sticky left-0 z-50 bg-white dark:bg-zinc-900 border-r border-muted';
+        return 'sticky left-0 z-50 bg-white dark:bg-zinc-900';
       case 'rank':
-        return 'sticky left-[40px] sm:left-[50px] z-50 bg-white dark:bg-zinc-900 border-r border-muted';
+        return 'sticky left-[40px] sm:left-[50px] z-50 bg-white dark:bg-zinc-900';
       case 'name':
-        return 'sticky left-[64px] sm:left-[80px] z-40 bg-white dark:bg-zinc-900 border-r border-muted';
+        return 'sticky left-[64px] sm:left-[80px] z-40 bg-white dark:bg-zinc-900';
       default:
         return '';
     }
@@ -986,11 +986,11 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   const getStickyCellClass = (id: string): string => {
     switch (id) {
       case 'watchlist':
-        return 'sticky left-0 z-40 bg-white dark:bg-zinc-900 border-r border-muted';
+        return 'sticky left-0 z-40 bg-white dark:bg-zinc-900';
       case 'rank':
-        return 'sticky left-[40px] sm:left-[50px] z-40 bg-white dark:bg-zinc-900 border-r border-muted';
+        return 'sticky left-[40px] sm:left-[50px] z-40 bg-white dark:bg-zinc-900';
       case 'name':
-        return 'sticky left-[64px] sm:left-[80px] z-30 bg-white dark:bg-zinc-900 border-r border-muted';
+        return 'sticky left-[64px] sm:left-[80px] z-30 bg-white dark:bg-zinc-900';
       default:
         return '';
     }
