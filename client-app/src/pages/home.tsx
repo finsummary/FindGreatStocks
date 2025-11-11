@@ -58,7 +58,7 @@ export function HomePage() {
         </div>
 
         {/* Tutorial video buttons with popup player (collapsible) */}
-        <Card className="mb-4 border border-amber-200 bg-amber-50 dark:bg-amber-900/20">
+        <Card className="mb-4 border border-amber-200 bg-amber-50 dark:bg-amber-900/20 overflow-hidden">
           <button
             type="button"
             className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-amber-900 dark:text-amber-100"
@@ -68,41 +68,61 @@ export function HomePage() {
             <ChevronDown className={`h-4 w-4 transition-transform text-amber-800 dark:text-amber-200 ${showTutorials ? 'rotate-180' : ''}`} />
           </button>
           {showTutorials && (
-            <div className="px-4 pb-4 pt-1">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="px-3 sm:px-4 pb-4 pt-1">
+              <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="flex flex-col items-center text-center gap-1.5">
-                  <Button variant="outline" size="sm" className="inline-flex items-center justify-center gap-2 w-full" onClick={() => setVideoId('T5SW1BHqZr0')}>
-                    <PlayCircle className="h-4 w-4" />
-                    <span>Which companies have the highest Return on Risk?</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="inline-flex items-center justify-start gap-2 w-full whitespace-normal h-auto py-2 min-h-0 text-[13px] sm:text-sm leading-snug"
+                    onClick={() => setVideoId('T5SW1BHqZr0')}
+                  >
+                    <PlayCircle className="h-4 w-4 flex-shrink-0" />
+                    <span className="flex-1 min-w-0 break-words text-left">Which companies have the highest Return on Risk?</span>
                   </Button>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="hidden sm:block text-xs text-muted-foreground">
                     Find risk‑adjusted winners using AR/MDD over 3/5/10Y.
                   </div>
                 </div>
                 <div className="flex flex-col items-center text-center gap-1.5">
-                  <Button variant="outline" size="sm" className="inline-flex items-center justify-center gap-2 w-full" onClick={() => setVideoId('0S_SZV_Qzq4')}>
-                    <PlayCircle className="h-4 w-4" />
-                    <span>Which companies are undervalued by DCF?</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="inline-flex items-center justify-start gap-2 w-full whitespace-normal h-auto py-2 min-h-0 text-[13px] sm:text-sm leading-snug"
+                    onClick={() => setVideoId('0S_SZV_Qzq4')}
+                  >
+                    <PlayCircle className="h-4 w-4 flex-shrink-0" />
+                    <span className="flex-1 min-w-0 break-words text-left">Which companies are undervalued by DCF?</span>
                   </Button>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="hidden sm:block text-xs text-muted-foreground">
                     See intrinsic value and Margin of Safety highlights.
                   </div>
                 </div>
                 <div className="flex flex-col items-center text-center gap-1.5">
-                  <Button variant="outline" size="sm" className="inline-flex items-center justify-center gap-2 w-full" onClick={() => setVideoId('WLb_h--jKVw')}>
-                    <PlayCircle className="h-4 w-4" />
-                    <span>What growth is priced in? (Reverse DCF)</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="inline-flex items-center justify-start gap-2 w-full whitespace-normal h-auto py-2 min-h-0 text-[13px] sm:text-sm leading-snug"
+                    onClick={() => setVideoId('WLb_h--jKVw')}
+                  >
+                    <PlayCircle className="h-4 w-4 flex-shrink-0" />
+                    <span className="flex-1 min-w-0 break-words text-left">What growth is priced in? (Reverse DCF)</span>
                   </Button>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="hidden sm:block text-xs text-muted-foreground">
                     Compare implied FCF growth to historical growth rates.
                   </div>
                 </div>
                 <div className="flex flex-col items-center text-center gap-1.5">
-                  <Button variant="outline" size="sm" className="inline-flex items-center justify-center gap-2 w-full" onClick={() => setVideoId('hjpXE6ZYzLo')}>
-                    <PlayCircle className="h-4 w-4" />
-                    <span>What drives ROE? (DuPont decomposition)</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="inline-flex items-center justify-start gap-2 w-full whitespace-normal h-auto py-2 min-h-0 text-[13px] sm:text-sm leading-snug"
+                    onClick={() => setVideoId('hjpXE6ZYzLo')}
+                  >
+                    <PlayCircle className="h-4 w-4 flex-shrink-0" />
+                    <span className="flex-1 min-w-0 break-words text-left">What drives ROE? (DuPont decomposition)</span>
                   </Button>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="hidden sm:block text-xs text-muted-foreground">
                     Break ROE into profitability, efficiency, and leverage.
                   </div>
                 </div>
