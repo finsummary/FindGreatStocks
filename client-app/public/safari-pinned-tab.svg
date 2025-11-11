@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Monochrome mask icon (uses currentColor) -->
+  <g fill="currentColor">
+    <circle cx="256" cy="256" r="240"/>
+    <circle cx="240" cy="240" r="90" fill="#ffffff"/>
+    <rect x="300" y="300" width="34" height="110" rx="17" transform="rotate(45 317 355)" fill="#ffffff"/>
+  </g>
+</svg>
+
