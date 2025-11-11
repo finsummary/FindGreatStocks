@@ -258,6 +258,22 @@ function mapDbRowToCompany(row) {
 export function setupRoutes(app, supabase) {
   const isAuthenticated = createAuthMiddleware(supabase);
 
+  // Override helper: null-out long-horizon metrics for recent IPOs
+  function applyRecentIpoOverrides(rows) {
+    try {
+      if (!Array.isArray(rows)) return;
+      const recentIpoSymbols = new Set(['PLTR', 'DASH']);
+      for (const r of rows) {
+        const sym = (r && r.symbol) ? String(r.symbol).toUpperCase() : null;
+        if (!sym) continue;
+        if (recentIpoSymbols.has(sym)) {
+          if (Object.prototype.hasOwnProperty.call(r, 'return_10_year')) r.return_10_year = null;
+          if (Object.prototype.hasOwnProperty.call(r, 'ar_mdd_ratio_10_year')) r.ar_mdd_ratio_10_year = null;
+        }
+      }
+    } catch {}
+  }
+
   app.get('/api/health', (_req, res) => {
     try { res.set('x-app-commit', COMMIT_SHA); } catch {}
     return res.json({ status: 'ok', commit: COMMIT_SHA, timestamp: new Date().toISOString() });
@@ -391,6 +407,7 @@ export function setupRoutes(app, supabase) {
       // Fallback enrichment: if price/market_cap are missing or zero in companies,
       // try to pull them from index-specific tables to avoid empty columns.
       const rows = Array.isArray(data) ? data : [];
+      applyRecentIpoOverrides(rows);
       const symbols = rows.map(r => r.symbol).filter(Boolean);
       if (symbols.length) {
         const selectCols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth';
@@ -588,15 +605,8 @@ export function setupRoutes(app, supabase) {
           }
         }
       }
-      // Symbol-specific overrides for 10Y metrics where company has <10Y history (e.g., DASH IPO in 2020)
-      if (tableName === 'sp500_companies') {
-        for (const r of rows) {
-          if (r?.symbol === 'DASH') {
-            r.return_10_year = null;
-            r.ar_mdd_ratio_10_year = null;
-          }
-        }
-      }
+      // Null-out long-horizon metrics for recent IPOs (generic override)
+      applyRecentIpoOverrides(rows);
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
       return res.json({
         companies: rows.map(mapDbRowToCompany),
