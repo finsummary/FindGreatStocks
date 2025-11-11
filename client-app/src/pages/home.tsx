@@ -21,8 +21,8 @@ export function HomePage() {
   const [videoId, setVideoId] = useState<string | null>(null);
   const [showTutorials, setShowTutorials] = useState<boolean>(() => {
     try {
-      // default expanded unless explicitly collapsed earlier
-      const collapsed = localStorage.getItem('fgs:tutorials:collapsed');
+      // v2 key: сбиваем старое состояние и показываем раскрытым по умолчанию
+      const collapsed = localStorage.getItem('fgs:tutorials:collapsed:v2');
       return collapsed === '1' ? false : true;
     } catch {
       return true;
@@ -81,7 +81,7 @@ export function HomePage() {
             onClick={() => {
               setShowTutorials(v => {
                 const nv = !v;
-                try { localStorage.setItem('fgs:tutorials:collapsed', nv ? '0' : '1'); } catch {}
+                try { localStorage.setItem('fgs:tutorials:collapsed:v2', nv ? '0' : '1'); } catch {}
                 return nv;
               });
             }}
