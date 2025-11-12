@@ -198,11 +198,13 @@ export default function AdminFlagsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const [tab, setTab] = useState<'flags' | 'audit'>('flags');
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-semibold mb-4">Feature Flags</h1>
 
-      <Tabs defaultValue="flags">
+      <Tabs value={tab} onValueChange={(v) => setTab((v as any) || 'flags')}>
         <TabsList className="mb-4">
           <TabsTrigger value="flags">Flags</TabsTrigger>
           <TabsTrigger value="audit">Audit</TabsTrigger>
