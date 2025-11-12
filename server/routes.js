@@ -478,6 +478,176 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // --- FTSE 100: import constituents, update prices, enhance financials ---
+  async function fetchFtseConstituents() {
+    const apiKey = process.env.FMP_API_KEY;
+    try {
+      if (apiKey) {
+        const candidates = ['%5EFTSE', '%5EUKX'];
+        for (const idx of candidates) {
+          const url = `https://financialmodelingprep.com/api/v3/index-constituent/${idx}?apikey=${apiKey}`;
+          const r = await fetch(url);
+          if (r.ok) {
+            const arr = await r.json();
+            if (Array.isArray(arr) && arr.length) {
+              return arr.map(x => ({
+                symbol: String(x?.symbol || '').toUpperCase(),
+                name: String(x?.name || x?.companyName || '').trim(),
+              }));
+            }
+          }
+        }
+        const alt = await fetch(`https://financialmodelingprep.com/api/v3/ftse_constituent?apikey=${apiKey}`);
+        if (alt.ok) {
+          const arr = await alt.json();
+          if (Array.isArray(arr) && arr.length) {
+            return arr.map(x => ({
+              symbol: String(x?.symbol || '').toUpperCase(),
+              name: String(x?.name || x?.companyName || '').trim(),
+            }));
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[ftse100-import] FMP failed:', e?.message || e);
+    }
+    // Fallback to Wikipedia scraping (very light)
+    try {
+      const r = await fetch('https://en.wikipedia.org/wiki/FTSE_100_Index', { headers: { 'user-agent': 'FindGreatStocksBot/1.0 (+https://findgreatstocks.com)' } });
+      if (!r.ok) return [];
+      const html = await r.text();
+      const rows = [];
+      const tables = html.match(/<table[^>]*class="wikitable[^>]*">[\s\S]*?<\/table>/gi) || [];
+      for (const tbl of tables) {
+        const trs = tbl.match(/<tr[\s\S]*?<\/tr>/gi) || [];
+        for (const tr of trs) {
+          const tds = Array.from(tr.matchAll(/<td[\s\S]*?>([\s\S]*?)<\/td>/gi)).map(m => m[1]);
+          if (tds.length < 2) continue;
+          const strip = (s) => s.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+          const company = strip(tds[0] || '');
+          const epic = strip(tds[1] || '');
+          if (!company || !epic) continue;
+          let sym = String(epic).toUpperCase();
+          if (!sym.endsWith('.L')) sym = `${sym}.L`;
+          rows.push({ symbol: sym, name: company });
+        }
+      }
+      const uniq = new Map();
+      for (const r2 of rows) if (!uniq.has(r2.symbol)) uniq.set(r2.symbol, r2);
+      return Array.from(uniq.values()).filter(c => !/ETF|UCITS|FUND/i.test(c.name));
+    } catch (e) {
+      console.warn('[ftse100-import] Wikipedia failed:', e?.message || e);
+      return [];
+    }
+  }
+
+  app.post('/api/ftse100/import', async (_req, res) => {
+    try {
+      const list = await fetchFtseConstituents();
+      if (!Array.isArray(list) || !list.length) {
+        return res.status(500).json({ message: 'No constituents fetched' });
+      }
+      let imported = 0, failed = 0;
+      for (const c of list) {
+        try {
+          const payload = { symbol: c.symbol, name: c.name };
+          const { error } = await supabase.from('ftse100_companies').upsert(payload, { onConflict: 'symbol' });
+          if (error) { failed++; } else { imported++; }
+        } catch { failed++; }
+      }
+      return res.json({ message: 'FTSE 100 import completed', imported, failed, total: list.length });
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to import FTSE 100', error: e?.message || String(e) });
+    }
+  });
+
+  app.post('/api/ftse100/update-prices', async (_req, res) => {
+    try {
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      const { data, error } = await supabase.from('ftse100_companies').select('symbol');
+      if (error) return res.status(500).json({ message: 'Failed to read symbols' });
+      const symbols = (data || []).map(r => r.symbol).filter(Boolean);
+      let updated = 0, failed = 0;
+      const chunkSize = 100;
+      for (let i = 0; i < symbols.length; i += chunkSize) {
+        const group = symbols.slice(i, i + chunkSize);
+        try {
+          const url = `https://financialmodelingprep.com/api/v3/quote/${group.join(',')}?apikey=${apiKey}`;
+          const r = await fetch(url);
+          if (!r.ok) { failed += group.length; continue; }
+          const arr = await r.json();
+          for (const q of (Array.isArray(arr) ? arr : [])) {
+            const sym = String(q?.symbol || '').toUpperCase();
+            const patch = {};
+            if (q?.price != null) patch['price'] = Number(q.price);
+            if (q?.change != null) patch['daily_change'] = Number(q.change);
+            if (q?.changesPercentage != null) patch['daily_change_percent'] = Number(q.changesPercentage);
+            if (q?.marketCap != null) patch['market_cap'] = Number(q.marketCap);
+            if (Object.keys(patch).length) {
+              const { error: upErr } = await supabase.from('ftse100_companies').update(patch).eq('symbol', sym);
+              if (upErr) failed++; else updated++;
+            }
+          }
+        } catch { failed += group.length; }
+        await new Promise(r => setTimeout(r, 150));
+      }
+      return res.json({ message: 'FTSE 100 prices updated', updated, failed, total: symbols.length });
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to update FTSE 100 prices', error: e?.message || String(e) });
+    }
+  });
+
+  app.post('/api/ftse100/enhance', async (_req, res) => {
+    try {
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      const { data, error } = await supabase.from('ftse100_companies').select('symbol');
+      if (error) return res.status(500).json({ message: 'Failed to read symbols' });
+      const symbols = (data || []).map(r => r.symbol).filter(Boolean);
+      let enhanced = 0, failed = 0;
+      const fetchJson = async (ep) => {
+        const url = `https://financialmodelingprep.com/api/v3${ep}${ep.includes('?') ? '&' : '?'}apikey=${apiKey}`;
+        const r = await fetch(url);
+        if (!r.ok) throw new Error(`FMP ${ep} ${r.status}`);
+        return r.json();
+      };
+      for (const sym of symbols) {
+        try {
+          const [inc, bal, cfs, quo] = await Promise.all([
+            fetchJson(`/income-statement/${sym}?limit=1`).catch(()=>null),
+            fetchJson(`/balance-sheet-statement/${sym}?limit=1`).catch(()=>null),
+            fetchJson(`/cash-flow-statement/${sym}?limit=1`).catch(()=>null),
+            fetchJson(`/quote/${sym}`).catch(()=>null),
+          ]);
+          const i = Array.isArray(inc) && inc[0] ? inc[0] : null;
+          const b = Array.isArray(bal) && bal[0] ? bal[0] : null;
+          const c = Array.isArray(cfs) && cfs[0] ? cfs[0] : null;
+          const q = Array.isArray(quo) && quo[0] ? quo[0] : null;
+          const patch = {};
+          if (i?.revenue != null) patch['revenue'] = Number(i.revenue);
+          if (i?.netIncome != null) patch['net_income'] = Number(i.netIncome);
+          if (i?.grossProfit != null) patch['gross_profit'] = Number(i.grossProfit);
+          if (i?.operatingIncome != null) patch['operating_income'] = Number(i.operatingIncome);
+          if (q?.pe != null) patch['pe_ratio'] = Number(q.pe);
+          if (q?.eps != null) patch['eps'] = Number(q.eps);
+          if (b?.totalAssets != null) patch['total_assets'] = Number(b.totalAssets);
+          if (b?.totalStockholdersEquity != null) patch['total_equity'] = Number(b.totalStockholdersEquity);
+          if (b?.totalDebt != null) patch['total_debt'] = Number(b.totalDebt);
+          if (c?.freeCashFlow != null) patch['free_cash_flow'] = Number(c.freeCashFlow);
+          if (Object.keys(patch).length) {
+            await supabase.from('ftse100_companies').update(patch).eq('symbol', sym);
+          }
+          enhanced++;
+        } catch { failed++; }
+        await new Promise(r => setTimeout(r, 200));
+      }
+      return res.json({ message: 'FTSE 100 enhancement completed', enhanced, failed, total: symbols.length });
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to enhance FTSE 100', error: e?.message || String(e) });
+    }
+  });
+
   // Lightweight static-like streaming for tutorial videos with Range support
   app.get('/videos/:filename', async (req, res) => {
     try {
