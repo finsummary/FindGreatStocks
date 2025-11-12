@@ -18,6 +18,7 @@ export default function AdminFlagsPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const email = useMemo(() => (user?.email || '').toLowerCase(), [user]);
   const allowed = email === 'findgreatstocks@gmail.com';
+  const [filter, setFilter] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -62,8 +63,18 @@ export default function AdminFlagsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-semibold mb-4">Feature Flags</h1>
+      <div className="mb-4 flex items-center gap-3">
+        <Input
+          className="max-w-sm"
+          placeholder="Search flags…"
+          value={filter}
+          onChange={(e) => setTimeout(() => setFilter(e.target.value), 0)}
+        />
+      </div>
       <div className="space-y-3">
-        {rows.map((f) => (
+        {rows
+          .filter(f => !filter || f.key.toLowerCase().includes(filter.toLowerCase()))
+          .map((f) => (
           <div key={f.key} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 border rounded-md">
             <div className="flex-1">
               <div className="font-mono text-sm">{f.key}</div>
@@ -93,7 +104,28 @@ export default function AdminFlagsPage() {
                 onBlur={() => updateFlag(f.key, { rollout_percent: rows.find(r => r.key === f.key)?.rollout_percent ?? null })}
               />
             </div>
-            <div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm">Allowlist (emails)</label>
+              <Input
+                className="w-80"
+                value={(f.allowlist_emails || []).join(', ')}
+                onChange={(e) => {
+                  const parts = e.target.value
+                    ? e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                    : [];
+                  const newRow = { ...f, allowlist_emails: parts as any };
+                  setRows(prev => prev.map(r => r.key === f.key ? newRow : r));
+                }}
+                onBlur={(e) => {
+                  const parts = e.target.value
+                    ? e.target.value.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+                    : [];
+                  updateFlag(f.key, { allowlist_emails: parts as any });
+                }}
+                placeholder="you@domain.com, teammate@domain.com"
+              />
+            </div>
+            <div className="ml-auto">
               <Button
                 variant="outline"
                 size="sm"

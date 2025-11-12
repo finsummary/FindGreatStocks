@@ -340,13 +340,14 @@ export function setupRoutes(app, supabase) {
       }
       let flags = {};
       try {
-        const { data, error } = await supabase.from('feature_flags').select('key, enabled, rollout_percent');
+        const { data, error } = await supabase.from('feature_flags').select('key, enabled, rollout_percent, allowlist_emails');
         if (!error && Array.isArray(data)) {
           for (const r of data) {
             if (!r?.key) continue;
             flags[r.key] = {
               enabled: !!r.enabled,
               rolloutPercent: (typeof r.rollout_percent === 'number') ? r.rollout_percent : undefined,
+              allowlistEmails: Array.isArray(r.allowlist_emails) ? r.allowlist_emails : undefined,
             };
           }
         }

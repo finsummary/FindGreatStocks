@@ -43,6 +43,12 @@ function App() {
           <span className="truncate font-semibold text-xs sm:text-lg">FindGreatStocks.com</span>
         </Link>
         <nav className="ml-auto w-full sm:w-auto flex items-center justify-start sm:justify-end gap-2 sm:gap-4">
+          {/* Admin flags link visible only to the owner account */}
+          {user?.email?.toLowerCase() === 'findgreatstocks@gmail.com' && (
+            <Button asChild variant="ghost" size="sm" className="!text-muted-foreground">
+              <Link to="/admin/flags">Flags</Link>
+            </Button>
+          )}
           {useFlag('education') ? (
             <Button asChild variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground">
               <Link to="/education">Education</Link>

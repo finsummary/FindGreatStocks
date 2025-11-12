@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { useAuth } from './AuthProvider';
 
-type FlagsMap = Record<string, { enabled?: boolean; rolloutPercent?: number }>;
+type FlagsMap = Record<string, { enabled?: boolean; rolloutPercent?: number; allowlistEmails?: string[] }>;
 
 interface FeatureFlagsContextValue {
   flags: FlagsMap;
@@ -14,6 +15,7 @@ const FeatureFlagsContext = createContext<FeatureFlagsContextValue>({
 
 export function FeatureFlagsProvider({ children }: { children: React.ReactNode }) {
   const [flags, setFlags] = useState<FlagsMap>({});
+  const { user } = useAuth();
 
   useEffect(() => {
     let alive = true;
@@ -41,9 +43,14 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const value = useMemo<FeatureFlagsContextValue>(() => {
+    const currentEmail = (user?.email || '').toLowerCase();
     const isEnabled = (key: string) => {
       const f = flags?.[key];
       if (!f) return false;
+      // allowlist check has priority
+      if (Array.isArray(f.allowlistEmails) && f.allowlistEmails.some(e => (e || '').toLowerCase() === currentEmail)) {
+        return true;
+      }
       if (typeof f.enabled === 'boolean') return f.enabled;
       // rollout support (simple client-side hash by key)
       if (typeof f.rolloutPercent === 'number') {
@@ -56,7 +63,7 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
       return false;
     };
     return { flags, isEnabled };
-  }, [flags]);
+  }, [flags, user]);
 
   return (
     <FeatureFlagsContext.Provider value={value}>
