@@ -566,6 +566,101 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         const pageRows = rows.slice(offsetNum, offsetNum + limitNum);
         return { companies: pageRows, total: rows.length, limit: limitNum, offset: offsetNum, hasMore: (offsetNum + limitNum) < rows.length };
       }
+      // Client-side fallback for FTSE 100 while server endpoint may be unavailable
+      if (url === '/api/ftse100') {
+        // Build Supabase filter and pagination
+        const offsetNum = Number(params.get('offset') || 0);
+        const limitNum = Number(params.get('limit') || 50);
+        let supa = supabase.from('ftse100_companies').select('*', { count: 'exact' });
+        if (search) {
+          supa = supa.or(`name.ilike.%${search}%,symbol.ilike.%${search}%`);
+        }
+        const { data: rows, error: err } = await supabase
+          .from('ftse100_companies')
+          .select('*')
+          .range(offsetNum, offsetNum + limitNum - 1)
+          .or(search ? `name.ilike.%${search}%,symbol.ilike.%${search}%` : undefined as any);
+        if (err) throw err;
+        const mapRow = (row: any) => ({
+          id: row.id,
+          name: row.name,
+          symbol: row.symbol,
+          marketCap: row.market_cap,
+          price: row.price,
+          dailyChange: row.daily_change,
+          dailyChangePercent: row.daily_change_percent,
+          country: row.country,
+          countryCode: row.country_code,
+          rank: row.rank,
+          logoUrl: row.logo_url,
+          industry: row.industry,
+          sector: row.sector,
+          website: row.website,
+          description: row.description,
+          ceo: row.ceo,
+          employees: row.employees,
+          peRatio: row.pe_ratio,
+          eps: row.eps,
+          beta: row.beta,
+          dividendYield: row.dividend_yield,
+          priceToSalesRatio: row.price_to_sales_ratio,
+          netProfitMargin: row.net_profit_margin,
+          revenueGrowth3Y: row.revenue_growth_3y,
+          revenueGrowth5Y: row.revenue_growth_5y,
+          revenueGrowth10Y: row.revenue_growth_10y,
+          volume: row.volume,
+          avgVolume: row.avg_volume,
+          dayLow: row.day_low,
+          dayHigh: row.day_high,
+          yearLow: row.year_low,
+          yearHigh: row.year_high,
+          revenue: row.revenue,
+          grossProfit: row.gross_profit,
+          operatingIncome: row.operating_income,
+          netIncome: row.net_income,
+          totalAssets: row.total_assets,
+          totalDebt: row.total_debt,
+          cashAndEquivalents: row.cash_and_equivalents,
+          return3Year: row.return_3_year,
+          return5Year: row.return_5_year,
+          return10Year: row.return_10_year,
+          maxDrawdown10Year: row.max_drawdown_10_year,
+          maxDrawdown5Year: row.max_drawdown_5_year,
+          maxDrawdown3Year: row.max_drawdown_3_year,
+          arMddRatio10Year: row.ar_mdd_ratio_10_year,
+          arMddRatio5Year: row.ar_mdd_ratio_5_year,
+          arMddRatio3Year: row.ar_mdd_ratio_3_year,
+          freeCashFlow: row.free_cash_flow,
+          returnDrawdownRatio10Year: row.return_drawdown_ratio_10_year,
+          dcfEnterpriseValue: row.dcf_enterprise_value,
+          marginOfSafety: row.margin_of_safety,
+          dcfImpliedGrowth: row.dcf_implied_growth,
+          totalEquity: row.total_equity,
+          roe: row.roe,
+          assetTurnover: row.asset_turnover,
+          financialLeverage: row.financial_leverage,
+        });
+        const companies = (rows || []).map(mapRow);
+        // Client-side sort, same as below
+        if (currentSortBy && currentSortBy !== 'none') {
+          const asc = (String(sortOrder).toLowerCase() === 'asc');
+          const toNum = (v: any) => {
+            if (v === null || v === undefined) return Number.NEGATIVE_INFINITY;
+            if (typeof v === 'number') return v;
+            const n = parseFloat(String(v).replace(/[%,$\s]/g, ''));
+            return Number.isNaN(n) ? Number.NEGATIVE_INFINITY : n;
+          };
+          companies.sort((a: any, b: any) => {
+            const na = toNum((a as any)[currentSortBy]);
+            const nb = toNum((b as any)[currentSortBy]);
+            if (na === nb) return 0;
+            return asc ? (na - nb) : (nb - na);
+          });
+        }
+        const hasMore = (rows || []).length === limitNum; // optimistic
+        const total = offsetNum + (rows?.length || 0) + (hasMore ? 1 : 0);
+        return { companies, total, limit: limitNum, offset: offsetNum, hasMore };
+      }
       const response = await fetch(`https://findgreatstocks-production.up.railway.app${url}?${qs}`, { cache: 'no-store' });
       if (!response.ok) throw new Error("Failed to fetch companies");
       const json = await response.json();
