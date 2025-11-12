@@ -25,6 +25,7 @@ function App() {
   useAnalytics();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const educationOn = useFlag('education');
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -49,7 +50,7 @@ function App() {
               <Link to="/admin/flags">Flags</Link>
             </Button>
           )}
-          {useFlag('education') ? (
+          {educationOn ? (
             <Button asChild variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground">
               <Link to="/education">Education</Link>
             </Button>
