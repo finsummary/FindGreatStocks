@@ -113,34 +113,6 @@ export default function AdminFlagsPage() {
     }
   };
 
-  const bulkAllowMe = async (category: string, add: boolean) => {
-    const me = (user?.email || '').toLowerCase();
-    if (!me) return;
-    const list = groups[category] || [];
-    for (const r of list) {
-      const current = (r.allowlist_emails || []).map(e => e.toLowerCase());
-      const next = add ? Array.from(new Set([...current, me])) : current.filter(e => e !== me);
-      await updateFlag(r.key, { allowlist_emails: next as any });
-    }
-    if (session?.access_token) {
-      const r = await authFetch('/api/feature-flags', undefined, session?.access_token);
-      setFlags(r?.flags || []);
-    }
-  };
-
-  const bulkOnlyMe = async (category: string) => {
-    const me = (user?.email || '').toLowerCase();
-    if (!me) return;
-    const list = groups[category] || [];
-    for (const r of list) {
-      await updateFlag(r.key, { enabled: false, rollout_percent: null, allowlist_emails: [me] as any });
-    }
-    if (session?.access_token) {
-      const r = await authFetch('/api/feature-flags', undefined, session?.access_token);
-      setFlags(r?.flags || []);
-    }
-  };
-
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 
   const renderFlagRow = (f: FlagRow) => (
@@ -194,42 +166,6 @@ export default function AdminFlagsPage() {
           }}
           placeholder="you@domain.com, teammate@domain.com"
         />
-      </div>
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            const me = (user?.email || '').toLowerCase();
-            const current = (f.allowlist_emails || []).map(e => e.toLowerCase());
-            const next = Array.from(new Set([...current, me]));
-            updateFlag(f.key, { allowlist_emails: next as any });
-          }}
-        >
-          Allow me
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            const me = (user?.email || '').toLowerCase();
-            const current = (f.allowlist_emails || []).map(e => e.toLowerCase());
-            const next = current.filter(e => e !== me);
-            updateFlag(f.key, { allowlist_emails: next as any });
-          }}
-        >
-          Remove me
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => {
-            const me = (user?.email || '').toLowerCase();
-            updateFlag(f.key, { enabled: false, rollout_percent: null, allowlist_emails: [me] as any });
-          }}
-        >
-          Only me
-        </Button>
       </div>
       <div className="ml-auto">
         <Button
@@ -289,9 +225,6 @@ export default function AdminFlagsPage() {
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" onClick={() => bulkToggle(cat, true)}>Enable all</Button>
                     <Button variant="ghost" size="sm" onClick={() => bulkToggle(cat, false)}>Disable all</Button>
-                    <Button variant="outline" size="sm" onClick={() => bulkAllowMe(cat, true)}>Allow me</Button>
-                    <Button variant="ghost" size="sm" onClick={() => { bulkAllowMe(cat, false); }}>Remove me</Button>
-                    <Button variant="secondary" size="sm" onClick={() => bulkOnlyMe(cat)}>Only me</Button>
                   </div>
                 </div>
                 <div className="space-y-3">
