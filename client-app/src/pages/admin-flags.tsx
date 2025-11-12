@@ -1,6 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { useEffect as useEffectBase } from 'react';
-import { useState as useStateBase } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
