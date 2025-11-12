@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ChevronDown } from "lucide-react";
+import { useFlag } from "@/providers/FeatureFlagsProvider";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -23,7 +24,7 @@ const YouTubeIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
 );
 
 export function HomePage() {
-  const [activeTab, setActiveTab] = useState<'sp500' | 'nasdaq100' | 'dowjones'>('dowjones');
+  const [activeTab, setActiveTab] = useState<'sp500' | 'nasdaq100' | 'dowjones' | 'ftse100'>('dowjones');
   const [searchQuery, setSearchQuery] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [videoId, setVideoId] = useState<string | null>(null);
@@ -36,6 +37,19 @@ export function HomePage() {
       return true;
     }
   });
+
+  // Feature flags for global markets
+  const spmid400On = useFlag('market:spmid400');
+  const ftse100On = useFlag('market:ftse100');
+  const tsx60On = useFlag('market:tsx60');
+  const asx200On = useFlag('market:asx200');
+  const dax40On = useFlag('market:dax40');
+  const cac40On = useFlag('market:cac40');
+  const ibex35On = useFlag('market:ibex35');
+  const nikkeiOn = useFlag('market:nikkei225');
+  const hsiOn = useFlag('market:hangseng');
+  const nifty50On = useFlag('market:nifty50');
+  const ibovespaOn = useFlag('market:ibovespa');
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -69,6 +83,15 @@ export function HomePage() {
             >
               Nasdaq 100
             </Button>
+            {ftse100On && (
+              <Button
+                variant={activeTab === 'ftse100' ? 'secondary' : 'outline'}
+                onClick={() => setActiveTab('ftse100')}
+                className={`font-semibold ${activeTab === 'ftse100' ? 'ring-2 ring-blue-500/50' : ''}`}
+              >
+                FTSE 100
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -84,17 +107,17 @@ export function HomePage() {
               <DropdownMenuContent align="start" className="w-64">
                 <DropdownMenuLabel>Global Markets</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem disabled>S&amp;P MidCap 400 (US)</DropdownMenuItem>
-                <DropdownMenuItem disabled>FTSE 100 (UK)</DropdownMenuItem>
-                <DropdownMenuItem disabled>TSX 60 (Canada)</DropdownMenuItem>
-                <DropdownMenuItem disabled>ASX 200 (Australia)</DropdownMenuItem>
-                <DropdownMenuItem disabled>DAX 40 (Germany)</DropdownMenuItem>
-                <DropdownMenuItem disabled>CAC 40 (France)</DropdownMenuItem>
-                <DropdownMenuItem disabled>IBEX 35 (Spain)</DropdownMenuItem>
-                <DropdownMenuItem disabled>Nikkei 225 (Japan)</DropdownMenuItem>
-                <DropdownMenuItem disabled>Hang Seng (China)</DropdownMenuItem>
-                <DropdownMenuItem disabled>Nifty 50 (India)</DropdownMenuItem>
-                <DropdownMenuItem disabled>Ibovespa (Brazil)</DropdownMenuItem>
+                {!spmid400On && <DropdownMenuItem disabled>S&amp;P MidCap 400 (US)</DropdownMenuItem>}
+                {!ftse100On && <DropdownMenuItem disabled>FTSE 100 (UK)</DropdownMenuItem>}
+                {!tsx60On && <DropdownMenuItem disabled>TSX 60 (Canada)</DropdownMenuItem>}
+                {!asx200On && <DropdownMenuItem disabled>ASX 200 (Australia)</DropdownMenuItem>}
+                {!dax40On && <DropdownMenuItem disabled>DAX 40 (Germany)</DropdownMenuItem>}
+                {!cac40On && <DropdownMenuItem disabled>CAC 40 (France)</DropdownMenuItem>}
+                {!ibex35On && <DropdownMenuItem disabled>IBEX 35 (Spain)</DropdownMenuItem>}
+                {!nikkeiOn && <DropdownMenuItem disabled>Nikkei 225 (Japan)</DropdownMenuItem>}
+                {!hsiOn && <DropdownMenuItem disabled>Hang Seng (China)</DropdownMenuItem>}
+                {!nifty50On && <DropdownMenuItem disabled>Nifty 50 (India)</DropdownMenuItem>}
+                {!ibovespaOn && <DropdownMenuItem disabled>Ibovespa (Brazil)</DropdownMenuItem>}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -199,6 +222,7 @@ export function HomePage() {
           {activeTab === 'sp500' && <CompanyTable searchQuery={searchQuery} dataset="sp500" activeTab={activeTab} />}
           {activeTab === 'nasdaq100' && <CompanyTable searchQuery={searchQuery} dataset="nasdaq100" activeTab={activeTab} />}
           {activeTab === 'dowjones' && <CompanyTable searchQuery={searchQuery} dataset="dowjones" activeTab={activeTab} />}
+          {activeTab === 'ftse100' && <CompanyTable searchQuery={searchQuery} dataset="ftse100" activeTab={activeTab as any} />}
         </div>
       </main>
     </div>

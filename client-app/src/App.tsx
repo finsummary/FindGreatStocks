@@ -18,6 +18,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { supabase } from "./lib/supabaseClient";
 import Footer from "./components/footer";
 import { useFlag } from "./providers/FeatureFlagsProvider";
+import EducationPage from "./pages/education";
 
 function App() {
   useAnalytics();
@@ -41,7 +42,11 @@ function App() {
           <span className="truncate font-semibold text-xs sm:text-lg">FindGreatStocks.com</span>
         </Link>
         <nav className="ml-auto w-full sm:w-auto flex items-center justify-start sm:justify-end gap-2 sm:gap-4">
-          {useFlag('education') && (
+          {useFlag('education') ? (
+            <Button asChild variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground">
+              <Link to="/education">Education</Link>
+            </Button>
+          ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground">
@@ -100,6 +105,7 @@ function App() {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/disclaimer" element={<DisclaimerPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/education" element={<EducationPage />} />
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
         </Routes>
