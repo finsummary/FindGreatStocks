@@ -24,7 +24,11 @@ const YouTubeIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
 );
 
 export function HomePage() {
-  const [activeTab, setActiveTab] = useState<'sp500' | 'nasdaq100' | 'dowjones' | 'ftse100'>('dowjones');
+  const [activeTab, setActiveTab] = useState<
+    'sp500' | 'nasdaq100' | 'dowjones' |
+    'spmid400' | 'ftse100' | 'tsx60' | 'asx200' | 'dax40' | 'cac40' |
+    'ibex35' | 'nikkei225' | 'hangseng' | 'nifty50' | 'ibovespa'
+  >('dowjones');
   const [searchQuery, setSearchQuery] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [videoId, setVideoId] = useState<string | null>(null);
@@ -90,6 +94,87 @@ export function HomePage() {
                 className={`font-semibold ${activeTab === 'ftse100' ? 'ring-2 ring-blue-500/50' : ''}`}
               >
                 FTSE 100
+              </Button>
+            )}
+            {tsx60On && (
+              <Button
+                variant={activeTab === 'tsx60' ? 'secondary' : 'outline'}
+                onClick={() => setActiveTab('tsx60')}
+                className={`font-semibold ${activeTab === 'tsx60' ? 'ring-2 ring-blue-500/50' : ''}`}
+              >
+                TSX 60
+              </Button>
+            )}
+            {asx200On && (
+              <Button
+                variant={activeTab === 'asx200' ? 'secondary' : 'outline'}
+                onClick={() => setActiveTab('asx200')}
+                className={`font-semibold ${activeTab === 'asx200' ? 'ring-2 ring-blue-500/50' : ''}`}
+              >
+                ASX 200
+              </Button>
+            )}
+            {dax40On && (
+              <Button
+                variant={activeTab === 'dax40' ? 'secondary' : 'outline'}
+                onClick={() => setActiveTab('dax40')}
+                className={`font-semibold ${activeTab === 'dax40' ? 'ring-2 ring-blue-500/50' : ''}`}
+              >
+                DAX 40
+              </Button>
+            )}
+            {cac40On && (
+              <Button
+                variant={activeTab === 'cac40' ? 'secondary' : 'outline'}
+                onClick={() => setActiveTab('cac40')}
+                className={`font-semibold ${activeTab === 'cac40' ? 'ring-2 ring-blue-500/50' : ''}`}
+              >
+                CAC 40
+              </Button>
+            )}
+            {ibex35On && (
+              <Button
+                variant={activeTab === 'ibex35' ? 'secondary' : 'outline'}
+                onClick={() => setActiveTab('ibex35')}
+                className={`font-semibold ${activeTab === 'ibex35' ? 'ring-2 ring-blue-500/50' : ''}`}
+              >
+                IBEX 35
+              </Button>
+            )}
+            {nikkeiOn && (
+              <Button
+                variant={activeTab === 'nikkei225' ? 'secondary' : 'outline'}
+                onClick={() => setActiveTab('nikkei225')}
+                className={`font-semibold ${activeTab === 'nikkei225' ? 'ring-2 ring-blue-500/50' : ''}`}
+              >
+                Nikkei 225
+              </Button>
+            )}
+            {hsiOn && (
+              <Button
+                variant={activeTab === 'hangseng' ? 'secondary' : 'outline'}
+                onClick={() => setActiveTab('hangseng')}
+                className={`font-semibold ${activeTab === 'hangseng' ? 'ring-2 ring-blue-500/50' : ''}`}
+              >
+                Hang Seng
+              </Button>
+            )}
+            {nifty50On && (
+              <Button
+                variant={activeTab === 'nifty50' ? 'secondary' : 'outline'}
+                onClick={() => setActiveTab('nifty50')}
+                className={`font-semibold ${activeTab === 'nifty50' ? 'ring-2 ring-blue-500/50' : ''}`}
+              >
+                Nifty 50
+              </Button>
+            )}
+            {ibovespaOn && (
+              <Button
+                variant={activeTab === 'ibovespa' ? 'secondary' : 'outline'}
+                onClick={() => setActiveTab('ibovespa')}
+                className={`font-semibold ${activeTab === 'ibovespa' ? 'ring-2 ring-blue-500/50' : ''}`}
+              >
+                Ibovespa
               </Button>
             )}
             <DropdownMenu>
@@ -222,7 +307,17 @@ export function HomePage() {
           {activeTab === 'sp500' && <CompanyTable searchQuery={searchQuery} dataset="sp500" activeTab={activeTab} />}
           {activeTab === 'nasdaq100' && <CompanyTable searchQuery={searchQuery} dataset="nasdaq100" activeTab={activeTab} />}
           {activeTab === 'dowjones' && <CompanyTable searchQuery={searchQuery} dataset="dowjones" activeTab={activeTab} />}
+          {activeTab === 'spmid400' && <CompanyTable searchQuery={searchQuery} dataset="spmid400" activeTab={activeTab as any} />}
           {activeTab === 'ftse100' && <CompanyTable searchQuery={searchQuery} dataset="ftse100" activeTab={activeTab as any} />}
+          {activeTab === 'tsx60' && <CompanyTable searchQuery={searchQuery} dataset="tsx60" activeTab={activeTab as any} />}
+          {activeTab === 'asx200' && <CompanyTable searchQuery={searchQuery} dataset="asx200" activeTab={activeTab as any} />}
+          {activeTab === 'dax40' && <CompanyTable searchQuery={searchQuery} dataset="dax40" activeTab={activeTab as any} />}
+          {activeTab === 'cac40' && <CompanyTable searchQuery={searchQuery} dataset="cac40" activeTab={activeTab as any} />}
+          {activeTab === 'ibex35' && <CompanyTable searchQuery={searchQuery} dataset="ibex35" activeTab={activeTab as any} />}
+          {activeTab === 'nikkei225' && <CompanyTable searchQuery={searchQuery} dataset="nikkei225" activeTab={activeTab as any} />}
+          {activeTab === 'hangseng' && <CompanyTable searchQuery={searchQuery} dataset="hangseng" activeTab={activeTab as any} />}
+          {activeTab === 'nifty50' && <CompanyTable searchQuery={searchQuery} dataset="nifty50" activeTab={activeTab as any} />}
+          {activeTab === 'ibovespa' && <CompanyTable searchQuery={searchQuery} dataset="ibovespa" activeTab={activeTab as any} />}
         </div>
       </main>
     </div>

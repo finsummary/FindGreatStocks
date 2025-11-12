@@ -177,8 +177,14 @@ const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlis
 
 interface CompanyTableProps {
   searchQuery: string;
-  dataset: 'sp500' | 'nasdaq100' | 'ftse100' | 'dowjones' | 'watchlist';
-  activeTab: 'sp500' | 'nasdaq100' | 'dowjones' | 'watchlist';
+  dataset:
+    | 'sp500' | 'nasdaq100' | 'dowjones' | 'watchlist'
+    | 'ftse100' | 'spmid400' | 'tsx60' | 'asx200' | 'dax40' | 'cac40'
+    | 'ibex35' | 'nikkei225' | 'hangseng' | 'nifty50' | 'ibovespa';
+  activeTab:
+    | 'sp500' | 'nasdaq100' | 'dowjones' | 'watchlist'
+    | 'ftse100' | 'spmid400' | 'tsx60' | 'asx200' | 'dax40' | 'cac40'
+    | 'ibex35' | 'nikkei225' | 'hangseng' | 'nifty50' | 'ibovespa';
 }
 
 export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTableProps) {
