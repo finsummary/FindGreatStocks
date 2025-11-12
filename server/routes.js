@@ -457,6 +457,27 @@ export function setupRoutes(app, supabase) {
     return res.json({ status: 'ok', commit: COMMIT_SHA, timestamp: new Date().toISOString() });
   });
 
+  // Audit listing for feature flag changes (owner only)
+  app.get('/api/feature-flags/audit', isAuthenticated, async (req, res) => {
+    try {
+      const email = (req.user && req.user.email) ? String(req.user.email).toLowerCase() : '';
+      if (email !== 'findgreatstocks@gmail.com') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      const limit = Math.min(parseInt(req.query.limit) || 200, 2000);
+      const key = (req.query.key ? String(req.query.key) : '').trim();
+      let q = supabase.from('feature_flag_audit').select('*').order('changed_at', { ascending: false }).limit(limit);
+      if (key) {
+        q = q.eq('key', key);
+      }
+      const { data, error } = await q;
+      if (error) return res.status(500).json({ message: 'Failed to load audit log' });
+      return res.json({ items: data || [] });
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to load audit log' });
+    }
+  });
+
   // Lightweight static-like streaming for tutorial videos with Range support
   app.get('/videos/:filename', async (req, res) => {
     try {
