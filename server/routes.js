@@ -365,6 +365,49 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Admin-only: feature flags management
+  app.get('/api/feature-flags', isAuthenticated, async (req, res) => {
+    try {
+      const email = (req.user && req.user.email) ? String(req.user.email).toLowerCase() : '';
+      if (email !== 'findgreatstocks@gmail.com') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      const { data, error } = await supabase
+        .from('feature_flags')
+        .select('key, enabled, rollout_percent, allowlist_emails, updated_at')
+        .order('key', { ascending: true });
+      if (error) return res.status(500).json({ message: 'Failed to read feature flags' });
+      return res.json({ flags: data || [] });
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to read feature flags' });
+    }
+  });
+
+  app.post('/api/feature-flags/:key', isAuthenticated, async (req, res) => {
+    try {
+      const email = (req.user && req.user.email) ? String(req.user.email).toLowerCase() : '';
+      if (email !== 'findgreatstocks@gmail.com') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      const flagKey = String(req.params.key || '').trim();
+      if (!flagKey) return res.status(400).json({ message: 'key is required' });
+      const { enabled, rolloutPercent, allowlistEmails } = req.body || {};
+      const payload = { key: flagKey };
+      if (typeof enabled === 'boolean') payload['enabled'] = enabled;
+      if (typeof rolloutPercent === 'number') payload['rollout_percent'] = rolloutPercent;
+      if (Array.isArray(allowlistEmails)) payload['allowlist_emails'] = allowlistEmails;
+      const { error } = await supabase
+        .from('feature_flags')
+        .upsert(payload, { onConflict: 'key' });
+      if (error) return res.status(500).json({ message: 'Failed to update flag' });
+      // bust cache
+      cachedFlags = { flags: {}, ts: 0 };
+      return res.json({ ok: true });
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to update flag' });
+    }
+  });
+
   // Override helper: null-out long-horizon metrics for recent IPOs
   function applyRecentIpoOverrides(rows) {
     try {

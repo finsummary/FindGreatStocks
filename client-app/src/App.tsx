@@ -19,6 +19,7 @@ import { supabase } from "./lib/supabaseClient";
 import Footer from "./components/footer";
 import { useFlag } from "./providers/FeatureFlagsProvider";
 import EducationPage from "./pages/education";
+import AdminFlagsPage from "./pages/admin-flags";
 
 function App() {
   useAnalytics();
@@ -106,6 +107,7 @@ function App() {
           <Route path="/disclaimer" element={<DisclaimerPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/education" element={<EducationPage />} />
+          <Route path="/admin/flags" element={<AdminFlagsPage />} />
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
         </Routes>
