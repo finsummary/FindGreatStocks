@@ -496,6 +496,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     case 'watchlist':
       apiEndpoint = '/api/watchlist/companies';
       break;
+    case 'ftse100':
+      apiEndpoint = '/api/ftse100';
+      break;
     default:
       apiEndpoint = '/api/companies';
   }
@@ -1014,6 +1017,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       { key: 'sp500', endpoint: '/api/sp500' },
       { key: 'nasdaq100', endpoint: '/api/nasdaq100' },
       { key: 'dowjones', endpoint: '/api/dowjones' },
+      { key: 'ftse100', endpoint: '/api/ftse100' },
     ];
     // Prefetch для текущего датасета: следующие страницы (page+1, page+2)
     const current = datasets.find(d => d.key === dataset)!;

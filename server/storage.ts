@@ -1,6 +1,9 @@
 import { companies, nasdaq100Companies, sp500Companies, watchlist, users, type User, type UpsertUser, type Company, type Nasdaq100Company, type InsertCompany, type InsertNasdaq100Company, type Watchlist, type InsertWatchlist, type DowJonesCompany, type InsertDowJonesCompany, dowJonesCompanies } from "@shared/schema";
 import { db, supabase } from "./db";
-import { eq, sql, desc, asc, and, or, ilike, inArray } from "drizzle-orm";
+import { eq, sql, desc, asc, and, or, ilike, inArray, SQL } from "drizzle-orm";
+
+// Add a lightweight FTSE 100 type alias to avoid schema dependency
+export type Ftse100Company = any;
 
 export interface IStorage {
   // User operations
@@ -465,6 +468,71 @@ export class DatabaseStorage implements IStorage {
       .from(dowJonesCompanies)
       .where(eq(dowJonesCompanies.symbol, symbol));
     return company;
+  }
+
+  // FTSE 100 methods
+  async getFtse100Companies(
+    limit: number = 50,
+    offset: number = 0,
+    sortBy: string = 'marketCap',
+    sortOrder: 'asc' | 'desc' = 'desc',
+    search?: string
+  ): Promise<Ftse100Company[]> {
+    try {
+      let query = supabase
+        .from('ftse100_companies')
+        .select('*')
+        .range(offset, offset + limit - 1);
+      if (search && search.trim()) {
+        query = query.or(`name.ilike.%${search.trim()}%,symbol.ilike.%${search.trim()}%`);
+      }
+      // Supabase REST sorts can be added if columns differ; client applies extra sort when needed
+      const { data, error } = await query;
+      if (error) {
+        console.error('Error fetching FTSE 100 companies:', error);
+        return [];
+      }
+      return data || [];
+    } catch (error) {
+      console.error('Error in getFtse100Companies:', error);
+      return [];
+    }
+  }
+
+  async getFtse100CompanyCount(search?: string): Promise<number> {
+    try {
+      let query = supabase
+        .from('ftse100_companies')
+        .select('*', { count: 'exact', head: true });
+      if (search && search.trim()) {
+        query = query.or(`name.ilike.%${search.trim()}%,symbol.ilike.%${search.trim()}%`);
+      }
+      const { count, error } = await query;
+      if (error) {
+        console.error('Error fetching FTSE 100 company count:', error);
+        return 0;
+      }
+      return count || 0;
+    } catch (error) {
+      console.error('Error in getFtse100CompanyCount:', error);
+      return 0;
+    }
+  }
+
+  async getFtse100CompanyBySymbol(symbol: string): Promise<Ftse100Company | undefined> {
+    try {
+      const { data, error } = await supabase
+        .from('ftse100_companies')
+        .select('*')
+        .eq('symbol', symbol)
+        .single();
+      if (error) {
+        return undefined;
+      }
+      return data as any;
+    } catch {
+      return undefined;
+    }
   }
 
   async getWatchlist(userId: string): Promise<Watchlist[]> {

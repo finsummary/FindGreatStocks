@@ -285,6 +285,37 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
     }
   });
 
+  // FTSE 100 routes
+  app.get('/api/ftse100', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const sortBy = (req.query.sortBy as string) || 'marketCap';
+      const sortOrder = (req.query.sortOrder as 'asc' | 'desc') || 'desc';
+      const search = req.query.search as string;
+
+      const companies = await storage.getFtse100Companies(
+        limit,
+        offset,
+        sortBy,
+        sortOrder,
+        search
+      );
+      const totalCount = await storage.getFtse100CompanyCount(search);
+
+      res.json({
+        companies: (companies || []).map(mapDbRowToCompany),
+        total: totalCount,
+        limit,
+        offset,
+        hasMore: offset + limit < totalCount
+      });
+    } catch (error) {
+      console.error('Error fetching FTSE 100 companies:', error);
+      res.status(500).json({ message: 'Failed to fetch companies' });
+    }
+  });
+
   app.get('/api/nasdaq100/:symbol', async (req, res) => {
     try {
       const company = await storage.getNasdaq100CompanyBySymbol(req.params.symbol);
