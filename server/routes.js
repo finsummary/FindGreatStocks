@@ -393,14 +393,41 @@ export function setupRoutes(app, supabase) {
       const flagKey = String(req.params.key || '').trim();
       if (!flagKey) return res.status(400).json({ message: 'key is required' });
       const { enabled, rolloutPercent, allowlistEmails } = req.body || {};
+
+      // read previous snapshot
+      let prev = null;
+      try {
+        const { data: prevRow } = await supabase
+          .from('feature_flags')
+          .select('*')
+          .eq('key', flagKey)
+          .maybeSingle();
+        if (prevRow) prev = prevRow;
+      } catch {}
+
       const payload = { key: flagKey };
       if (typeof enabled === 'boolean') payload['enabled'] = enabled;
       if (typeof rolloutPercent === 'number') payload['rollout_percent'] = rolloutPercent;
       if (Array.isArray(allowlistEmails)) payload['allowlist_emails'] = allowlistEmails;
-      const { error } = await supabase
+      const { data: upserted, error } = await supabase
         .from('feature_flags')
-        .upsert(payload, { onConflict: 'key' });
+        .upsert(payload, { onConflict: 'key' })
+        .select('*')
+        .maybeSingle();
       if (error) return res.status(500).json({ message: 'Failed to update flag' });
+
+      // insert audit row
+      try {
+        await supabase.from('feature_flag_audit').insert({
+          key: flagKey,
+          actor_email: email,
+          prev: prev,
+          next: upserted || null,
+          changed_at: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.warn('feature_flag_audit insert failed', e?.message || e);
+      }
       // bust cache
       cachedFlags = { flags: {}, ts: 0 };
       return res.json({ ok: true });
