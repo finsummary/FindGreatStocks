@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback } from "./components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./components/ui/dropdown-menu";
 import { supabase } from "./lib/supabaseClient";
 import Footer from "./components/footer";
+import { useFlag } from "./providers/FeatureFlagsProvider";
 
 function App() {
   useAnalytics();
@@ -40,16 +41,18 @@ function App() {
           <span className="truncate font-semibold text-xs sm:text-lg">FindGreatStocks.com</span>
         </Link>
         <nav className="ml-auto w-full sm:w-auto flex items-center justify-start sm:justify-end gap-2 sm:gap-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground">
-                Education
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem disabled className="text-muted-foreground">Coming Soon</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {useFlag('education') && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground">
+                  Education
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem disabled className="text-muted-foreground">Coming Soon</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
           <Button asChild variant="ghost" size="sm">
             <a href="https://blog.findgreatstocks.com" target="_blank" rel="noopener noreferrer">Blog</a>
           </Button>

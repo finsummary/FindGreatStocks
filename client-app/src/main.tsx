@@ -9,6 +9,7 @@ import { AuthProvider } from './providers/AuthProvider';
 import { HelmetProvider } from 'react-helmet-async';
 import { initGA } from './lib/analytics';
 import { ThemeProvider } from './components/theme-provider';
+import { FeatureFlagsProvider } from './providers/FeatureFlagsProvider';
 
 const queryClient = new QueryClient();
 
@@ -23,7 +24,9 @@ createRoot(document.getElementById("root")!).render(
           <QueryClientProvider client={queryClient}>
             <AuthProvider>
               <ThemeProvider defaultTheme="light">
-                <App />
+                <FeatureFlagsProvider>
+                  <App />
+                </FeatureFlagsProvider>
               </ThemeProvider>
             </AuthProvider>
           </QueryClientProvider>

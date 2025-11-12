@@ -329,6 +329,42 @@ function mapDbRowToCompany(row) {
 export function setupRoutes(app, supabase) {
   const isAuthenticated = createAuthMiddleware(supabase);
 
+  // In-memory cache for /api/config flags
+  let cachedFlags = { flags: {}, ts: 0 };
+  const FLAGS_TTL_MS = 60 * 1000;
+
+  app.get('/api/config', async (_req, res) => {
+    try {
+      if (Date.now() - cachedFlags.ts < FLAGS_TTL_MS) {
+        return res.json(cachedFlags);
+      }
+      let flags = {};
+      try {
+        const { data, error } = await supabase.from('feature_flags').select('key, enabled, rollout_percent');
+        if (!error && Array.isArray(data)) {
+          for (const r of data) {
+            if (!r?.key) continue;
+            flags[r.key] = {
+              enabled: !!r.enabled,
+              rolloutPercent: (typeof r.rollout_percent === 'number') ? r.rollout_percent : undefined,
+            };
+          }
+        }
+      } catch {}
+      // Safe defaults if table is missing
+      if (!Object.keys(flags).length) {
+        flags = {
+          education: { enabled: false },
+        };
+      }
+      cachedFlags = { flags, ts: Date.now() };
+      res.set('Cache-Control', 'no-store');
+      return res.json(cachedFlags);
+    } catch (e) {
+      return res.json({ flags: { education: { enabled: false } } });
+    }
+  });
+
   // Override helper: null-out long-horizon metrics for recent IPOs
   function applyRecentIpoOverrides(rows) {
     try {
