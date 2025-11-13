@@ -20,12 +20,36 @@ import Footer from "./components/footer";
 import { useFlag } from "./providers/FeatureFlagsProvider";
 import EducationPage from "./pages/education";
 import AdminFlagsPage from "./pages/admin-flags";
+import { useEffect, useRef } from 'react';
 
 function App() {
   useAnalytics();
   const { user } = useAuth();
   const navigate = useNavigate();
   const educationOn = useFlag('education');
+
+  // Auto-reload tab when backend commit changes (prevents stale chunks → React #300)
+  const initialCommitRef = useRef<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const ping = async () => {
+      try {
+        const r = await fetch(`/api/health?_=${Date.now()}`, { cache: 'no-store' });
+        if (!r.ok) return;
+        const j = await r.json();
+        const commit = String(j?.commit || '');
+        if (initialCommitRef.current == null) {
+          initialCommitRef.current = commit;
+        } else if (commit && initialCommitRef.current && commit !== initialCommitRef.current) {
+          // New deploy detected → reload to avoid mismatched React bundles
+          window.location.reload();
+        }
+      } catch {}
+    };
+    ping();
+    const id = setInterval(ping, 60000); // check every 60s
+    return () => { alive = false; clearInterval(id); };
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
