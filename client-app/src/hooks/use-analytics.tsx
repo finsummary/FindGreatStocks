@@ -26,38 +26,56 @@ function ensurePosthogLoaded(): Promise<any> {
 
 export const useAnalytics = () => {
   const location = useLocation();
-  const prevLocationRef = useRef<string>(location.pathname);
+  const prevLocationRef = useRef<string | null>(null);
+
+  const key = import.meta.env.VITE_POSTHOG_KEY as string | undefined;
+  const host = (import.meta.env.VITE_POSTHOG_HOST as string | undefined) || 'https://us.i.posthog.com';
+  const dnt = typeof navigator !== 'undefined' && (navigator as any).doNotTrack === '1';
 
   // Init PostHog once
   useEffect(() => {
-    const key = import.meta.env.VITE_POSTHOG_KEY as string | undefined;
-    const host = (import.meta.env.VITE_POSTHOG_HOST as string | undefined) || 'https://us.i.posthog.com';
-    if (!key) return;
-
-    const dnt = typeof navigator !== 'undefined' && (navigator as any).doNotTrack === '1';
-    if (dnt) return;
-
+    if (!key || dnt) return;
     ensurePosthogLoaded().then((ph) => {
       if (!ph) return;
       if (window.posthog?._isInitialized) return; // prevent double init
       ph.init(key, {
         api_host: host,
-        capture_pageview: false,
+        capture_pageview: false, // manual pageviews
         capture_pageleave: true,
         session_recording: { record_cross_origin_iframe_messages: true },
         person_profiles: 'identified_only',
       });
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
-  // Page view on route change (GA + PostHog)
+  // Send initial pageview on mount
   useEffect(() => {
-    if (location.pathname !== prevLocationRef.current) {
-      // Google Analytics (if configured)
-      trackPageView(location.pathname);
-      // PostHog
+    // GA
+    trackPageView(location.pathname);
+    // PostHog (after SDK ready)
+    if (!key || dnt) return;
+    ensurePosthogLoaded().then(() => {
       try { window.posthog?.capture?.('$pageview', { path: location.pathname }); } catch {}
       prevLocationRef.current = location.pathname;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Page view on route change (GA + PostHog)
+  useEffect(() => {
+    const prev = prevLocationRef.current;
+    if (prev !== null && location.pathname === prev) return;
+    // GA
+    trackPageView(location.pathname);
+    // PostHog
+    if (!key || dnt) {
+      prevLocationRef.current = location.pathname;
+      return;
     }
-  }, [location.pathname]);
+    ensurePosthogLoaded().then(() => {
+      try { window.posthog?.capture?.('$pageview', { path: location.pathname }); } catch {}
+      prevLocationRef.current = location.pathname;
+    });
+  }, [location.pathname, key, dnt]);
 };
