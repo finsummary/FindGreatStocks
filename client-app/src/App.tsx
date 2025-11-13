@@ -21,7 +21,8 @@ import { useFlag } from "./providers/FeatureFlagsProvider";
 import EducationPage from "./pages/education";
 import AdminFlagsPage from "./pages/admin-flags";
 import { useEffect, useRef } from 'react';
-import posthog from 'posthog-js';
+
+declare global { interface Window { posthog?: any } }
 
 function App() {
   useAnalytics();
@@ -56,9 +57,9 @@ function App() {
   useEffect(() => {
     const email = (user?.email || '').toLowerCase();
     if (email) {
-      posthog.identify(email, { email, plan: (user as any)?.subscriptionTier || 'free' });
+      try { window.posthog?.identify?.(email, { email, plan: (user as any)?.subscriptionTier || 'free' }); } catch {}
     } else {
-      try { posthog.reset(); } catch {}
+      try { window.posthog?.reset?.(); } catch {}
     }
   }, [user]);
 
