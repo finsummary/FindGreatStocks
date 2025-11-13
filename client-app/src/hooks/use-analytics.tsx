@@ -6,7 +6,7 @@ declare global {
   interface Window { posthog?: any }
 }
 
-function ensurePosthogLoaded(): Promise<any> {
+function ensurePosthogLoaded(apiHost: string): Promise<any> {
   return new Promise((resolve) => {
     if (typeof window !== 'undefined' && window.posthog) return resolve(window.posthog);
     const scriptId = 'posthog-sdk';
@@ -18,8 +18,10 @@ function ensurePosthogLoaded(): Promise<any> {
     const s = document.createElement('script');
     s.id = scriptId;
     s.async = true;
-    s.src = 'https://unpkg.com/posthog-js@latest/dist/posthog.js';
+    // Load SDK from your PostHog host to avoid CDN/adblock issues
+    s.src = `${apiHost.replace(/\/$/, '')}/static/array.js`;
     s.onload = () => resolve(window.posthog);
+    s.onerror = () => resolve(undefined);
     document.head.appendChild(s);
   });
 }
@@ -43,8 +45,8 @@ export const useAnalytics = () => {
       console.debug('[analytics] DNT enabled, skip init');
       return;
     }
-    ensurePosthogLoaded().then((ph) => {
-      if (!ph) return;
+    ensurePosthogLoaded(host).then((ph) => {
+      if (!ph) { console.debug('[analytics] PostHog SDK failed to load'); return; }
       if (window.posthog?._isInitialized) return; // prevent double init
       ph.init(key, {
         api_host: host,
@@ -54,6 +56,7 @@ export const useAnalytics = () => {
         person_profiles: 'identified_only',
       });
       console.debug('[analytics] PostHog initialized', { host });
+      try { ph.capture('fgs_boot', { t: Date.now() }); } catch {}
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -64,7 +67,7 @@ export const useAnalytics = () => {
     trackPageView(location.pathname);
     // PostHog (after SDK ready)
     if (!key || (respectDnt && dnt)) return;
-    ensurePosthogLoaded().then(() => {
+    ensurePosthogLoaded(host).then(() => {
       try { window.posthog?.capture?.('$pageview', { path: location.pathname }); console.debug('[analytics] $pageview (initial)', location.pathname); } catch {}
       prevLocationRef.current = location.pathname;
     });
@@ -82,9 +85,9 @@ export const useAnalytics = () => {
       prevLocationRef.current = location.pathname;
       return;
     }
-    ensurePosthogLoaded().then(() => {
+    ensurePosthogLoaded(host).then(() => {
       try { window.posthog?.capture?.('$pageview', { path: location.pathname }); console.debug('[analytics] $pageview', location.pathname); } catch {}
       prevLocationRef.current = location.pathname;
     });
-  }, [location.pathname, key, respectDnt, dnt]);
+  }, [location.pathname, key, respectDnt, dnt, host]);
 };
