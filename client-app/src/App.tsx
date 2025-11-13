@@ -21,6 +21,7 @@ import { useFlag } from "./providers/FeatureFlagsProvider";
 import EducationPage from "./pages/education";
 import AdminFlagsPage from "./pages/admin-flags";
 import { useEffect, useRef } from 'react';
+import posthog from 'posthog-js';
 
 function App() {
   useAnalytics();
@@ -50,6 +51,16 @@ function App() {
     const id = setInterval(ping, 60000); // check every 60s
     return () => { alive = false; clearInterval(id); };
   }, []);
+
+  // Identify user in PostHog
+  useEffect(() => {
+    const email = (user?.email || '').toLowerCase();
+    if (email) {
+      posthog.identify(email, { email, plan: (user as any)?.subscriptionTier || 'free' });
+    } else {
+      try { posthog.reset(); } catch {}
+    }
+  }, [user]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
