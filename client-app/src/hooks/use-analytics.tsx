@@ -29,12 +29,20 @@ export const useAnalytics = () => {
   const prevLocationRef = useRef<string | null>(null);
 
   const key = import.meta.env.VITE_POSTHOG_KEY as string | undefined;
-  const host = (import.meta.env.VITE_POSTHOG_HOST as string | undefined) || 'https://us.i.posthog.com';
+  const host = (import.meta.env.VITE_POSTHOG_HOST as string | undefined) || 'https://eu.posthog.com';
+  const respectDnt = String(import.meta.env.VITE_ANALYTICS_RESPECT_DNT || '').toLowerCase() === 'true';
   const dnt = typeof navigator !== 'undefined' && (navigator as any).doNotTrack === '1';
 
   // Init PostHog once
   useEffect(() => {
-    if (!key || dnt) return;
+    if (!key) {
+      console.debug('[analytics] PostHog key missing, skip init');
+      return;
+    }
+    if (respectDnt && dnt) {
+      console.debug('[analytics] DNT enabled, skip init');
+      return;
+    }
     ensurePosthogLoaded().then((ph) => {
       if (!ph) return;
       if (window.posthog?._isInitialized) return; // prevent double init
@@ -45,6 +53,7 @@ export const useAnalytics = () => {
         session_recording: { record_cross_origin_iframe_messages: true },
         person_profiles: 'identified_only',
       });
+      console.debug('[analytics] PostHog initialized', { host });
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -54,9 +63,9 @@ export const useAnalytics = () => {
     // GA
     trackPageView(location.pathname);
     // PostHog (after SDK ready)
-    if (!key || dnt) return;
+    if (!key || (respectDnt && dnt)) return;
     ensurePosthogLoaded().then(() => {
-      try { window.posthog?.capture?.('$pageview', { path: location.pathname }); } catch {}
+      try { window.posthog?.capture?.('$pageview', { path: location.pathname }); console.debug('[analytics] $pageview (initial)', location.pathname); } catch {}
       prevLocationRef.current = location.pathname;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -69,13 +78,13 @@ export const useAnalytics = () => {
     // GA
     trackPageView(location.pathname);
     // PostHog
-    if (!key || dnt) {
+    if (!key || (respectDnt && dnt)) {
       prevLocationRef.current = location.pathname;
       return;
     }
     ensurePosthogLoaded().then(() => {
-      try { window.posthog?.capture?.('$pageview', { path: location.pathname }); } catch {}
+      try { window.posthog?.capture?.('$pageview', { path: location.pathname }); console.debug('[analytics] $pageview', location.pathname); } catch {}
       prevLocationRef.current = location.pathname;
     });
-  }, [location.pathname, key, dnt]);
+  }, [location.pathname, key, respectDnt, dnt]);
 };
