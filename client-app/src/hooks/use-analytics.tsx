@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { trackPageView } from '../lib/analytics';
 
 declare global {
-  interface Window { posthog?: any }
+  interface Window { posthog?: any; phCapture?: (name: string, props?: any) => void; phQueue?: any[] }
 }
 
 function ensurePosthogLoaded(apiHost: string): Promise<any> {
@@ -18,7 +18,7 @@ function ensurePosthogLoaded(apiHost: string): Promise<any> {
     const s = document.createElement('script');
     s.id = scriptId;
     s.async = true;
-    // Load SDK from your PostHog host to avoid CDN/adblock issues
+    s.crossOrigin = 'anonymous';
     s.src = `${apiHost.replace(/\/$/, '')}/static/array.js`;
     s.onload = () => resolve(window.posthog);
     s.onerror = () => resolve(undefined);
@@ -35,6 +35,22 @@ export const useAnalytics = () => {
   const respectDnt = String(import.meta.env.VITE_ANALYTICS_RESPECT_DNT || '').toLowerCase() === 'true';
   const dnt = typeof navigator !== 'undefined' && (navigator as any).doNotTrack === '1';
 
+  // Lightweight queue for early captures before SDK init
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!window.phCapture) {
+      window.phQueue = [];
+      window.phCapture = (name: string, props?: any) => {
+        const ph = window.posthog as any;
+        if (ph && typeof ph.capture === 'function') {
+          try { ph.capture(name, props || {}); } catch {}
+        } else {
+          window.phQueue!.push([name, props]);
+        }
+      };
+    }
+  }, []);
+
   // Init PostHog once
   useEffect(() => {
     if (!key) {
@@ -47,7 +63,7 @@ export const useAnalytics = () => {
     }
     ensurePosthogLoaded(host).then((ph) => {
       if (!ph) { console.debug('[analytics] PostHog SDK failed to load'); return; }
-      if (window.posthog?._isInitialized) return; // prevent double init
+      if ((window as any).posthog?._isInitialized) return; // prevent double init
       ph.init(key, {
         api_host: host,
         capture_pageview: false, // manual pageviews
@@ -55,8 +71,17 @@ export const useAnalytics = () => {
         session_recording: { record_cross_origin_iframe_messages: true },
         person_profiles: 'identified_only',
         autocapture: true,
+        loaded: (phClient: any) => {
+          const q = (window as any).phQueue as any[];
+          if (Array.isArray(q) && q.length) {
+            q.forEach((it) => {
+              try { phClient.capture(it[0], it[1] || {}); } catch {}
+            });
+            (window as any).phQueue = [];
+          }
+          console.debug('[analytics] PostHog initialized', { host });
+        },
       });
-      console.debug('[analytics] PostHog initialized', { host });
       try { ph.capture('fgs_boot', { t: Date.now() }); } catch {}
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -69,7 +94,7 @@ export const useAnalytics = () => {
     // PostHog (after SDK ready)
     if (!key || (respectDnt && dnt)) return;
     ensurePosthogLoaded(host).then(() => {
-      try { window.posthog?.capture?.('$pageview', { path: location.pathname }); console.debug('[analytics] $pageview (initial)', location.pathname); } catch {}
+      try { (window as any).phCapture?.('$pageview', { path: location.pathname }); console.debug('[analytics] $pageview (initial)', location.pathname); } catch {}
       prevLocationRef.current = location.pathname;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -86,9 +111,8 @@ export const useAnalytics = () => {
       prevLocationRef.current = location.pathname;
       return;
     }
-    ensurePosthogLoaded(host).then(() => {
-      try { window.posthog?.capture?.('$pageview', { path: location.pathname }); console.debug('[analytics] $pageview', location.pathname); } catch {}
-      prevLocationRef.current = location.pathname;
-    });
+    (window as any).phCapture?.('$pageview', { path: location.pathname });
+    console.debug('[analytics] $pageview', location.pathname);
+    prevLocationRef.current = location.pathname;
   }, [location.pathname, key, respectDnt, dnt, host]);
 };

@@ -30,14 +30,14 @@ export function PaymentSuccessPage() {
         }
         await refreshUser();
         try {
-          (window as any).posthog?.capture?.('checkout_success', { sessionId, amount, currency });
-          if (amount && currency) (window as any).posthog?.capture?.('revenue', { amount, currency, sessionId });
+          (window as any).phCapture?.('checkout_success', { sessionId, amount, currency });
+          if (amount && currency) (window as any).phCapture?.('revenue', { amount, currency, sessionId });
         } catch {}
         setConfirming(false);
       } catch (e: any) {
         console.error('Payment confirm error:', e);
         setError(e?.message || 'Failed to confirm payment');
-        try { (window as any).posthog?.capture?.('api_error', { area: 'checkout_confirm', message: e?.message }); } catch {}
+        try { (window as any).phCapture?.('api_error', { area: 'checkout_confirm', message: e?.message }); } catch {}
         setConfirming(false);
       }
     };

@@ -53,7 +53,7 @@ export function HomePage() {
       'hjpXE6ZYzLo': 'dupont_roe',
     };
     const topic = map[videoId] || 'unknown';
-    try { (window as any).posthog?.capture?.('video_opened', { topic, source: 'home' }); } catch {}
+    try { (window as any).phCapture?.('video_opened', { topic, source: 'home' }); } catch {}
   }, [videoId]);
 
   // Feature flags for global markets
@@ -82,21 +82,21 @@ export function HomePage() {
           <div className="flex items-center gap-2">
             <Button
               variant={activeTab === 'dowjones' ? 'secondary' : 'outline'}
-              onClick={() => { setActiveTab('dowjones'); try { (window as any).posthog?.capture?.('dataset_selected', { dataset: 'dowjones' }); } catch {} }}
+              onClick={() => { setActiveTab('dowjones'); try { (window as any).phCapture?.('dataset_selected', { dataset: 'dowjones' }); } catch {} }}
               className={`font-semibold ${activeTab === 'dowjones' ? 'ring-2 ring-blue-500/50' : ''}`}
             >
               Dow Jones
             </Button>
             <Button
               variant={activeTab === 'sp500' ? 'secondary' : 'outline'}
-              onClick={() => { setActiveTab('sp500'); try { (window as any).posthog?.capture?.('dataset_selected', { dataset: 'sp500' }); } catch {} }}
+              onClick={() => { setActiveTab('sp500'); try { (window as any).phCapture?.('dataset_selected', { dataset: 'sp500' }); } catch {} }}
               className={`font-semibold ${activeTab === 'sp500' ? 'ring-2 ring-blue-500/50' : ''}`}
             >
               S&P 500
             </Button>
             <Button
               variant={activeTab === 'nasdaq100' ? 'secondary' : 'outline'}
-              onClick={() => { setActiveTab('nasdaq100'); try { (window as any).posthog?.capture?.('dataset_selected', { dataset: 'nasdaq100' }); } catch {} }}
+              onClick={() => { setActiveTab('nasdaq100'); try { (window as any).phCapture?.('dataset_selected', { dataset: 'nasdaq100' }); } catch {} }}
               className={`font-semibold ${activeTab === 'nasdaq100' ? 'ring-2 ring-blue-500/50' : ''}`}
             >
               Nasdaq 100
@@ -104,7 +104,7 @@ export function HomePage() {
             {ftse100On && (
               <Button
                 variant={activeTab === 'ftse100' ? 'secondary' : 'outline'}
-                onClick={() => { setActiveTab('ftse100'); try { (window as any).posthog?.capture?.('dataset_selected', { dataset: 'ftse100' }); } catch {} }}
+                onClick={() => { setActiveTab('ftse100'); try { (window as any).phCapture?.('dataset_selected', { dataset: 'ftse100' }); } catch {} }}
                 className={`font-semibold ${activeTab === 'ftse100' ? 'ring-2 ring-blue-500/50' : ''}`}
               >
                 FTSE 100
@@ -196,7 +196,7 @@ export function HomePage() {
                 <button
                   className="inline-flex items-center whitespace-nowrap rounded-md px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
                   type="button"
-                  onClick={() => { try { (window as any).posthog?.capture?.('market_menu_opened'); } catch {} }}
+                  onClick={() => { try { (window as any).phCapture?.('market_menu_opened'); } catch {} }}
                 >
                   <span className="flex items-center gap-1.5">
                     <span>Coming Soon</span>
@@ -207,7 +207,7 @@ export function HomePage() {
               <DropdownMenuContent align="start" className="w-64">
                 <DropdownMenuLabel>Global Markets</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {!spmid400On && <DropdownMenuItem disabled>S&amp;P MidCap 400 (US)</DropdownMenuItem>}
+                {!spmid400On && <DropdownMenuItem disabled onClick={() => { try { (window as any).phCapture?.('market_button_click', { dataset: 'spmid400', available: false }); } catch {} }}>S&amp;P MidCap 400 (US)</DropdownMenuItem>}
                 {!ftse100On && <DropdownMenuItem disabled>FTSE 100 (UK)</DropdownMenuItem>}
                 {!tsx60On && <DropdownMenuItem disabled>TSX 60 (Canada)</DropdownMenuItem>}
                 {!asx200On && <DropdownMenuItem disabled>ASX 200 (Australia)</DropdownMenuItem>}
@@ -241,7 +241,7 @@ export function HomePage() {
               setShowTutorials(v => {
                 const nv = !v;
                 try { localStorage.setItem('fgs:tutorials:collapsed:v2', nv ? '0' : '1'); } catch {}
-                try { (window as any).posthog?.capture?.('tutorials_toggle', { state: nv ? 'open' : 'closed' }); } catch {}
+                try { (window as any).phCapture?.('tutorials_toggle', { state: nv ? 'open' : 'closed' }); } catch {}
                 return nv;
               });
             }}
@@ -257,7 +257,7 @@ export function HomePage() {
                     variant="outline"
                     size="sm"
                     className="inline-flex items-center justify-start gap-2 w-full whitespace-normal h-auto py-2 min-h-0 text-[13px] sm:text-sm leading-snug"
-                    onClick={() => { setVideoId('T5SW1BHqZr0'); try { (window as any).posthog?.capture?.('video_opened', { topic: 'return_on_risk', source: 'home' }); } catch {} }}
+                    onClick={() => { setVideoId('T5SW1BHqZr0'); try { (window as any).phCapture?.('video_opened', { topic: 'return_on_risk', source: 'home' }); } catch {} }}
                   >
                     <YouTubeIcon className="h-4 w-4 flex-shrink-0" />
                     <span className="flex-1 min-w-0 break-words text-left">Which companies have the highest Return on Risk?</span>
@@ -268,7 +268,7 @@ export function HomePage() {
                     variant="outline"
                     size="sm"
                     className="inline-flex items-center justify-start gap-2 w-full whitespace-normal h-auto py-2 min-h-0 text-[13px] sm:text-sm leading-snug"
-                    onClick={() => { setVideoId('0S_SZV_Qzq4'); try { (window as any).posthog?.capture?.('video_opened', { topic: 'dcf', source: 'home' }); } catch {} }}
+                    onClick={() => { setVideoId('0S_SZV_Qzq4'); try { (window as any).phCapture?.('video_opened', { topic: 'dcf', source: 'home' }); } catch {} }}
                   >
                     <YouTubeIcon className="h-4 w-4 flex-shrink-0" />
                     <span className="flex-1 min-w-0 break-words text-left">Which companies are undervalued by DCF?</span>
@@ -279,7 +279,7 @@ export function HomePage() {
                     variant="outline"
                     size="sm"
                     className="inline-flex items-center justify-start gap-2 w-full whitespace-normal h-auto py-2 min-h-0 text-[13px] sm:text-sm leading-snug"
-                    onClick={() => { setVideoId('WLb_h--jKVw'); try { (window as any).posthog?.capture?.('video_opened', { topic: 'reverse_dcf', source: 'home' }); } catch {} }}
+                    onClick={() => { setVideoId('WLb_h--jKVw'); try { (window as any).phCapture?.('video_opened', { topic: 'reverse_dcf', source: 'home' }); } catch {} }}
                   >
                     <YouTubeIcon className="h-4 w-4 flex-shrink-0" />
                     <span className="flex-1 min-w-0 break-words text-left">What growth is priced in? (Reverse DCF)</span>
@@ -290,7 +290,7 @@ export function HomePage() {
                     variant="outline"
                     size="sm"
                     className="inline-flex items-center justify-start gap-2 w-full whitespace-normal h-auto py-2 min-h-0 text-[13px] sm:text-sm leading-snug"
-                    onClick={() => { setVideoId('hjpXE6ZYzLo'); try { (window as any).posthog?.capture?.('video_opened', { topic: 'dupont_roe', source: 'home' }); } catch {} }}
+                    onClick={() => { setVideoId('hjpXE6ZYzLo'); try { (window as any).phCapture?.('video_opened', { topic: 'dupont_roe', source: 'home' }); } catch {} }}
                   >
                     <YouTubeIcon className="h-4 w-4 flex-shrink-0" />
                     <span className="flex-1 min-w-0 break-words text-left">What drives ROE? (DuPont decomposition)</span>

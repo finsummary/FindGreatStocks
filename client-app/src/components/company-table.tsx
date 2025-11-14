@@ -324,6 +324,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   const handleUpgradeClick = async ({ priceId, plan }: { priceId?: string; plan: 'annual' | 'quarterly' | 'lifetime' }) => {
     console.log(`[1/5] handleUpgradeClick triggered with priceId: ${priceId}`);
 
+    // fire intent as soon as user clicks CTA
+    try { (window as any).phCapture?.('checkout_initiated', { plan }); } catch {}
+
     if (!session) {
       // redirect unauthenticated users to login/signup flow
       window.location.href = '/login';
@@ -334,7 +337,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
 
     console.log("[2/5] Closing the upgrade modal.");
     setIsUpgradeModalOpen(false);
-    try { (window as any).posthog?.capture?.('upgrade_clicked', { plan }); } catch {}
+    try { (window as any).phCapture?.('upgrade_clicked', { plan }); } catch {}
 
     try {
       console.log("[3/5] Calling authFetch to create Stripe session...");
@@ -353,7 +356,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         throw new Error("Failed to create checkout session. Server response was invalid.");
       }
 
-      try { (window as any).posthog?.capture?.('checkout_started', { plan, priceId, sessionId: response.sessionId }); } catch {}
+      try { (window as any).phCapture?.('checkout_started', { plan, priceId, sessionId: response.sessionId }); } catch {}
+
+      // give PostHog a brief moment to flush before redirecting to Stripe
+      await new Promise((res) => setTimeout(res, 300));
 
       const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
       const stripe = await stripePromise;
@@ -366,11 +372,12 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
 
         if (result.error) {
           console.error('[FAIL] Stripe redirect error:', result.error);
-          toast({
+          (toast as any) && toast({
             title: "Payment Error",
             description: result.error.message,
             variant: "destructive",
           });
+          try { (window as any).phCapture?.('api_error', { area: 'checkout_redirect', message: result.error.message }); } catch {}
         }
       } else {
         console.error("[FAIL] Stripe.js failed to load.");
@@ -382,7 +389,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         description: (error as Error).message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
-      try { (window as any).posthog?.capture?.('api_error', { area: 'upgrade', message: (error as any)?.message }); } catch {}
+      try { (window as any).phCapture?.('api_error', { area: 'upgrade', message: (error as any)?.message }); } catch {}
     }
   };
 
@@ -405,7 +412,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     onMutate: async (companySymbol: string) => {
       setWatchlistPending(prev => ({ ...prev, [companySymbol]: true }));
       setWatchOverrides(prev => ({ ...prev, [companySymbol]: true }));
-      try { (window as any).posthog?.capture?.('watchlist_add', { symbol: companySymbol, dataset }); } catch {}
+      try { (window as any).phCapture?.('watchlist_add', { symbol: companySymbol, dataset }); } catch {}
       // Snapshot previous values (для возможного отката)
       const prevList = queryClient.getQueryData<Array<{ companySymbol: string }>>(['/api/watchlist']);
       const prevCompanies = queryClient.getQueryData<{ companies: any[], total: number, hasMore: boolean }>([apiEndpoint, page, sortBy, sortOrder, searchQuery]);
@@ -427,7 +434,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       if (ctx?.prevCompanies) queryClient.setQueryData([apiEndpoint, page, sortBy, sortOrder, searchQuery], ctx.prevCompanies);
       setWatchOverrides(prev => ({ ...prev, [companySymbol]: false }));
       toast({ title: "Error", description: `Failed to add ${companySymbol} to watchlist.`, variant: "destructive" });
-      try { (window as any).posthog?.capture?.('api_error', { area: 'watchlist_add', symbol: companySymbol }); } catch {}
+      try { (window as any).phCapture?.('api_error', { area: 'watchlist_add', symbol: companySymbol }); } catch {}
     },
     onSuccess: (_data, companySymbol) => {
       // Keep cache consistent
@@ -445,7 +452,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     onMutate: async (companySymbol: string) => {
       setWatchlistPending(prev => ({ ...prev, [companySymbol]: true }));
       setWatchOverrides(prev => ({ ...prev, [companySymbol]: false }));
-      try { (window as any).posthog?.capture?.('watchlist_remove', { symbol: companySymbol, dataset }); } catch {}
+      try { (window as any).phCapture?.('watchlist_remove', { symbol: companySymbol, dataset }); } catch {}
       const prevList = queryClient.getQueryData<Array<{ companySymbol: string }>>(['/api/watchlist']);
       const prevCompanies = queryClient.getQueryData<{ companies: any[], total: number, hasMore: boolean }>([apiEndpoint, page, sortBy, sortOrder, searchQuery]);
       queryClient.setQueryData<Array<{ companySymbol: string }>>(['/api/watchlist'], (old) => (old || []).filter(i => i.companySymbol !== companySymbol));
@@ -460,7 +467,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       if (ctx?.prevCompanies) queryClient.setQueryData([apiEndpoint, page, sortBy, sortOrder, searchQuery], ctx.prevCompanies);
       setWatchOverrides(prev => ({ ...prev, [companySymbol]: true }));
       toast({ title: "Error", description: `Failed to remove ${companySymbol} from watchlist.`, variant: "destructive" });
-      try { (window as any).posthog?.capture?.('api_error', { area: 'watchlist_remove', symbol: companySymbol }); } catch {}
+      try { (window as any).phCapture?.('api_error', { area: 'watchlist_remove', symbol: companySymbol }); } catch {}
     },
     onSuccess: (_data, companySymbol) => {
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
@@ -670,7 +677,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         return { companies, total, limit: limitNum, offset: offsetNum, hasMore };
       }
       const response = await fetch(`https://findgreatstocks-production.up.railway.app${url}?${qs}`, { cache: 'no-store' });
-      if (!response.ok) { try { (window as any).posthog?.capture?.('api_error', { endpoint: url, status: response.status, dataset }); } catch {}; throw new Error("Failed to fetch companies"); }
+      if (!response.ok) { try { (window as any).phCapture?.('api_error', { endpoint: url, status: response.status, dataset }); } catch {}; throw new Error("Failed to fetch companies"); }
       const json = await response.json();
 
       // Enrich missing Total Assets / Total Equity directly from Supabase index tables (client-side fallback)
@@ -1050,7 +1057,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           setSortBy(nextId);
           setSortOrder(nextDesc ? 'desc' : 'asc');
           setPage(0);
-          try { (window as any).posthog?.capture?.('table_sort_changed', { sortBy: nextId, sortOrder: nextDesc ? 'desc' : 'asc', dataset }); } catch {}
+          try { (window as any).phCapture?.('table_sort_changed', { sortBy: nextId, sortOrder: nextDesc ? 'desc' : 'asc', dataset }); } catch {}
         } else {
           setSortBy('none');
         }
@@ -1062,7 +1069,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           setSortBy(nextId);
           setSortOrder(nextDesc ? 'desc' : 'asc');
           setPage(0);
-          try { (window as any).posthog?.capture?.('table_sort_changed', { sortBy: nextId, sortOrder: nextDesc ? 'desc' : 'asc', dataset }); } catch {}
+          try { (window as any).phCapture?.('table_sort_changed', { sortBy: nextId, sortOrder: nextDesc ? 'desc' : 'asc', dataset }); } catch {}
         } else {
           setSortBy('none');
         }
@@ -1072,7 +1079,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       setColumnVisibility(vis);
       try {
         const selected = Object.keys(vis as any).filter(k => (vis as any)[k]);
-        (window as any).posthog?.capture?.('visible_columns_changed', { dataset, columnsCount: selected.length, selectedColumns: selected });
+        (window as any).phCapture?.('visible_columns_changed', { dataset, columnsCount: selected.length, selectedColumns: selected });
       } catch {}
     },
     getCoreRowModel: getCoreRowModel(),
@@ -1089,7 +1096,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   useEffect(() => {
     if (dataset === 'ftse100' && !isLoading && data?.companies && !ftseBootedRef.current) {
       ftseBootedRef.current = true;
-      try { (window as any).posthog?.capture?.('ftse_loaded', { source: 'supabase_fallback' }); } catch {}
+      try { (window as any).phCapture?.('ftse_loaded', { source: 'supabase_fallback' }); } catch {}
     }
   }, [dataset, isLoading, data]);
 
@@ -1109,7 +1116,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     setSortBy(column);
     setSortOrder(nextOrder);
     setPage(0);
-    try { (window as any).posthog?.capture?.('table_sort_changed', { sortBy: column, sortOrder: nextOrder, dataset }); } catch {}
+    try { (window as any).phCapture?.('table_sort_changed', { sortBy: column, sortOrder: nextOrder, dataset }); } catch {}
   };
 
   const SortIcon = ({ column }: { column: string }) => {
@@ -1348,7 +1355,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                         }, {} as VisibilityState);
                         setColumnVisibility(newVisibility);
                         setSelectedLayout(key);
-                        try { (window as any).posthog?.capture?.('layout_selected', { layout: key, dataset }); } catch {}
+                        try { (window as any).phCapture?.('layout_selected', { layout: key, dataset }); } catch {}
                       }}
                     >
                       <div className="flex items-center justify-between w-full">
@@ -1361,7 +1368,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
               </DropdownMenuContent>
             </DropdownMenu>
             {!authLoading && !isPaidUser && (
-               <Button size="sm" onClick={() => { try { (window as any).posthog?.capture?.('upgrade_clicked', { source: 'table_button' }); } catch {} setIsUpgradeModalOpen(true); }}>
+               <Button size="sm" onClick={() => { try { (window as any).phCapture?.('upgrade_clicked', { source: 'table_button' }); } catch {} setIsUpgradeModalOpen(true); }}>
                 <Unlock className="mr-2 h-4 w-4" />
                 Upgrade
               </Button>
@@ -1474,7 +1481,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                     <TableRow
                       key={row.id}
                       className="hover:bg-muted/50 cursor-pointer group transition-colors"
-                      onClick={() => { try { (window as any).posthog?.capture?.('company_row_opened', { symbol: row.original.symbol, dataset }); } catch {} }}
+                      onClick={() => { try { (window as any).phCapture?.('company_row_opened', { symbol: row.original.symbol, dataset }); } catch {} }}
                     >
                       {row.getVisibleCells().map(cell => {
                         const cid = (cell.column.columnDef.meta as any)?.columnConfig.id as string;

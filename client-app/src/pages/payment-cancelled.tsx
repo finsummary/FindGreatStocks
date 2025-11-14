@@ -6,15 +6,15 @@ import { useEffect } from "react";
 
 export function PaymentCancelledPage() {
   useEffect(() => {
-    try { (window as any).posthog?.capture?.('checkout_cancelled'); } catch {}
-    try { (window as any).posthog?.capture?.('checkout_abandoned'); } catch {}
+    try { (window as any).phCapture?.('checkout_cancelled'); } catch {}
+    try { (window as any).phCapture?.('checkout_abandoned'); } catch {}
   }, []);
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
       <Card className="w-full max-w-md text-center">
         <CardHeader>
           <div className="mx-auto bg-red-100 dark:bg-red-900 rounded-full p-3 w-fit">
-            <XCircle className="h-10 w-10 text-red-600 dark:text-red-400" />
+            <XCircle className="h-10 w-10" />
           </div>
           <CardTitle className="mt-4 text-2xl font-bold">Payment Cancelled</CardTitle>
           <CardDescription className="text-muted-foreground">
