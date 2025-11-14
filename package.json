@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "cd server && npx tsx index.ts",
-    "dev": "cd server && npm run dev"
+    "dev": "cd server && npm run dev",
+    "backfill:rev10y": "tsx server/scripts/backfill-revenue-10y.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.3",
