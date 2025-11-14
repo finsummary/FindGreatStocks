@@ -3,7 +3,12 @@ import { useLocation } from 'react-router-dom';
 import { trackPageView } from '../lib/analytics';
 
 declare global {
-  interface Window { posthog?: any; phCapture?: (name: string, props?: any) => void; phQueue?: any[] }
+  interface Window {
+    posthog?: any;
+    phCapture?: (name: string, props?: any, opts?: { instant?: boolean }) => void;
+    phQueue?: any[];
+    phFlush?: (cb?: () => void) => void;
+  }
 }
 
 function ensurePosthogLoaded(apiHost: string): Promise<any> {
@@ -35,20 +40,33 @@ export const useAnalytics = () => {
   const respectDnt = String(import.meta.env.VITE_ANALYTICS_RESPECT_DNT || '').toLowerCase() === 'true';
   const dnt = typeof navigator !== 'undefined' && (navigator as any).doNotTrack === '1';
 
-  // Lightweight queue for early captures before SDK init
+  // Lightweight queue + helpers before SDK init
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (!window.phCapture) {
-      window.phQueue = [];
-      window.phCapture = (name: string, props?: any) => {
-        const ph = window.posthog as any;
-        if (ph && typeof ph.capture === 'function') {
-          try { ph.capture(name, props || {}); } catch {}
-        } else {
-          window.phQueue!.push([name, props]);
-        }
-      };
-    }
+    if (!window.phQueue) window.phQueue = [];
+    window.phCapture = (name, props, opts) => {
+      const ph = window.posthog as any;
+      const options: any = {};
+      if (opts?.instant) {
+        // prefer sendBeacon / instant delivery if supported
+        // PostHog supports { transport: 'sendBeacon' } or { send_instantly: true } depending on version
+        options.transport = 'sendBeacon';
+        options.send_instantly = true;
+      }
+      if (ph && typeof ph.capture === 'function') {
+        try { ph.capture(name, props || {}, options); } catch {}
+      } else {
+        window.phQueue!.push([name, props || {}, options]);
+      }
+    };
+    window.phFlush = (cb?: () => void) => {
+      const ph = window.posthog as any;
+      if (ph && typeof ph.flush === 'function') {
+        try { ph.flush(cb); return; } catch {}
+      }
+      // Fallback: small timeout
+      setTimeout(() => cb && cb(), 200);
+    };
   }, []);
 
   // Init PostHog once
@@ -75,10 +93,14 @@ export const useAnalytics = () => {
           const q = (window as any).phQueue as any[];
           if (Array.isArray(q) && q.length) {
             q.forEach((it) => {
-              try { phClient.capture(it[0], it[1] || {}); } catch {}
+              try { phClient.capture(it[0], it[1] || {}, it[2] || {}); } catch {}
             });
             (window as any).phQueue = [];
           }
+          // flush on pagehide (mobile safari etc.)
+          window.addEventListener('pagehide', () => {
+            try { phClient.flush?.(); } catch {}
+          });
           console.debug('[analytics] PostHog initialized', { host });
         },
       });
@@ -94,7 +116,7 @@ export const useAnalytics = () => {
     // PostHog (after SDK ready)
     if (!key || (respectDnt && dnt)) return;
     ensurePosthogLoaded(host).then(() => {
-      try { (window as any).phCapture?.('$pageview', { path: location.pathname }); console.debug('[analytics] $pageview (initial)', location.pathname); } catch {}
+      try { window.phCapture?.('$pageview', { path: location.pathname }); console.debug('[analytics] $pageview (initial)', location.pathname); } catch {}
       prevLocationRef.current = location.pathname;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -111,7 +133,7 @@ export const useAnalytics = () => {
       prevLocationRef.current = location.pathname;
       return;
     }
-    (window as any).phCapture?.('$pageview', { path: location.pathname });
+    window.phCapture?.('$pageview', { path: location.pathname });
     console.debug('[analytics] $pageview', location.pathname);
     prevLocationRef.current = location.pathname;
   }, [location.pathname, key, respectDnt, dnt, host]);
