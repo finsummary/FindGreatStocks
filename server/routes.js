@@ -479,6 +479,97 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // --- Admin backfill: revenue_growth_10y recompute from FMP (requires >=11 annual points) ---
+  let backfillRev10YStatus = { startedAt: null, finishedAt: null, updated: 0, nulled: 0, running: false, error: null };
+  async function fetchIncomeStatements(sym, limit = 12) {
+    const apiKey = process.env.FMP_API_KEY;
+    if (!apiKey) return [];
+    try {
+      const url = `https://financialmodelingprep.com/api/v3/income-statement/${encodeURIComponent(sym)}?period=annual&limit=${limit}&apikey=${apiKey}`;
+      const r = await fetch(url);
+      if (!r.ok) return [];
+      const arr = await r.json();
+      return Array.isArray(arr) ? arr : [];
+    } catch { return []; }
+  }
+  function cagr10y(start, end) {
+    if (!start || !end || start <= 0 || end <= 0) return null;
+    const v = (Math.pow(end / start, 1 / 10) - 1) * 100;
+    return Math.round(v * 100) / 100;
+  }
+  async function processTableRev10Y(supabase, tableName) {
+    const { data: rows } = await supabase.from(tableName).select('symbol');
+    const symbols = (rows || []).map(r => r.symbol).filter(Boolean);
+    for (let i = 0; i < symbols.length; i++) {
+      const sym = symbols[i];
+      try {
+        await new Promise(r => setTimeout(r, 150));
+        const stmts = await fetchIncomeStatements(sym, 12);
+        if (!stmts || stmts.length < 11) {
+          await supabase.from(tableName).update({ revenue_growth_10y: null }).eq('symbol', sym);
+          backfillRev10YStatus.nulled++;
+          continue;
+        }
+        const latest = Number(stmts[0]?.revenue || 0);
+        const tenAgo = Number(stmts[10]?.revenue || 0);
+        const g = cagr10y(tenAgo, latest);
+        if (g === null) {
+          await supabase.from(tableName).update({ revenue_growth_10y: null }).eq('symbol', sym);
+          backfillRev10YStatus.nulled++;
+        } else {
+          await supabase.from(tableName).update({ revenue_growth_10y: g }).eq('symbol', sym);
+          backfillRev10YStatus.updated++;
+        }
+      } catch (e) {
+        // continue
+      }
+    }
+  }
+  app.post('/api/admin/backfill/revenue-10y', isAuthenticated, async (req, res) => {
+    try {
+      const email = (req.user && req.user.email) ? String(req.user.email).toLowerCase() : '';
+      if (email !== 'findgreatstocks@gmail.com') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      if (backfillRev10YStatus.running) {
+        return res.status(202).json({ message: 'Already running', status: backfillRev10YStatus });
+      }
+      backfillRev10YStatus = { startedAt: new Date().toISOString(), finishedAt: null, updated: 0, nulled: 0, running: true, error: null };
+      // run async
+      (async () => {
+        try {
+          await processTableRev10Y(supabase, 'sp500_companies');
+          await processTableRev10Y(supabase, 'nasdaq100_companies');
+          await processTableRev10Y(supabase, 'dow_jones_companies');
+          try {
+            const { error } = await supabase.from('ftse100_companies').select('symbol').limit(1);
+            if (!error) await processTableRev10Y(supabase, 'ftse100_companies');
+          } catch {}
+          backfillRev10YStatus.finishedAt = new Date().toISOString();
+          backfillRev10YStatus.running = false;
+        } catch (e) {
+          backfillRev10YStatus.error = e?.message || String(e);
+          backfillRev10YStatus.finishedAt = new Date().toISOString();
+          backfillRev10YStatus.running = false;
+        }
+      })();
+      return res.status(202).json({ message: 'Started', status: backfillRev10YStatus });
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to start backfill' });
+    }
+  });
+  app.get('/api/admin/backfill/revenue-10y/status', isAuthenticated, async (req, res) => {
+    try {
+      const email = (req.user && req.user.email) ? String(req.user.email).toLowerCase() : '';
+      if (email !== 'findgreatstocks@gmail.com') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      return res.json({ status: backfillRev10YStatus });
+    } catch {
+      return res.status(500).json({ message: 'Failed to get status' });
+    }
+  });
+
   // --- FTSE 100: import constituents, update prices, enhance financials ---
   async function fetchFtseConstituents() {
     const apiKey = process.env.FMP_API_KEY;

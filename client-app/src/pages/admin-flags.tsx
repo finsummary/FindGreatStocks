@@ -204,6 +204,39 @@ export default function AdminFlagsPage() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-semibold mb-4">Feature Flags</h1>
 
+      <div className="mb-4 flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={async () => {
+            if (!session?.access_token) return;
+            try {
+              const r = await authFetch('/api/admin/backfill/revenue-10y', { method: 'POST' }, session?.access_token);
+              alert(`Backfill started: updated=${r?.status?.updated ?? 0}, nulled=${r?.status?.nulled ?? 0}`);
+            } catch (e: any) {
+              alert(`Failed to start backfill: ${e?.message || e}`);
+            }
+          }}
+        >
+          Backfill Rev G 10Y
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={async () => {
+            if (!session?.access_token) return;
+            try {
+              const r = await authFetch('/api/admin/backfill/revenue-10y/status', undefined, session?.access_token);
+              alert(`Status: running=${r?.status?.running ? 'yes' : 'no'}; updated=${r?.status?.updated ?? 0}; nulled=${r?.status?.nulled ?? 0}`);
+            } catch (e: any) {
+              alert(`Failed to get status: ${e?.message || e}`);
+            }
+          }}
+        >
+          Check Backfill Status
+        </Button>
+      </div>
+
       <Tabs value={tab} onValueChange={(v) => setTab((v as any) || 'flags')}>
         <TabsList className="mb-4">
           <TabsTrigger value="flags">Flags</TabsTrigger>
