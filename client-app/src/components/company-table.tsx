@@ -353,6 +353,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         throw new Error("Failed to create checkout session. Server response was invalid.");
       }
 
+      try { (window as any).posthog?.capture?.('checkout_started', { plan, priceId, sessionId: response.sessionId }); } catch {}
+
       const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
       const stripe = await stripePromise;
 
@@ -1359,7 +1361,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
               </DropdownMenuContent>
             </DropdownMenu>
             {!authLoading && !isPaidUser && (
-               <Button size="sm" onClick={() => setIsUpgradeModalOpen(true)}>
+               <Button size="sm" onClick={() => { try { (window as any).posthog?.capture?.('upgrade_clicked', { source: 'table_button' }); } catch {} setIsUpgradeModalOpen(true); }}>
                 <Unlock className="mr-2 h-4 w-4" />
                 Upgrade
               </Button>

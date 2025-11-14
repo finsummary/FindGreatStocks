@@ -103,7 +103,7 @@ function App() {
             </DropdownMenu>
           )}
           <Button asChild variant="ghost" size="sm">
-            <a href="https://blog.findgreatstocks.com" target="_blank" rel="noopener noreferrer">Blog</a>
+            <a href="https://blog.findgreatstocks.com" target="_blank" rel="noopener noreferrer" onClick={() => { try { window.posthog?.capture?.('blog_clicked'); } catch {} }}>Blog</a>
           </Button>
           <Button asChild variant="outline" size="sm">
             <Link to="/watchlist">Watchlist</Link>

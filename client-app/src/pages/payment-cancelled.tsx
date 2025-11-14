@@ -7,6 +7,7 @@ import { useEffect } from "react";
 export function PaymentCancelledPage() {
   useEffect(() => {
     try { (window as any).posthog?.capture?.('checkout_cancelled'); } catch {}
+    try { (window as any).posthog?.capture?.('checkout_abandoned'); } catch {}
   }, []);
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">

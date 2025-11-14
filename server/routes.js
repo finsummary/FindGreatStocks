@@ -2227,7 +2227,9 @@ export function setupRoutes(app, supabase) {
         .eq('id', userId);
       if (error) return res.status(500).json({ message: 'Failed to update user', error });
 
-      return res.json({ success: true, tier });
+      const amount_total = session.amount_total || null;
+      const currency = session.currency || null;
+      return res.json({ success: true, tier, amount_total, currency });
     } catch (e) {
       console.error('Error in /api/stripe/confirm:', e);
       return res.status(500).json({ message: 'Failed to confirm session' });

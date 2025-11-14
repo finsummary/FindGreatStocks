@@ -17,15 +17,22 @@ export function PaymentSuccessPage() {
     const confirm = async () => {
       try {
         const sessionId = searchParams.get('session_id');
+        let amount: number | null = null;
+        let currency: string | null = null;
         if (sessionId) {
-          await authFetch('/api/stripe/confirm', {
+          const res = await authFetch('/api/stripe/confirm', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sessionId })
           });
+          amount = res?.amount_total ?? null;
+          currency = res?.currency ?? null;
         }
         await refreshUser();
-        try { (window as any).posthog?.capture?.('checkout_success', { sessionId }); } catch {}
+        try {
+          (window as any).posthog?.capture?.('checkout_success', { sessionId, amount, currency });
+          if (amount && currency) (window as any).posthog?.capture?.('revenue', { amount, currency, sessionId });
+        } catch {}
         setConfirming(false);
       } catch (e: any) {
         console.error('Payment confirm error:', e);

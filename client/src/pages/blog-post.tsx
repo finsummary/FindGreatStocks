@@ -1,8 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import SEOHead from '../components/SEOHead';
-import { allPosts } from 'contentlayer/generated';
-import { useMDXComponent } from 'contentlayer/react';
 
 interface BlogPost {
   id: string;
@@ -20,7 +18,7 @@ const blogPosts: { [key: string]: BlogPost } = {
     id: '1',
     title: 'AR/MDD Ratio: The Ultimate Risk-Adjusted Performance Metric',
     content: `
-      <h2>What is the AR/MDD Ratio?</h2>
+      <h1>What is the AR/MDD Ratio?</h1>
       <p>The Annual Return to Maximum Drawdown (AR/MDD) ratio is one of the most powerful metrics for evaluating investment performance. It measures how much return you get for each unit of risk taken, making it an essential tool for comparing different investments.</p>
       
       <h2>Understanding Maximum Drawdown</h2>
@@ -46,7 +44,7 @@ const blogPosts: { [key: string]: BlogPost } = {
         <li><strong>Portfolio Optimization:</strong> Helps identify the best risk-reward combinations</li>
       </ul>
       
-      <h3>Interpreting AR/MDD Values</h3>
+      <h2>Interpreting AR/MDD Values</h2>
       <ul>
         <li><strong>Above 2.0:</strong> Excellent risk-adjusted performance</li>
         <li><strong>1.0 - 2.0:</strong> Good risk-adjusted performance</li>
@@ -157,7 +155,7 @@ const blogPosts: { [key: string]: BlogPost } = {
     id: '3',
     title: 'Discounted Cash Flow (DCF): Valuing Stocks Like a Pro',
     content: `
-      <h2>What is Discounted Cash Flow (DCF) Analysis?</h2>
+      <h1>What is Discounted Cash Flow (DCF) Analysis?</h1>
       <p>Discounted Cash Flow (DCF) analysis is the gold standard for valuing stocks. It estimates the intrinsic value of a company by projecting its future cash flows and discounting them back to present value. This method helps determine whether a stock is undervalued or overvalued based on its fundamental earning potential.</p>
       
       <h2>The Core Concept</h2>
@@ -288,7 +286,7 @@ const blogPosts: { [key: string]: BlogPost } = {
     id: '4',
     title: 'Reverse DCF: What Growth Rate Does the Market Expect?',
     content: `
-      <h2>What is Reverse DCF Analysis?</h2>
+      <h1>What is Reverse DCF Analysis?</h1>
       <p>While traditional DCF analysis calculates intrinsic value based on projected cash flows, reverse DCF works backwards from the current stock price to determine what growth rate the market is expecting. This powerful technique helps you understand market sentiment and identify potential mispricings.</p>
       
       <h2>The Reverse DCF Process</h2>
@@ -441,7 +439,7 @@ const BlogPostPage: React.FC = () => {
     });
   }, [slug]);
   
-  const post = slug ? allPosts.find(p => p.slug === slug) : null;
+  const post = slug ? blogPosts[slug] : null;
   
   if (!post) {
     return (
@@ -461,7 +459,7 @@ const BlogPostPage: React.FC = () => {
     <>
       <SEOHead
         title={post.title}
-        description={post.excerpt || post.title}
+        description={post.metaDescription || post.title}
         keywords={(post.tags || []).join(', ')}
         canonicalUrl={`/blog/${post.slug}`}
         article={{
@@ -513,12 +511,7 @@ const BlogPostPage: React.FC = () => {
             .blog-article ul, .blog-article ol { margin: 1rem 0; padding-left: 1.5rem; }
             .blog-article li { margin: 0.25rem 0; }
           `}</style>
-          <div ref={contentRef} className="blog-article">
-            {(() => {
-              const Component = useMDXComponent(post.body.code);
-              return <Component />
-            })()}
-          </div>
+          <div ref={contentRef} className="blog-article" dangerouslySetInnerHTML={{ __html: post.content }} />
         </article>
       </div>
 

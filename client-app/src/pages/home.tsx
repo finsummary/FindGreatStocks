@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuItem
 } from "@/components/ui/dropdown-menu";
+import React from "react";
 
 // Simple YouTube-like play icon (red rounded rectangle with white triangle)
 const YouTubeIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
@@ -41,6 +42,19 @@ export function HomePage() {
       return true;
     }
   });
+
+  // Capture video_opened when modal opens (extra safety)
+  React.useEffect(() => {
+    if (!videoId) return;
+    const map: Record<string, string> = {
+      'T5SW1BHqZr0': 'return_on_risk',
+      '0S_SZV_Qzq4': 'dcf',
+      'WLb_h--jKVw': 'reverse_dcf',
+      'hjpXE6ZYzLo': 'dupont_roe',
+    };
+    const topic = map[videoId] || 'unknown';
+    try { (window as any).posthog?.capture?.('video_opened', { topic, source: 'home' }); } catch {}
+  }, [videoId]);
 
   // Feature flags for global markets
   const spmid400On = useFlag('market:spmid400');
