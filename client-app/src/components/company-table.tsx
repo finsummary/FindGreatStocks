@@ -324,9 +324,6 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   const handleUpgradeClick = async ({ priceId, plan }: { priceId?: string; plan: 'annual' | 'quarterly' | 'lifetime' }) => {
     console.log(`[1/5] handleUpgradeClick triggered with priceId: ${priceId}`);
 
-    // fire intent as soon as user clicks CTA
-    try { (window as any).phCapture?.('checkout_initiated', { plan }); } catch {}
-
     if (!session) {
       // redirect unauthenticated users to login/signup flow
       window.location.href = '/login';

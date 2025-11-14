@@ -97,8 +97,8 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
           <div className="w-full">
             <Button
               size="lg"
-              className="w-full bg-green-500 hover:bg-green-600 text-white border border-green-600 font-weight: 600; text-base sm:text-lg"
-              onClick={() => { try { (window as any).phCapture?.('checkout_initiated', { plan: 'lifetime' }); } catch {}; onUpgrade({ priceId: lifetimePriceId, plan: 'lifetime' }); }}
+              className="w-full bg-green-500 hover:bg-green-600 text-white border border-zinc-700 font-weight: 600; text-base sm:text-lg"
+              onClick={() => { onUpgrade({ priceId: lifetimePriceId, plan: 'lifetime' }); }}
             >
               Get Lifetime Access
             </Button>
