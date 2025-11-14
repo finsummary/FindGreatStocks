@@ -24,6 +24,8 @@ import { useEffect, useRef } from 'react';
 
 declare global { interface Window { posthog?: any } }
 
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'https://findgreatstocks-production.up.railway.app';
+
 function App() {
   useAnalytics();
   const { user } = useAuth();
@@ -36,7 +38,7 @@ function App() {
     let alive = true;
     const ping = async () => {
       try {
-        const r = await fetch(`/api/health?_=${Date.now()}`, { cache: 'no-store' });
+        const r = await fetch(`${API_BASE}/api/health?_=${Date.now()}`, { cache: 'no-store' });
         if (!r.ok) return;
         const j = await r.json();
         const commit = String(j?.commit || '');
