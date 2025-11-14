@@ -29,7 +29,7 @@ async function populateFinancialsForTable(table: PgTable, name: string) {
       // @ts-ignore
       const cashFlowData = await financialDataService.fetchCashFlowStatement(company.symbol, 1);
       // @ts-ignore
-      const incomeStatementData = await financialDataService.fetchIncomeStatement(company.symbol, 10);
+      const incomeStatementData = await financialDataService.fetchIncomeStatement(company.symbol, 12);
 
       if (!cashFlowData || cashFlowData.length === 0 || !incomeStatementData || incomeStatementData.length === 0) {
         console.log(`- No financial statements found for ${company.symbol}. Skipping.`);
@@ -41,14 +41,14 @@ async function populateFinancialsForTable(table: PgTable, name: string) {
       const revenue = incomeStatementData[0].revenue;
       const netIncome = incomeStatementData[0].netIncome;
 
-      // Simplified CAGR calculation
-      const firstYearRevenue = incomeStatementData[incomeStatementData.length - 1]?.revenue;
-      const lastYearRevenue = incomeStatementData[0]?.revenue;
-      const years = incomeStatementData.length;
-
+      // Robust 10Y CAGR calculation: require at least 11 annual points (current + 10 years ago)
       let revenueGrowth10Y: number | null = null;
-      if (firstYearRevenue && lastYearRevenue && years > 1) {
-        revenueGrowth10Y = (Math.pow(lastYearRevenue / firstYearRevenue, 1 / (years - 1)) - 1) * 100;
+      if (incomeStatementData.length >= 11) {
+        const latest = incomeStatementData[0]?.revenue;
+        const tenYearsAgo = incomeStatementData[10]?.revenue;
+        if (latest && tenYearsAgo && latest > 0 && tenYearsAgo > 0) {
+          revenueGrowth10Y = (Math.pow(latest / tenYearsAgo, 1 / 10) - 1) * 100;
+        }
       }
 
       await db

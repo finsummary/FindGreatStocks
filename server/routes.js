@@ -62,6 +62,7 @@ function applyAgeBasedWindowNulls(rows, ipoMap) {
         if ('return_10_year' in r) r.return_10_year = null;
         if ('ar_mdd_ratio_10_year' in r) r.ar_mdd_ratio_10_year = null;
         if ('max_drawdown_10_year' in r) r.max_drawdown_10_year = null;
+        if ('revenue_growth_10y' in r) r.revenue_growth_10y = null;
       }
       if (years < 5) {
         if ('return_5_year' in r) r.return_5_year = null;
