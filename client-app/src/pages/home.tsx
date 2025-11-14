@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input"
 import { CompanyTable } from "@/components/company-table";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ChevronDown } from "lucide-react";
@@ -14,7 +14,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuItem
 } from "@/components/ui/dropdown-menu";
-import React from "react";
 
 // Simple YouTube-like play icon (red rounded rectangle with white triangle)
 const YouTubeIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
@@ -44,7 +43,7 @@ export function HomePage() {
   });
 
   // Capture video_opened when modal opens (extra safety)
-  React.useEffect(() => {
+  useEffect(() => {
     if (!videoId) return;
     const map: Record<string, string> = {
       'T5SW1BHqZr0': 'return_on_risk',
