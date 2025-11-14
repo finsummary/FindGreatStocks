@@ -334,6 +334,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
 
     console.log("[2/5] Closing the upgrade modal.");
     setIsUpgradeModalOpen(false);
+    try { (window as any).posthog?.capture?.('upgrade_clicked', { plan }); } catch {}
 
     try {
       console.log("[3/5] Calling authFetch to create Stripe session...");
@@ -379,6 +380,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         description: (error as Error).message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
+      try { (window as any).posthog?.capture?.('api_error', { area: 'upgrade', message: (error as any)?.message }); } catch {}
     }
   };
 
@@ -401,6 +403,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     onMutate: async (companySymbol: string) => {
       setWatchlistPending(prev => ({ ...prev, [companySymbol]: true }));
       setWatchOverrides(prev => ({ ...prev, [companySymbol]: true }));
+      try { (window as any).posthog?.capture?.('watchlist_add', { symbol: companySymbol, dataset }); } catch {}
       // Snapshot previous values (для возможного отката)
       const prevList = queryClient.getQueryData<Array<{ companySymbol: string }>>(['/api/watchlist']);
       const prevCompanies = queryClient.getQueryData<{ companies: any[], total: number, hasMore: boolean }>([apiEndpoint, page, sortBy, sortOrder, searchQuery]);
@@ -422,6 +425,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       if (ctx?.prevCompanies) queryClient.setQueryData([apiEndpoint, page, sortBy, sortOrder, searchQuery], ctx.prevCompanies);
       setWatchOverrides(prev => ({ ...prev, [companySymbol]: false }));
       toast({ title: "Error", description: `Failed to add ${companySymbol} to watchlist.`, variant: "destructive" });
+      try { (window as any).posthog?.capture?.('api_error', { area: 'watchlist_add', symbol: companySymbol }); } catch {}
     },
     onSuccess: (_data, companySymbol) => {
       // Keep cache consistent
@@ -439,6 +443,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     onMutate: async (companySymbol: string) => {
       setWatchlistPending(prev => ({ ...prev, [companySymbol]: true }));
       setWatchOverrides(prev => ({ ...prev, [companySymbol]: false }));
+      try { (window as any).posthog?.capture?.('watchlist_remove', { symbol: companySymbol, dataset }); } catch {}
       const prevList = queryClient.getQueryData<Array<{ companySymbol: string }>>(['/api/watchlist']);
       const prevCompanies = queryClient.getQueryData<{ companies: any[], total: number, hasMore: boolean }>([apiEndpoint, page, sortBy, sortOrder, searchQuery]);
       queryClient.setQueryData<Array<{ companySymbol: string }>>(['/api/watchlist'], (old) => (old || []).filter(i => i.companySymbol !== companySymbol));
@@ -453,6 +458,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       if (ctx?.prevCompanies) queryClient.setQueryData([apiEndpoint, page, sortBy, sortOrder, searchQuery], ctx.prevCompanies);
       setWatchOverrides(prev => ({ ...prev, [companySymbol]: true }));
       toast({ title: "Error", description: `Failed to remove ${companySymbol} from watchlist.`, variant: "destructive" });
+      try { (window as any).posthog?.capture?.('api_error', { area: 'watchlist_remove', symbol: companySymbol }); } catch {}
     },
     onSuccess: (_data, companySymbol) => {
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
@@ -662,7 +668,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         return { companies, total, limit: limitNum, offset: offsetNum, hasMore };
       }
       const response = await fetch(`https://findgreatstocks-production.up.railway.app${url}?${qs}`, { cache: 'no-store' });
-      if (!response.ok) throw new Error("Failed to fetch companies");
+      if (!response.ok) { try { (window as any).posthog?.capture?.('api_error', { endpoint: url, status: response.status, dataset }); } catch {}; throw new Error("Failed to fetch companies"); }
       const json = await response.json();
 
       // Enrich missing Total Assets / Total Equity directly from Supabase index tables (client-side fallback)
@@ -1037,24 +1043,36 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       if (typeof updater === 'function') {
         const newSorting = updater(table.getState().sorting);
         if (newSorting.length > 0) {
-          setSortBy(newSorting[0].id);
-          setSortOrder(newSorting[0].desc ? 'desc' : 'asc');
+          const nextId = newSorting[0].id;
+          const nextDesc = newSorting[0].desc;
+          setSortBy(nextId);
+          setSortOrder(nextDesc ? 'desc' : 'asc');
           setPage(0);
+          try { (window as any).posthog?.capture?.('table_sort_changed', { sortBy: nextId, sortOrder: nextDesc ? 'desc' : 'asc', dataset }); } catch {}
         } else {
           setSortBy('none');
         }
       } else {
         const newSorting = updater;
         if (newSorting.length > 0) {
-          setSortBy(newSorting[0].id);
-          setSortOrder(newSorting[0].desc ? 'desc' : 'asc');
+          const nextId = newSorting[0].id;
+          const nextDesc = newSorting[0].desc;
+          setSortBy(nextId);
+          setSortOrder(nextDesc ? 'desc' : 'asc');
           setPage(0);
+          try { (window as any).posthog?.capture?.('table_sort_changed', { sortBy: nextId, sortOrder: nextDesc ? 'desc' : 'asc', dataset }); } catch {}
         } else {
           setSortBy('none');
         }
       }
     },
-    onColumnVisibilityChange: setColumnVisibility,
+    onColumnVisibilityChange: (vis) => {
+      setColumnVisibility(vis);
+      try {
+        const selected = Object.keys(vis as any).filter(k => (vis as any)[k]);
+        (window as any).posthog?.capture?.('visible_columns_changed', { dataset, columnsCount: selected.length, selectedColumns: selected });
+      } catch {}
+    },
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getRowId: (row) => row.symbol, // стабильный идентификатор строки для предотвращения мигания при пересортировке
@@ -1063,6 +1081,43 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     onRowSelectionChange: setRowSelection,
     manualSorting: true,
   });
+
+  // Fire once when FTSE 100 data successfully loaded
+  const ftseBootedRef = React.useRef(false);
+  useEffect(() => {
+    if (dataset === 'ftse100' && !isLoading && data?.companies && !ftseBootedRef.current) {
+      ftseBootedRef.current = true;
+      try { (window as any).posthog?.capture?.('ftse_loaded', { source: 'supabase_fallback' }); } catch {}
+    }
+  }, [dataset, isLoading, data]);
+
+  const handleSort = (column: string) => {
+    const numericColumns = new Set([
+      'arMddRatio3Year','arMddRatio5Year','arMddRatio10Year',
+      'return3Year','return5Year','return10Year',
+      'maxDrawdown3Year','maxDrawdown5Year','maxDrawdown10Year',
+      'price','marketCap','peRatio','priceToSalesRatio','dividendYield'
+    ]);
+    let nextOrder: 'asc' | 'desc' = 'asc';
+    if (sortBy === column) {
+      nextOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      nextOrder = numericColumns.has(column) ? 'desc' : 'asc';
+    }
+    setSortBy(column);
+    setSortOrder(nextOrder);
+    setPage(0);
+    try { (window as any).posthog?.capture?.('table_sort_changed', { sortBy: column, sortOrder: nextOrder, dataset }); } catch {}
+  };
+
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortBy !== column) return <ChevronUp className="h-4 w-4 opacity-30" />;
+    return sortOrder === 'asc' ? (
+      <ChevronUp className="h-4 w-4" />
+    ) : (
+      <ChevronDown className="h-4 w-4" />
+    );
+  };
 
   const isReverseDcfMobile = selectedLayout === 'reverseDcf' && isMobile;
 
@@ -1161,31 +1216,6 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   // useEffect(() => {
   //   ...
   // }, [columnVisibility]);
-
-  const handleSort = (column: string) => {
-    const numericColumns = new Set([
-      'arMddRatio3Year','arMddRatio5Year','arMddRatio10Year',
-      'return3Year','return5Year','return10Year',
-      'maxDrawdown3Year','maxDrawdown5Year','maxDrawdown10Year',
-      'price','marketCap','peRatio','priceToSalesRatio','dividendYield'
-    ]);
-    let nextOrder: 'asc' | 'desc' = 'asc';
-    if (sortBy === column) {
-      nextOrder = sortOrder === 'asc' ? 'desc' : 'asc';
-    } else {
-      nextOrder = numericColumns.has(column) ? 'desc' : 'asc';
-    }
-    setSortBy(column);
-    setSortOrder(nextOrder);
-    setPage(0);
-  };
-
-  const SortIcon = ({ column }: { column: string }) => {
-    if (sortBy !== column) return <ChevronUp className="h-4 w-4 opacity-30" />;
-    return sortOrder === 'asc' ?
-      <ChevronUp className="h-4 w-4" /> :
-      <ChevronDown className="h-4 w-4" />;
-  };
 
   if (error) {
     return (
@@ -1316,6 +1346,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                         }, {} as VisibilityState);
                         setColumnVisibility(newVisibility);
                         setSelectedLayout(key);
+                        try { (window as any).posthog?.capture?.('layout_selected', { layout: key, dataset }); } catch {}
                       }}
                     >
                       <div className="flex items-center justify-between w-full">
@@ -1441,6 +1472,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                     <TableRow
                       key={row.id}
                       className="hover:bg-muted/50 cursor-pointer group transition-colors"
+                      onClick={() => { try { (window as any).posthog?.capture?.('company_row_opened', { symbol: row.original.symbol, dataset }); } catch {} }}
                     >
                       {row.getVisibleCells().map(cell => {
                         const cid = (cell.column.columnDef.meta as any)?.columnConfig.id as string;

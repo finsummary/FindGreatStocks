@@ -25,10 +25,12 @@ export function PaymentSuccessPage() {
           });
         }
         await refreshUser();
+        try { (window as any).posthog?.capture?.('checkout_success', { sessionId }); } catch {}
         setConfirming(false);
       } catch (e: any) {
         console.error('Payment confirm error:', e);
         setError(e?.message || 'Failed to confirm payment');
+        try { (window as any).posthog?.capture?.('api_error', { area: 'checkout_confirm', message: e?.message }); } catch {}
         setConfirming(false);
       }
     };

@@ -2,8 +2,12 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { XCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useEffect } from "react";
 
 export function PaymentCancelledPage() {
+  useEffect(() => {
+    try { (window as any).posthog?.capture?.('checkout_cancelled'); } catch {}
+  }, []);
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
       <Card className="w-full max-w-md text-center">

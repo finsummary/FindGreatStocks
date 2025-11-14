@@ -54,6 +54,7 @@ export const useAnalytics = () => {
         capture_pageleave: true,
         session_recording: { record_cross_origin_iframe_messages: true },
         person_profiles: 'identified_only',
+        autocapture: true,
       });
       console.debug('[analytics] PostHog initialized', { host });
       try { ph.capture('fgs_boot', { t: Date.now() }); } catch {}
