@@ -78,7 +78,7 @@ export function HomePage() {
       
       <main className="container mx-auto px-4 py-8">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant={activeTab === 'dowjones' ? 'secondary' : 'outline'}
               onClick={() => { setActiveTab('dowjones'); try { (window as any).phCapture?.('dataset_selected', { dataset: 'dowjones' }); } catch {} }}

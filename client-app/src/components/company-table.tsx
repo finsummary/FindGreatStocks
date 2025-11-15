@@ -1139,12 +1139,12 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   const getStickyHeaderClass = (id: string): string => {
     switch (id) {
       case 'watchlist':
-        return 'sticky left-0 z-50 bg-white dark:bg-zinc-900';
+        return 'sm:sticky sm:left-0 sm:z-50 bg-white dark:bg-zinc-900';
       case 'rank':
-        return 'sticky left-[40px] sm:left-[50px] z-50 bg-white dark:bg-zinc-900';
+        return 'sm:sticky sm:left-[50px] sm:z-50 bg-white dark:bg-zinc-900';
       case 'name':
         // leave a subtle grey divider to the right of the Company Name column
-        return 'sticky left-[64px] sm:left-[80px] z-40 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700';
+        return 'sm:sticky sm:left-[80px] sm:z-40 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700';
       default:
         return '';
     }
@@ -1152,12 +1152,12 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   const getStickyCellClass = (id: string): string => {
     switch (id) {
       case 'watchlist':
-        return 'sticky left-0 z-40 bg-white dark:bg-zinc-900';
+        return 'sm:sticky sm:left-0 sm:z-40 bg-white dark:bg-zinc-900';
       case 'rank':
-        return 'sticky left-[40px] sm:left-[50px] z-40 bg-white dark:bg-zinc-900';
+        return 'sm:sticky sm:left-[50px] sm:z-40 bg-white dark:bg-zinc-900';
       case 'name':
         // match the header: subtle grey divider on the right
-        return 'sticky left-[64px] sm:left-[80px] z-30 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700';
+        return 'sm:sticky sm:left-[80px] sm:z-30 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700';
       default:
         return '';
     }
