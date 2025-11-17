@@ -1362,6 +1362,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                     </DropdownMenuItem>
                   );
                 })}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem disabled className="text-muted-foreground">
+                  Compounders (Coming Soon)
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             {!authLoading && !isPaidUser && (
