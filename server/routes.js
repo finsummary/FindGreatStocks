@@ -571,13 +571,22 @@ export function setupRoutes(app, supabase) {
       const symbols = symbolsParam.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
       if (!symbols.length) return res.status(400).json({ message: 'Provide symbols as comma-separated list in ?symbols=' });
       const fetchJson = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); };
-      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies'];
+      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies', 'ftse100_companies'];
       const results = [];
       for (const sym of symbols) {
         try {
-          const data = await fetchJson(`https://financialmodelingprep.com/api/v3/key-metrics/${sym}?period=annual&limit=1&apikey=${apiKey}`);
-          const km = Array.isArray(data) && data[0] ? data[0] : null;
+          // Try annual first
+          const kmData = await fetchJson(`https://financialmodelingprep.com/api/v3/key-metrics/${sym}?period=annual&limit=1&apikey=${apiKey}`);
+          const km = Array.isArray(kmData) && kmData[0] ? kmData[0] : null;
+          // Fallback to TTM endpoint if needed
           let roic = km && (km.roic !== undefined && km.roic !== null) ? Number(km.roic) : null;
+          if (!(isFinite(roic))) {
+            try {
+              const ttm = await fetchJson(`https://financialmodelingprep.com/api/v3/key-metrics-ttm/${sym}?apikey=${apiKey}`);
+              const t = Array.isArray(ttm) && ttm[0] ? ttm[0] : null;
+              if (t && (t.roicTTM !== undefined && t.roicTTM !== null)) roic = Number(t.roicTTM);
+            } catch {}
+          }
           // Some projects expose ROIC as percentage; normalize to decimal if > 1.5 (likely 15% → 15)
           if (isFinite(roic) && roic > 1.5) roic = roic / 100;
           const upd = { roic: (isFinite(roic) ? Number(roic.toFixed(4)) : null) };
@@ -597,13 +606,13 @@ export function setupRoutes(app, supabase) {
     }
   });
 
-  // Recompute ROIC for all known symbols (companies + index tables)
+  // Recompute ROIC for all known symbols (companies + index tables + FTSE100)
   app.post('/api/metrics/recompute-roic-all', requireAdmin, async (_req, res) => {
     try {
       const apiKey = process.env.FMP_API_KEY;
       if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
       const fetchJson = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); };
-      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies'];
+      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies', 'ftse100_companies'];
       // collect unique symbols from all tables
       const symSet = new Set();
       for (const t of tables) {
@@ -616,9 +625,16 @@ export function setupRoutes(app, supabase) {
       const results = [];
       for (const sym of symbols) {
         try {
-          const data = await fetchJson(`https://financialmodelingprep.com/api/v3/key-metrics/${sym}?period=annual&limit=1&apikey=${apiKey}`);
-          const km = Array.isArray(data) && data[0] ? data[0] : null;
+          const kmData = await fetchJson(`https://financialmodelingprep.com/api/v3/key-metrics/${sym}?period=annual&limit=1&apikey=${apiKey}`);
+          const km = Array.isArray(kmData) && kmData[0] ? kmData[0] : null;
           let roic = km && (km.roic !== undefined && km.roic !== null) ? Number(km.roic) : null;
+          if (!(isFinite(roic))) {
+            try {
+              const ttm = await fetchJson(`https://financialmodelingprep.com/api/v3/key-metrics-ttm/${sym}?apikey=${apiKey}`);
+              const t = Array.isArray(ttm) && ttm[0] ? ttm[0] : null;
+              if (t && (t.roicTTM !== undefined && t.roicTTM !== null)) roic = Number(t.roicTTM);
+            } catch {}
+          }
           if (isFinite(roic) && roic > 1.5) roic = roic / 100;
           const upd = { roic: (isFinite(roic) ? Number(roic.toFixed(4)) : null) };
           for (const t of tables) {
