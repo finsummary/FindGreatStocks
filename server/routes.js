@@ -533,6 +533,38 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Recompute Margin of Safety for all rows based on current DCF EV and Market Cap
+  app.post('/api/dcf/recompute-mos-all', async (_req, res) => {
+    try {
+      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies'];
+      const results = [];
+      for (const t of tables) {
+        try {
+          const { data, error } = await supabase.from(t).select('symbol, dcf_enterprise_value, market_cap');
+          if (error) { results.push({ table: t, updated: 0, error: error.message }); continue; }
+          let updated = 0;
+          for (const row of (data || [])) {
+            const dcf = Number(row?.dcf_enterprise_value);
+            const mcap = Number(row?.market_cap);
+            let mos = null;
+            if (isFinite(dcf) && dcf > 0 && isFinite(mcap) && mcap > 0) {
+              mos = 1 - (mcap / dcf);
+            }
+            await supabase.from(t).update({ margin_of_safety: mos }).eq('symbol', row.symbol);
+            updated++;
+          }
+          results.push({ table: t, updated });
+        } catch (e) {
+          results.push({ table: t, updated: 0, error: e?.message || 'unknown' });
+        }
+      }
+      return res.json({ status: 'ok', results });
+    } catch (e) {
+      console.error('dcf/recompute-mos-all error:', e);
+      return res.status(500).json({ message: 'Failed to recompute MoS for all tables' });
+    }
+  });
+
   // Admin-only: feature flags management
   app.get('/api/feature-flags', isAuthenticated, async (req, res) => {
     try {
@@ -1979,7 +2011,8 @@ export function setupRoutes(app, supabase) {
           // Recompute margin of safety in USD, if возможна
           let mos = null;
           if (isFinite(mcap) && mcap > 0 && isFinite(dcf) && dcf > 0) {
-            mos = (dcf - mcap) / mcap;
+            // New definition: 1 - (Market Cap / DCF Enterprise Value) = (DCF - MC) / DCF
+            mos = 1 - (mcap / dcf);
           }
 
           // write back to all tables where symbol exists
@@ -2052,7 +2085,10 @@ export function setupRoutes(app, supabase) {
 
           // Margin of safety
           let mos = null;
-          if (isFinite(marketCap) && marketCap > 0 && isFinite(dcfEv) && dcfEv > 0) mos = (dcfEv - marketCap) / marketCap;
+          if (isFinite(marketCap) && marketCap > 0 && isFinite(dcfEv) && dcfEv > 0) {
+            // New definition: 1 - (Market Cap / DCF Enterprise Value)
+            mos = 1 - (marketCap / dcfEv);
+          }
 
           // Guard: hide insane values
           const tooHigh = (isFinite(marketCap) && marketCap > 0 && isFinite(dcfEv) && dcfEv / marketCap > 20);

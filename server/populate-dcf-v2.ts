@@ -162,10 +162,11 @@ function calculateDcfEnterpriseValue(
 }
 
 function calculateMarginOfSafety(enterpriseValue: number | null, marketCap: number): number | null {
-    if (enterpriseValue === null || marketCap <= 0) {
+    if (enterpriseValue === null || enterpriseValue <= 0 || marketCap <= 0) {
         return null;
     }
-    return (enterpriseValue / marketCap) - 1;
+    // New definition: 1 - (Market Cap / Enterprise Value)
+    return 1 - (marketCap / enterpriseValue);
 }
 
 function calculateReverseDcfGrowth(

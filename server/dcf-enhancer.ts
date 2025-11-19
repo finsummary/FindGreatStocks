@@ -176,10 +176,11 @@ function calculateDcfFairValue(
 }
 
 function calculateMarginOfSafety(fairValue: number | null, price: number): number | null {
-    if (fairValue === null || price <= 0) {
+    if (fairValue === null || fairValue <= 0 || price <= 0) {
         return null;
     }
-    return (fairValue / price) - 1;
+    // Align definition: 1 - (Price / Fair Value)
+    return 1 - (price / fairValue);
 }
 
 function calculateReverseDcfGrowth(
