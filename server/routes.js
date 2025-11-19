@@ -597,6 +597,46 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Recompute ROIC for all known symbols (companies + index tables)
+  app.post('/api/metrics/recompute-roic-all', requireAdmin, async (_req, res) => {
+    try {
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      const fetchJson = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); };
+      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies'];
+      // collect unique symbols from all tables
+      const symSet = new Set();
+      for (const t of tables) {
+        try {
+          const { data } = await supabase.from(t).select('symbol');
+          for (const r of (data || [])) if (r?.symbol) symSet.add(String(r.symbol).toUpperCase());
+        } catch {}
+      }
+      const symbols = Array.from(symSet);
+      const results = [];
+      for (const sym of symbols) {
+        try {
+          const data = await fetchJson(`https://financialmodelingprep.com/api/v3/key-metrics/${sym}?period=annual&limit=1&apikey=${apiKey}`);
+          const km = Array.isArray(data) && data[0] ? data[0] : null;
+          let roic = km && (km.roic !== undefined && km.roic !== null) ? Number(km.roic) : null;
+          if (isFinite(roic) && roic > 1.5) roic = roic / 100;
+          const upd = { roic: (isFinite(roic) ? Number(roic.toFixed(4)) : null) };
+          for (const t of tables) {
+            await supabase.from(t).update(upd).eq('symbol', sym);
+          }
+          results.push({ symbol: sym, updated: true });
+        } catch (e) {
+          results.push({ symbol: sym, updated: false, error: e?.message || 'unknown' });
+        }
+        await new Promise(r => setTimeout(r, 120));
+      }
+      return res.json({ status: 'ok', count: results.length, results });
+    } catch (e) {
+      console.error('metrics/recompute-roic-all error:', e);
+      return res.status(500).json({ message: 'Failed to recompute ROIC for all' });
+    }
+  });
+
   // Recompute Margin of Safety for all rows based on current DCF EV and Market Cap
   app.post('/api/dcf/recompute-mos-all', requireAdmin, async (_req, res) => {
     try {
