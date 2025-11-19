@@ -68,6 +68,7 @@ export const dowJonesCompanies = pgTable("dow_jones_companies", {
 	financialLeverage: numeric("financial_leverage", { precision: 10, scale:  4 }),
 	dupontRoe: numeric("dupont_roe", { precision: 10, scale:  4 }),
 	roe: numeric({ precision: 10, scale:  4 }),
+	roic: numeric("roic", { precision: 10, scale:  4 }),
 	returnDrawdownRatio10Year: doublePrecision("return_drawdown_ratio_10_year"),
 	latestFcf: numeric("latest_fcf", { precision: 20, scale:  0 }),
 }, (table) => {
@@ -138,6 +139,7 @@ export const companies = pgTable("companies", {
 	financialLeverage: numeric("financial_leverage", { precision: 10, scale:  4 }),
 	dupontRoe: numeric("dupont_roe", { precision: 10, scale:  4 }),
 	roe: numeric({ precision: 10, scale:  4 }),
+	roic: numeric("roic", { precision: 10, scale:  4 }),
 }, (table) => {
 	return {
 		companiesSymbolUnique: unique("companies_symbol_unique").on(table.symbol),
@@ -245,6 +247,7 @@ export const nasdaq100Companies = pgTable("nasdaq100_companies", {
 	financialLeverage: numeric("financial_leverage", { precision: 10, scale:  4 }),
 	dupontRoe: numeric("dupont_roe", { precision: 10, scale:  4 }),
 	roe: numeric({ precision: 10, scale:  4 }),
+	roic: numeric("roic", { precision: 10, scale:  4 }),
 	latestFcf: numeric("latest_fcf", { precision: 20, scale:  0 }),
 }, (table) => {
 	return {
@@ -314,6 +317,7 @@ export const sp500Companies = pgTable("sp500_companies", {
 	financialLeverage: numeric("financial_leverage", { precision: 10, scale:  4 }),
 	dupontRoe: numeric("dupont_roe", { precision: 10, scale:  4 }),
 	roe: numeric({ precision: 10, scale:  4 }),
+	roic: numeric("roic", { precision: 10, scale:  4 }),
 	latestFcf: numeric("latest_fcf", { precision: 20, scale:  0 }),
 }, (table) => {
 	return {

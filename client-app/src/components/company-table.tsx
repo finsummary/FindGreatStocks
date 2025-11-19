@@ -94,6 +94,7 @@ export const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'assetTurnover', label: 'Asset Turnover', width: 'w-[84px] sm:w-[110px]', defaultVisible: true },
   { id: 'financialLeverage', label: 'Financial Leverage', width: 'w-[84px] sm:w-[110px]', defaultVisible: true },
   { id: 'roe', label: 'ROE %', width: 'w-[84px] sm:w-[110px]', defaultVisible: true },
+  { id: 'roic', label: 'ROIC %', width: 'w-[84px] sm:w-[110px]', defaultVisible: false },
 ];
 
 const PRESET_LAYOUTS = {
@@ -116,7 +117,7 @@ const PRESET_LAYOUTS = {
   // Placeholder: we'll expand with ROIC etc. later; safe existing columns for now
   'compounders': {
     name: 'Compounders (ROIC, FCF)',
-    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'revenueGrowth10Y', 'roe'],
+    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'revenueGrowth10Y', 'roe', 'roic'],
   },
 };
 
@@ -242,11 +243,11 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     if (selectedLayout) return;
     if (didLoadPrefs) return;
 
-    const lockedColumns = [
+          const lockedColumns = [
       'maxDrawdown3Year', 'maxDrawdown5Year', 'maxDrawdown10Year',
       'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
       'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-      'assetTurnover', 'financialLeverage', 'roe', 'dcfVerdict'
+            'assetTurnover', 'financialLeverage', 'roe', 'roic', 'dcfVerdict'
     ];
 
     const defaultVisibility = ALL_COLUMNS.reduce((acc, col) => {
@@ -1031,6 +1032,21 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                     cellContent = <Badge variant="outline" className={`${roeBadgeClass} font-mono`}>{formatPercentage(roe, true, 1)}</Badge>;
                 }
                 break;
+            case 'roic':
+                const roicValue = row.roic as number | null;
+                if (roicValue === null || roicValue === undefined) {
+                  cellContent = <Badge variant="outline" className="font-mono text-muted-foreground">N/A</Badge>;
+                } else {
+                  const roicPct = roicValue * 100;
+                  let roicBadgeClass = "text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950";
+                  if (roicPct > 15) {
+                    roicBadgeClass = "text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950";
+                  } else if (roicPct >= 5) {
+                    roicBadgeClass = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
+                  }
+                  cellContent = <Badge variant="outline" className={`${roicBadgeClass} font-mono`}>{formatPercentage(roicPct, true, 1)}</Badge>;
+                }
+                break;
             default:
                 cellContent = <span className="text-muted-foreground">-</span>;
               break;
@@ -1313,7 +1329,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                         'maxDrawdown3Year', 'maxDrawdown5Year', 'maxDrawdown10Year',
                         'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
                         'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-                        'assetTurnover', 'financialLeverage', 'roe', 'dcfVerdict'
+                        'assetTurnover', 'financialLeverage', 'roe', 'roic', 'dcfVerdict'
                       ];
 
                       const isLocked = !isPaidUser && dataset !== 'dowjones' && lockedColumns.includes(colConfig.id);

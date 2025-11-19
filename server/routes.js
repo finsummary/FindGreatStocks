@@ -324,6 +324,7 @@ function mapDbRowToCompany(row) {
     assetTurnover: row.asset_turnover,
     financialLeverage: row.financial_leverage,
     roe: row.roe,
+    roic: row.roic,
   };
 }
 
@@ -558,6 +559,41 @@ export function setupRoutes(app, supabase) {
     } catch (e) {
       console.error('drawdown/recompute error:', e);
       return res.status(500).json({ message: 'Failed to recompute drawdown' });
+    }
+  });
+
+  // Recompute ROIC for given symbols from FMP key metrics
+  app.post('/api/metrics/recompute-roic', requireAdmin, async (req, res) => {
+    try {
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      const symbolsParam = (req.query.symbols || req.body?.symbols || '').toString();
+      const symbols = symbolsParam.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      if (!symbols.length) return res.status(400).json({ message: 'Provide symbols as comma-separated list in ?symbols=' });
+      const fetchJson = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); };
+      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies'];
+      const results = [];
+      for (const sym of symbols) {
+        try {
+          const data = await fetchJson(`https://financialmodelingprep.com/api/v3/key-metrics/${sym}?period=annual&limit=1&apikey=${apiKey}`);
+          const km = Array.isArray(data) && data[0] ? data[0] : null;
+          let roic = km && (km.roic !== undefined && km.roic !== null) ? Number(km.roic) : null;
+          // Some projects expose ROIC as percentage; normalize to decimal if > 1.5 (likely 15% → 15)
+          if (isFinite(roic) && roic > 1.5) roic = roic / 100;
+          const upd = { roic: (isFinite(roic) ? Number(roic.toFixed(4)) : null) };
+          for (const t of tables) {
+            await supabase.from(t).update(upd).eq('symbol', sym);
+          }
+          results.push({ symbol: sym, updated: true, roic: upd.roic });
+          await new Promise(r => setTimeout(r, 150));
+        } catch (e) {
+          results.push({ symbol: sym, updated: false, error: e?.message || 'unknown' });
+        }
+      }
+      return res.json({ status: 'ok', results });
+    } catch (e) {
+      console.error('metrics/recompute-roic error:', e);
+      return res.status(500).json({ message: 'Failed to recompute ROIC' });
     }
   });
 
@@ -1055,6 +1091,7 @@ export function setupRoutes(app, supabase) {
     assetTurnover: 'asset_turnover',
     financialLeverage: 'financial_leverage',
     roe: 'roe',
+    roic: 'roic',
   };
 
   async function listCompanies(req, res) {
@@ -1099,7 +1136,7 @@ export function setupRoutes(app, supabase) {
       } catch (e) { console.warn('age-based nulls (companies) error', e?.message || e); }
       const symbols = rows.map(r => r.symbol).filter(Boolean);
       if (symbols.length) {
-        const selectCols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth';
+        const selectCols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic';
         const [sp500, ndx, dji] = await Promise.all([
           supabase.from('sp500_companies').select(selectCols).in('symbol', symbols),
           supabase.from('nasdaq100_companies').select(selectCols).in('symbol', symbols),
@@ -1247,7 +1284,7 @@ export function setupRoutes(app, supabase) {
       // Overlay/fallback enrichment from master companies table for fresher metrics
       const symbols = rows.map(r => r.symbol).filter(Boolean);
       if (symbols.length) {
-        const cols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, total_assets, total_equity, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth';
+        const cols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, total_assets, total_equity, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic';
         const { data: master, error: mErr } = await supabase.from('companies').select(cols).in('symbol', symbols);
         if (!mErr && Array.isArray(master)) {
           const bySym = new Map(master.map(m => [m.symbol, m]));

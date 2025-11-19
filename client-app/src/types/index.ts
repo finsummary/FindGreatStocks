@@ -41,6 +41,7 @@ export interface Company {
   marginOfSafety: number | string | null;
   dcfImpliedGrowth: number | string | null;
   latestFcf: number | string | null;
+  roic?: number | string | null;
   isWatched?: boolean;
 }
 
