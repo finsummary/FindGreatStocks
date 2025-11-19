@@ -179,8 +179,9 @@ function calculateMarginOfSafety(fairValue: number | null, price: number): numbe
     if (fairValue === null || fairValue <= 0 || price <= 0) {
         return null;
     }
-    // Align definition: 1 - (Price / Fair Value)
-    return 1 - (price / fairValue);
+    // Align definition: 1 - (Price / Fair Value), clamped to >= -1 (-100%)
+    const mos = 1 - (price / fairValue);
+    return isFinite(mos) ? Math.max(mos, -1) : null;
 }
 
 function calculateReverseDcfGrowth(

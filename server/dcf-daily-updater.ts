@@ -105,7 +105,8 @@ function calculateMarginOfSafety(enterpriseValue: number | null, marketCap: numb
     if (enterpriseValue === null || enterpriseValue <= 0) {
         return null;
     }
-    return (enterpriseValue - marketCap) / enterpriseValue;
+    const mos = (enterpriseValue - marketCap) / enterpriseValue;
+    return isFinite(mos) ? Math.max(mos, -1) : null; // clamp to -100%
 }
 
 function calculateReverseDcfGrowth(marketCap: number, latestFcf: number): number | null {

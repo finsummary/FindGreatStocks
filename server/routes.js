@@ -577,6 +577,7 @@ export function setupRoutes(app, supabase) {
             let mos = null;
             if (isFinite(dcf) && dcf > 0 && isFinite(mcap) && mcap > 0) {
               mos = 1 - (mcap / dcf);
+              if (isFinite(mos) && mos < -1) mos = -1; // clamp to -100%
             }
             await supabase.from(t).update({ margin_of_safety: mos }).eq('symbol', row.symbol);
             updated++;
@@ -2041,6 +2042,7 @@ export function setupRoutes(app, supabase) {
           if (isFinite(mcap) && mcap > 0 && isFinite(dcf) && dcf > 0) {
             // New definition: 1 - (Market Cap / DCF Enterprise Value) = (DCF - MC) / DCF
             mos = 1 - (mcap / dcf);
+            if (isFinite(mos) && mos < -1) mos = -1; // clamp to -100%
           }
 
           // write back to all tables where symbol exists
@@ -2116,6 +2118,7 @@ export function setupRoutes(app, supabase) {
           if (isFinite(marketCap) && marketCap > 0 && isFinite(dcfEv) && dcfEv > 0) {
             // New definition: 1 - (Market Cap / DCF Enterprise Value)
             mos = 1 - (marketCap / dcfEv);
+            if (isFinite(mos) && mos < -1) mos = -1; // clamp to -100%
           }
 
           // Guard: hide insane values

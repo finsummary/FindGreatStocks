@@ -165,8 +165,9 @@ function calculateMarginOfSafety(enterpriseValue: number | null, marketCap: numb
     if (enterpriseValue === null || enterpriseValue <= 0 || marketCap <= 0) {
         return null;
     }
-    // New definition: 1 - (Market Cap / Enterprise Value)
-    return 1 - (marketCap / enterpriseValue);
+    // New definition: 1 - (Market Cap / Enterprise Value), clamped to >= -1 (-100%)
+    const mos = 1 - (marketCap / enterpriseValue);
+    return isFinite(mos) ? Math.max(mos, -1) : null;
 }
 
 function calculateReverseDcfGrowth(
