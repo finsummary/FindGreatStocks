@@ -315,6 +315,48 @@ export default function AdminFlagsPage() {
             }}
           />
 
+          {/* Seed recommended flags */}
+          <div className="mb-6 p-3 border rounded-md">
+            <div className="mb-2 font-semibold">Add Recommended Flags</div>
+            <div className="text-xs text-muted-foreground mb-3">
+              Создаст базовые флаги для премиума, лейаутов и рынков. Ваш email будет добавлен в Allowlist.
+            </div>
+            <Button
+              size="sm"
+              onClick={async () => {
+                if (!session?.access_token) return;
+                const admin = (user?.email || '').toLowerCase();
+                const defs = [
+                  { key: 'premium:allow', enabled: false },
+                  { key: 'layout:compounders', enabled: false },
+                  { key: 'layout:return_on_risk', enabled: true },
+                  { key: 'layout:dcf', enabled: true },
+                  { key: 'layout:reverse_dcf', enabled: true },
+                  { key: 'layout:dupont_roe', enabled: true },
+                  { key: 'market:dowjones', enabled: true },
+                  { key: 'market:sp500', enabled: true },
+                  { key: 'market:nasdaq100', enabled: true },
+                ];
+                for (const d of defs) {
+                  try {
+                    await authFetch(`/api/feature-flags/${encodeURIComponent(d.key)}`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        enabled: d.enabled,
+                        allowlistEmails: admin ? [admin] : [],
+                      }),
+                    }, session?.access_token);
+                  } catch {}
+                }
+                const r = await authFetch('/api/feature-flags', undefined, session?.access_token);
+                setFlags(r?.flags || []);
+              }}
+            >
+              Add Defaults
+            </Button>
+          </div>
+
           {(['Education','Markets','Layouts','Other'] as const).map((cat) => {
             const list = filtered.filter(f => getCategory(f.key) === cat);
             return (

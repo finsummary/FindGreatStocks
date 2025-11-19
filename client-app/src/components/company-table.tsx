@@ -222,6 +222,15 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   const tier = (user?.subscriptionTier as any);
   const premiumAllow = useFlag('premium:allow'); // allow premium via feature flag allowlist
   const isPaidUser = (tier === 'paid' || tier === 'quarterly' || tier === 'annual' || tier === 'lifetime' || premiumAllow);
+  // Layout access via flags (admin allowlist or rollout)
+  const layoutAccess: Record<string, boolean> = {
+    dcfValuation: useFlag('layout:dcf'),
+    dupontRoe: useFlag('layout:dupont_roe'),
+    returnOnRisk: useFlag('layout:return_on_risk'),
+    reverseDcf: useFlag('layout:reverse_dcf'),
+    compounders: useFlag('layout:compounders'),
+  };
+  const compoundersOn = layoutAccess.compounders;
 
   useEffect(() => {
     setSelectedLayout(null);
@@ -1342,7 +1351,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                 <DropdownMenuSeparator />
                 {Object.entries(PRESET_LAYOUTS).map(([key, layout]) => {
                   const isPaidLayout = ['dcfValuation', 'dupontRoe', 'returnOnRisk', 'reverseDcf'].includes(key);
-                  const isLocked = !isPaidUser && dataset !== 'dowjones' && isPaidLayout;
+                  const isLocked = !isPaidUser && dataset !== 'dowjones' && isPaidLayout && !layoutAccess[key];
                   return (
                     <DropdownMenuItem
                       key={key}
@@ -1370,7 +1379,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                   );
                 })}
                 <DropdownMenuSeparator />
-                {useFlag('layout:compounders') ? (
+                {compoundersOn ? (
                   <DropdownMenuItem
                     onSelect={() => {
                       const layout = (PRESET_LAYOUTS as any)['compounders'];
