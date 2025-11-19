@@ -20,6 +20,7 @@ import {
 import { formatMarketCap, formatPercentage, formatPrice, formatEarnings, formatNumber, formatPercentageFromDecimal } from "@/lib/format";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/providers/AuthProvider";
+import { useFlag } from "@/providers/FeatureFlagsProvider";
 import { useToast } from "@/hooks/use-toast";
 import type { Company, Nasdaq100Company } from "../types";
 import { supabase } from "@/lib/supabaseClient";
@@ -111,6 +112,11 @@ const PRESET_LAYOUTS = {
   'dupontRoe': {
     name: 'DuPont ROE Decomposition',
     columns: ['watchlist', 'rank', 'name', 'marketCap', 'revenue', 'netIncome', 'totalAssets', 'totalEquity', 'netProfitMargin', 'assetTurnover', 'financialLeverage', 'roe'],
+  },
+  // Placeholder: we'll expand with ROIC etc. later; safe existing columns for now
+  'compounders': {
+    name: 'Compounders (ROIC, FCF)',
+    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'revenueGrowth10Y', 'roe'],
   },
 };
 
@@ -214,7 +220,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
 
   const isLoggedIn = !!user || !!session;
   const tier = (user?.subscriptionTier as any);
-  const isPaidUser = tier === 'paid' || tier === 'quarterly' || tier === 'annual' || tier === 'lifetime';
+  const premiumAllow = useFlag('premium:allow'); // allow premium via feature flag allowlist
+  const isPaidUser = (tier === 'paid' || tier === 'quarterly' || tier === 'annual' || tier === 'lifetime' || premiumAllow);
 
   useEffect(() => {
     setSelectedLayout(null);
@@ -1363,9 +1370,32 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                   );
                 })}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem disabled className="text-muted-foreground">
-                  Compounders (Coming Soon)
-                </DropdownMenuItem>
+                {useFlag('layout:compounders') ? (
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      const layout = (PRESET_LAYOUTS as any)['compounders'];
+                      const newVisibility = ALL_COLUMNS.reduce((acc, col) => {
+                        if (['watchlist', 'rank', 'name'].includes(col.id)) {
+                          acc[col.id] = true;
+                        } else {
+                          acc[col.id] = layout.columns.includes(col.id);
+                        }
+                        return acc;
+                      }, {} as VisibilityState);
+                      setColumnVisibility(newVisibility);
+                      setSelectedLayout('compounders');
+                      try { (window as any).phCapture?.('layout_selected', { layout: 'compounders', dataset }); } catch {}
+                    }}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span>Compounders (ROIC, FCF)</span>
+                    </div>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem disabled className="text-muted-foreground">
+                    Compounders (Coming Soon)
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
             {!authLoading && !isPaidUser && (
