@@ -329,6 +329,34 @@ function mapDbRowToCompany(row) {
 
 export function setupRoutes(app, supabase) {
   const isAuthenticated = createAuthMiddleware(supabase);
+  const requireAdmin = (function createAdminGuard() {
+    const adminEmails = String(process.env.ADMIN_EMAILS || '')
+      .split(',')
+      .map(s => s.trim().toLowerCase())
+      .filter(Boolean);
+    const adminToken = process.env.ADMIN_API_TOKEN || '';
+    return async function requireAdmin(req, res, next) {
+      try {
+        const xToken = req.headers['x-admin-token'];
+        if (adminToken && typeof xToken === 'string' && xToken === adminToken) {
+          return next();
+        }
+        const authHeader = req.headers['authorization'] || '';
+        const token = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : null;
+        if (!token) return res.status(401).json({ message: 'Unauthorized' });
+        const { data, error } = await supabase.auth.getUser(token);
+        if (error || !data?.user) return res.status(401).json({ message: 'Unauthorized' });
+        const email = String(data.user.email || '').toLowerCase();
+        if (!adminEmails.length || !adminEmails.includes(email)) {
+          return res.status(403).json({ message: 'Forbidden' });
+        }
+        req.user = data.user;
+        return next();
+      } catch {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+    };
+  })();
 
   // In-memory cache for /api/config flags
   let cachedFlags = { flags: {}, ts: 0 };
@@ -368,7 +396,7 @@ export function setupRoutes(app, supabase) {
   });
 
   // Recompute DuPont (Asset Turnover, Financial Leverage, ROE) for given symbols
-  app.post('/api/dupont/recompute', async (req, res) => {
+  app.post('/api/dupont/recompute', requireAdmin, async (req, res) => {
     try {
       const apiKey = process.env.FMP_API_KEY;
       if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
@@ -428,7 +456,7 @@ export function setupRoutes(app, supabase) {
   });
 
   // Recompute calculated metrics (P/S, Net Profit Margin) for given symbols
-  app.post('/api/metrics/recompute-calculated', async (req, res) => {
+  app.post('/api/metrics/recompute-calculated', requireAdmin, async (req, res) => {
     try {
       const symbolsParam = (req.query.symbols || req.body?.symbols || '').toString();
       const symbols = symbolsParam.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
@@ -473,7 +501,7 @@ export function setupRoutes(app, supabase) {
   });
 
   // Recompute drawdowns (3/5/10Y Max Drawdown) for given symbols
-  app.post('/api/drawdown/recompute', async (req, res) => {
+  app.post('/api/drawdown/recompute', requireAdmin, async (req, res) => {
     try {
       const apiKey = process.env.FMP_API_KEY;
       if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
@@ -534,7 +562,7 @@ export function setupRoutes(app, supabase) {
   });
 
   // Recompute Margin of Safety for all rows based on current DCF EV and Market Cap
-  app.post('/api/dcf/recompute-mos-all', async (_req, res) => {
+  app.post('/api/dcf/recompute-mos-all', requireAdmin, async (_req, res) => {
     try {
       const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies'];
       const results = [];
@@ -831,7 +859,7 @@ export function setupRoutes(app, supabase) {
     }
   }
 
-  app.post('/api/ftse100/import', async (_req, res) => {
+  app.post('/api/ftse100/import', requireAdmin, async (_req, res) => {
     try {
       const list = await fetchFtseConstituents();
       if (!Array.isArray(list) || !list.length) {
@@ -851,7 +879,7 @@ export function setupRoutes(app, supabase) {
     }
   });
 
-  app.post('/api/ftse100/update-prices', async (_req, res) => {
+  app.post('/api/ftse100/update-prices', requireAdmin, async (_req, res) => {
     try {
       const apiKey = process.env.FMP_API_KEY;
       if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
@@ -888,7 +916,7 @@ export function setupRoutes(app, supabase) {
     }
   });
 
-  app.post('/api/ftse100/enhance', async (_req, res) => {
+  app.post('/api/ftse100/enhance', requireAdmin, async (_req, res) => {
     try {
       const apiKey = process.env.FMP_API_KEY;
       if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
@@ -1839,7 +1867,7 @@ export function setupRoutes(app, supabase) {
   });
 
   // Admin: force-clear DCF metrics for given symbols in all tables
-  app.post('/api/dcf/clear', async (req, res) => {
+  app.post('/api/dcf/clear', requireAdmin, async (req, res) => {
     try {
       const symbolsParam = (req.query.symbols || req.body?.symbols || '').toString();
       const symbols = symbolsParam.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
@@ -1860,7 +1888,7 @@ export function setupRoutes(app, supabase) {
   });
 
   // Recompute returns (3/5/10Y) for specific S&P 500 symbols using FMP historical prices
-  app.post('/api/sp500/recompute-returns', async (req, res) => {
+  app.post('/api/sp500/recompute-returns', requireAdmin, async (req, res) => {
     try {
       const apiKey = process.env.FMP_API_KEY;
       if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
@@ -1935,7 +1963,7 @@ export function setupRoutes(app, supabase) {
     }
   });
 
-  app.post('/api/companies/enhance-returns', async (_req, res) => {
+  app.post('/api/companies/enhance-returns', requireAdmin, async (_req, res) => {
     try {
       await import('tsx/esm');
       import('./returns-enhancer.ts')
@@ -1948,7 +1976,7 @@ export function setupRoutes(app, supabase) {
     }
   });
 
-  app.post('/api/companies/enhance-drawdown', async (_req, res) => {
+  app.post('/api/companies/enhance-drawdown', requireAdmin, async (_req, res) => {
     try {
       await import('tsx/esm');
       import('./drawdown-enhancer.ts')
@@ -1962,7 +1990,7 @@ export function setupRoutes(app, supabase) {
   });
 
   // Admin: normalize DCF to USD and fix unit scale for given symbols
-  app.post('/api/dcf/normalize', async (req, res) => {
+  app.post('/api/dcf/normalize', requireAdmin, async (req, res) => {
     try {
       const apiKey = process.env.FMP_API_KEY;
       if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
@@ -2032,7 +2060,7 @@ export function setupRoutes(app, supabase) {
   });
 
   // Recompute DCF from financial statements (FCF → perpetuity) with FX normalization to USD
-  app.post('/api/dcf/recompute', async (req, res) => {
+  app.post('/api/dcf/recompute', requireAdmin, async (req, res) => {
     try {
       const apiKey = process.env.FMP_API_KEY;
       if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
@@ -2113,7 +2141,7 @@ export function setupRoutes(app, supabase) {
   });
 
   // Prices: update one symbol across all tables (companies + indexes)
-  app.post('/api/prices/update-symbol', async (req, res) => {
+  app.post('/api/prices/update-symbol', requireAdmin, async (req, res) => {
     try {
       const symbol = (req.query.symbol || req.body?.symbol || '').toString().trim().toUpperCase();
       if (!symbol) return res.status(400).json({ message: 'symbol is required' });
@@ -2154,7 +2182,7 @@ export function setupRoutes(app, supabase) {
   });
 
   // Prices: bulk update for all tables (fire-and-forget)
-  app.post('/api/prices/update-all', async (_req, res) => {
+  app.post('/api/prices/update-all', requireAdmin, async (_req, res) => {
     try {
       const apiKey = process.env.FMP_API_KEY;
       if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
