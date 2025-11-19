@@ -1349,7 +1349,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Table Layouts</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {Object.entries(PRESET_LAYOUTS).map(([key, layout]) => {
+                {Object.entries(PRESET_LAYOUTS).filter(([key]) => key !== 'compounders').map(([key, layout]) => {
                   const isPaidLayout = ['dcfValuation', 'dupontRoe', 'returnOnRisk', 'reverseDcf'].includes(key);
                   const isLocked = !isPaidUser && dataset !== 'dowjones' && isPaidLayout && !layoutAccess[key];
                   return (
