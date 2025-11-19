@@ -325,6 +325,7 @@ function mapDbRowToCompany(row) {
     financialLeverage: row.financial_leverage,
     roe: row.roe,
     roic: row.roic,
+    roic10YAvg: row.roic_10y_avg,
   };
 }
 
@@ -653,6 +654,59 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Recompute 10Y ROIC series and average for all symbols
+  app.post('/api/metrics/recompute-roic-10y-all', requireAdmin, async (_req, res) => {
+    try {
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      const fetchJson = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); };
+      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies', 'ftse100_companies'];
+      const symSet = new Set();
+      for (const t of tables) {
+        try {
+          const { data } = await supabase.from(t).select('symbol');
+          for (const r of (data || [])) if (r?.symbol) symSet.add(String(r.symbol).toUpperCase());
+        } catch {}
+      }
+      const symbols = Array.from(symSet);
+      const results = [];
+      for (const sym of symbols) {
+        try {
+          // Pull up to 12 annual entries to safely cover 10 years
+          const kmData = await fetchJson(`https://financialmodelingprep.com/api/v3/key-metrics/${sym}?period=annual&limit=12&apikey=${apiKey}`);
+          const arr = Array.isArray(kmData) ? kmData : [];
+          // Normalize to latest first
+          const series = arr.map(r => r && (r.roic ?? r.ROIC)).filter(v => v !== undefined && v !== null).map(Number);
+          // Convert percent → decimal if likely percent
+          const norm = series.map(v => (isFinite(v) && v > 1.5 ? v / 100 : v)).filter(v => isFinite(v));
+          const last10 = norm.slice(0, 10);
+          const padTo = (n, list) => {
+            const out = [...list];
+            while (out.length < n) out.push(null);
+            return out;
+          };
+          const y = padTo(10, last10);
+          const avg = y.filter(v => v !== null).length ? (y.filter(v => v !== null).reduce((a, b) => a + (b as number), 0) / y.filter(v => v !== null).length) : null;
+          const upd = {
+            roic_y1: y[0], roic_y2: y[1], roic_y3: y[2], roic_y4: y[3], roic_y5: y[4],
+            roic_y6: y[5], roic_y7: y[6], roic_y8: y[7], roic_y9: y[8], roic_y10: y[9],
+            roic_10y_avg: avg,
+          };
+          for (const t of tables) {
+            try { await supabase.from(t).update(upd).eq('symbol', sym); } catch {}
+          }
+          results.push({ symbol: sym, updated: true, avg });
+        } catch (e) {
+          results.push({ symbol: sym, updated: false, error: e?.message || 'unknown' });
+        }
+        await new Promise(r => setTimeout(r, 120));
+      }
+      return res.json({ status: 'ok', count: results.length, results });
+    } catch (e) {
+      console.error('metrics/recompute-roic-10y-all error:', e);
+      return res.status(500).json({ message: 'Failed to recompute ROIC 10Y for all' });
+    }
+  });
   // Recompute Margin of Safety for all rows based on current DCF EV and Market Cap
   app.post('/api/dcf/recompute-mos-all', requireAdmin, async (_req, res) => {
     try {
@@ -1148,6 +1202,7 @@ export function setupRoutes(app, supabase) {
     financialLeverage: 'financial_leverage',
     roe: 'roe',
     roic: 'roic',
+    roic10YAvg: 'roic_10y_avg',
   };
 
   async function listCompanies(req, res) {
@@ -1340,7 +1395,7 @@ export function setupRoutes(app, supabase) {
       // Overlay/fallback enrichment from master companies table for fresher metrics
       const symbols = rows.map(r => r.symbol).filter(Boolean);
       if (symbols.length) {
-        const cols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, total_assets, total_equity, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic';
+        const cols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, total_assets, total_equity, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg';
         const { data: master, error: mErr } = await supabase.from('companies').select(cols).in('symbol', symbols);
         if (!mErr && Array.isArray(master)) {
           const bySym = new Map(master.map(m => [m.symbol, m]));

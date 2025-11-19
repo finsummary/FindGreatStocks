@@ -42,6 +42,7 @@ export interface Company {
   dcfImpliedGrowth: number | string | null;
   latestFcf: number | string | null;
   roic?: number | string | null;
+  roic10YAvg?: number | string | null;
   isWatched?: boolean;
 }
 
