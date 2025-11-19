@@ -15,12 +15,58 @@ type FlagRow = {
 
 type AuditRow = { id: number; key: string; actor_email: string; changed_at: string; prev: any; next: any };
 
+function CreateFlagBox({ onCreate }: { onCreate: (p: { key: string; enabled: boolean; rolloutPercent: number | null; allowlistEmails: string[] }) => Promise<void> }) {
+  const [key, setKey] = useState('');
+  const [enabled, setEnabled] = useState(false);
+  const [rolloutPercent, setRolloutPercent] = useState<number | ''>('');
+  const [allowlist, setAllowlist] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    const k = key.trim();
+    if (!k) return;
+    const rp = rolloutPercent === '' ? null : Math.max(0, Math.min(100, Number(rolloutPercent)));
+    const emails = allowlist
+      ? allowlist.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+      : [];
+    setBusy(true);
+    try {
+      await onCreate({ key: k, enabled, rolloutPercent: rp, allowlistEmails: emails });
+      setKey(''); setEnabled(false); setRolloutPercent(''); setAllowlist('');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mb-6 p-3 border rounded-md">
+      <div className="mb-2 font-semibold">Create / Upsert Flag</div>
+      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+        <Input className="sm:w-64" placeholder="key (e.g., premium:allow)" value={key} onChange={e => setKey(e.target.value)} />
+        <label className="text-sm flex items-center gap-2">
+          Enabled
+          <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} />
+        </label>
+        <div className="flex items-center gap-2">
+          <span className="text-sm">Rollout %</span>
+          <Input className="w-24" type="number" min={0} max={100} value={rolloutPercent} onChange={e => setRolloutPercent(e.target.value === '' ? '' : Number(e.target.value))} />
+        </div>
+      </div>
+      <div className="mt-2 flex flex-col sm:flex-row gap-2 sm:items-center">
+        <Input className="sm:w-[32rem]" placeholder="Allowlist emails (comma separated)" value={allowlist} onChange={e => setAllowlist(e.target.value)} />
+        <Button size="sm" disabled={busy || !key.trim()} onClick={submit}>{busy ? 'Saving…' : 'Save Flag'}</Button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminFlagsPage() {
   const { user, session, loading } = useAuth();
   const [flags, setFlags] = useState<FlagRow[]>([]);
   const [saving, setSaving] = useState<string | null>(null);
   const email = useMemo(() => (user?.email || '').toLowerCase(), [user]);
-  const allowed = email === 'findgreatstocks@gmail.com';
+  // Frontend не ограничивает по конкретному email — сервер проверит ADMIN_EMAILS/x-admin-token
+  const allowed = !!session?.access_token;
   const [filter, setFilter] = useState('');
   const [audits, setAudits] = useState<AuditRow[]>([]);
 
@@ -251,6 +297,24 @@ export default function AdminFlagsPage() {
           />
         </div>
         <TabsContent value="flags">
+          {/* Create / Upsert Flag */}
+          <CreateFlagBox
+            onCreate={async (payload) => {
+              if (!session?.access_token) return;
+              await authFetch(`/api/feature-flags/${encodeURIComponent(payload.key)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  enabled: payload.enabled,
+                  rolloutPercent: payload.rolloutPercent,
+                  allowlistEmails: payload.allowlistEmails,
+                }),
+              }, session?.access_token);
+              const r = await authFetch('/api/feature-flags', undefined, session?.access_token);
+              setFlags(r?.flags || []);
+            }}
+          />
+
           {(['Education','Markets','Layouts','Other'] as const).map((cat) => {
             const list = filtered.filter(f => getCategory(f.key) === cat);
             return (
