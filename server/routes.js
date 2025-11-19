@@ -367,6 +367,172 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Recompute DuPont (Asset Turnover, Financial Leverage, ROE) for given symbols
+  app.post('/api/dupont/recompute', async (req, res) => {
+    try {
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      const symbolsParam = (req.query.symbols || req.body?.symbols || '').toString();
+      const symbols = symbolsParam.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      if (!symbols.length) return res.status(400).json({ message: 'Provide symbols as comma-separated list in ?symbols=' });
+
+      const fetchJson = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); };
+      const tables = ['sp500_companies', 'nasdaq100_companies', 'dow_jones_companies', 'companies'];
+      const results = [];
+
+      for (const sym of symbols) {
+        try {
+          // read revenue and netIncome from any table where exists (prefer index tables)
+          let src = null;
+          for (const t of tables) {
+            const { data, error } = await supabase.from(t).select('revenue, net_income').eq('symbol', sym).limit(1);
+            if (!error && Array.isArray(data) && data[0]) { src = { table: t, row: data[0] }; break; }
+          }
+          if (!src) { results.push({ symbol: sym, updated: false, error: 'symbol not found' }); continue; }
+          const revenue = Number(src.row?.revenue);
+          const netIncome = Number(src.row?.net_income);
+
+          // pull latest totalAssets / totalEquity
+          const bs = await fetchJson(`https://financialmodelingprep.com/api/v3/balance-sheet-statement/${sym}?period=annual&limit=1&apikey=${apiKey}`);
+          const latest = Array.isArray(bs) && bs[0];
+          const totalAssets = Number(latest?.totalAssets);
+          const totalEquity = Number(latest?.totalStockholdersEquity);
+          if (!isFinite(totalAssets) || totalAssets === 0) { results.push({ symbol: sym, updated: false, error: 'no totalAssets' }); continue; }
+          if (!isFinite(revenue) || !isFinite(netIncome)) { results.push({ symbol: sym, updated: false, error: 'no revenue/netIncome' }); continue; }
+
+          const assetTurnover = revenue / totalAssets;
+          const financialLeverage = (isFinite(totalEquity) && totalEquity > 0) ? (totalAssets / totalEquity) : null;
+          const roe = (isFinite(totalEquity) && totalEquity > 0) ? (netIncome / totalEquity) : null;
+
+          const upd = {
+            total_assets: isFinite(totalAssets) ? totalAssets : null,
+            total_equity: isFinite(totalEquity) ? totalEquity : null,
+            asset_turnover: isFinite(assetTurnover) ? Number(assetTurnover.toFixed(4)) : null,
+            financial_leverage: isFinite(financialLeverage) ? Number(financialLeverage.toFixed(4)) : null,
+            roe: isFinite(roe) ? Number(roe.toFixed(4)) : null,
+          };
+          for (const t of tables) {
+            await supabase.from(t).update(upd).eq('symbol', sym);
+          }
+          results.push({ symbol: sym, updated: true, ...upd });
+          await new Promise(r => setTimeout(r, 200));
+        } catch (e) {
+          results.push({ symbol: sym, updated: false, error: e?.message || 'unknown' });
+        }
+      }
+      return res.json({ status: 'ok', results });
+    } catch (e) {
+      console.error('dupont/recompute error:', e);
+      return res.status(500).json({ message: 'Failed to recompute DuPont' });
+    }
+  });
+
+  // Recompute calculated metrics (P/S, Net Profit Margin) for given symbols
+  app.post('/api/metrics/recompute-calculated', async (req, res) => {
+    try {
+      const symbolsParam = (req.query.symbols || req.body?.symbols || '').toString();
+      const symbols = symbolsParam.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      if (!symbols.length) return res.status(400).json({ message: 'Provide symbols as comma-separated list in ?symbols=' });
+      const tables = ['sp500_companies', 'nasdaq100_companies', 'dow_jones_companies', 'companies'];
+      const results = [];
+
+      for (const sym of symbols) {
+        try {
+          // read market_cap, revenue, net_income from any table available
+          let row = null;
+          for (const t of tables) {
+            const { data } = await supabase.from(t).select('market_cap,revenue,net_income').eq('symbol', sym).limit(1);
+            if (Array.isArray(data) && data[0]) { row = data[0]; break; }
+          }
+          if (!row) { results.push({ symbol: sym, updated: false, error: 'symbol not found' }); continue; }
+          const marketCap = Number(row.market_cap);
+          const revenue = Number(row.revenue);
+          const netIncome = Number(row.net_income);
+          if (!isFinite(marketCap) || !isFinite(revenue) || !isFinite(netIncome) || revenue === 0) {
+            results.push({ symbol: sym, updated: false, error: 'invalid inputs' }); continue;
+          }
+          const priceToSalesRatio = marketCap / revenue;
+          const netProfitMargin = (netIncome / revenue) * 100;
+          const upd = {
+            price_to_sales_ratio: Number(priceToSalesRatio.toFixed(2)),
+            net_profit_margin: Number(netProfitMargin.toFixed(2)),
+          };
+          for (const t of tables) {
+            await supabase.from(t).update(upd).eq('symbol', sym);
+          }
+          results.push({ symbol: sym, updated: true, ...upd });
+        } catch (e) {
+          results.push({ symbol: sym, updated: false, error: e?.message || 'unknown' });
+        }
+      }
+      return res.json({ status: 'ok', results });
+    } catch (e) {
+      console.error('metrics/recompute-calculated error:', e);
+      return res.status(500).json({ message: 'Failed to recompute calculated metrics' });
+    }
+  });
+
+  // Recompute drawdowns (3/5/10Y Max Drawdown) for given symbols
+  app.post('/api/drawdown/recompute', async (req, res) => {
+    try {
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      const symbolsParam = (req.query.symbols || req.body?.symbols || '').toString();
+      const symbols = symbolsParam.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      if (!symbols.length) return res.status(400).json({ message: 'Provide symbols as comma-separated list in ?symbols=' });
+      const fetchJson = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); };
+      const tables = ['sp500_companies', 'nasdaq100_companies', 'dow_jones_companies', 'companies'];
+      const results = [];
+
+      const calcMdd = (series) => {
+        let peak = series[0]; let maxDD = 0;
+        for (const v of series) {
+          if (v > peak) peak = v;
+          const dd = (peak - v) / peak;
+          if (dd > maxDD) maxDD = dd;
+        }
+        return maxDD * 100;
+      };
+
+      for (const sym of symbols) {
+        try {
+          const now = new Date();
+          const to = now.toISOString().split('T')[0];
+          const tenYearsAgo = new Date(now); tenYearsAgo.setFullYear(now.getFullYear() - 10);
+          const from10 = tenYearsAgo.toISOString().split('T')[0];
+          const data = await fetchJson(`https://financialmodelingprep.com/api/v3/historical-price-full/${sym}?from=${from10}&to=${to}&serietype=line&apikey=${apiKey}`);
+          const hist = Array.isArray(data?.historical) ? data.historical.slice().sort((a, b) => new Date(a.date) - new Date(b.date)) : [];
+          if (!hist.length) {
+            const upd = { max_drawdown_3_year: null, max_drawdown_5_year: null, max_drawdown_10_year: null };
+            for (const t of tables) { await supabase.from(t).update(upd).eq('symbol', sym); }
+            results.push({ symbol: sym, updated: true, note: 'no history' });
+            continue;
+          }
+          const fiveYearsAgo = new Date(now); fiveYearsAgo.setFullYear(now.getFullYear() - 5);
+          const threeYearsAgo = new Date(now); threeYearsAgo.setFullYear(now.getFullYear() - 3);
+          const earliest = new Date(hist[0].date);
+          const series10 = hist.map(p => Number(p.close)).filter(isFinite);
+          const series5 = earliest <= fiveYearsAgo ? hist.filter(p => new Date(p.date) >= fiveYearsAgo).map(p => Number(p.close)).filter(isFinite) : [];
+          const series3 = earliest <= threeYearsAgo ? hist.filter(p => new Date(p.date) >= threeYearsAgo).map(p => Number(p.close)).filter(isFinite) : [];
+          const upd = {
+            max_drawdown_10_year: series10.length > 1 ? Number(calcMdd(series10).toFixed(2)) : null,
+            max_drawdown_5_year: series5.length > 1 ? Number(calcMdd(series5).toFixed(2)) : null,
+            max_drawdown_3_year: series3.length > 1 ? Number(calcMdd(series3).toFixed(2)) : null,
+          };
+          for (const t of tables) { await supabase.from(t).update(upd).eq('symbol', sym); }
+          results.push({ symbol: sym, updated: true, ...upd });
+          await new Promise(r => setTimeout(r, 200));
+        } catch (e) {
+          results.push({ symbol: sym, updated: false, error: e?.message || 'unknown' });
+        }
+      }
+      return res.json({ status: 'ok', results });
+    } catch (e) {
+      console.error('drawdown/recompute error:', e);
+      return res.status(500).json({ message: 'Failed to recompute drawdown' });
+    }
+  });
+
   // Admin-only: feature flags management
   app.get('/api/feature-flags', isAuthenticated, async (req, res) => {
     try {
