@@ -360,6 +360,28 @@ export function setupRoutes(app, supabase) {
     };
   })();
 
+  // Initialize Sentry for server errors (non-blocking, only if DSN present)
+  try {
+    const dsn = process.env.SENTRY_DSN;
+    if (dsn) {
+      import('@sentry/node').then((mod) => {
+        try {
+          const Sentry = (mod && (mod.default || mod));
+          Sentry.init({
+            dsn,
+            environment: process.env.SENTRY_ENV || 'production',
+            tracesSampleRate: 0.0,
+          });
+          // Attach basic handlers (safe if express)
+          try { app.use(Sentry.Handlers.requestHandler()); } catch {}
+          try { app.use(Sentry.Handlers.tracingHandler?.()); } catch {}
+        } catch (e) {
+          console.warn('Sentry init failed', e?.message || e);
+        }
+      }).catch(() => {});
+    }
+  } catch {}
+
   // In-memory cache for /api/config flags
   let cachedFlags = { flags: {}, ts: 0 };
   const FLAGS_TTL_MS = 60 * 1000;
@@ -822,6 +844,15 @@ export function setupRoutes(app, supabase) {
   app.get('/api/health', (_req, res) => {
     try { res.set('x-app-commit', COMMIT_SHA); } catch {}
     return res.json({ status: 'ok', commit: COMMIT_SHA, timestamp: new Date().toISOString() });
+  });
+
+  // Last-chance error handler to capture errors (Sentry if loaded) before default express handler
+  app.use((err, req, res, next) => {
+    try {
+      const sentry = (globalThis).Sentry || (global).Sentry;
+      sentry?.captureException?.(err);
+    } catch {}
+    next(err);
   });
 
   // Audit listing for feature flag changes (admin only)

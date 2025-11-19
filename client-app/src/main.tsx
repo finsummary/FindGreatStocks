@@ -10,10 +10,12 @@ import { HelmetProvider } from 'react-helmet-async';
 import { initGA } from './lib/analytics';
 import { ThemeProvider } from './components/theme-provider';
 import { FeatureFlagsProvider } from './providers/FeatureFlagsProvider';
+import { initSentry } from './lib/sentry';
 
 const queryClient = new QueryClient();
 
 // Initialize Google Analytics
+initSentry();
 initGA();
 
 function Bootstrap() {
