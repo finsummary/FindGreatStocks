@@ -595,12 +595,8 @@ export function setupRoutes(app, supabase) {
   });
 
   // Admin-only: feature flags management
-  app.get('/api/feature-flags', isAuthenticated, async (req, res) => {
+  app.get('/api/feature-flags', requireAdmin, async (req, res) => {
     try {
-      const email = (req.user && req.user.email) ? String(req.user.email).toLowerCase() : '';
-      if (email !== 'findgreatstocks@gmail.com') {
-        return res.status(403).json({ message: 'Forbidden' });
-      }
       const { data, error } = await supabase
         .from('feature_flags')
         .select('key, enabled, rollout_percent, allowlist_emails, updated_at')
@@ -612,12 +608,8 @@ export function setupRoutes(app, supabase) {
     }
   });
 
-  app.post('/api/feature-flags/:key', isAuthenticated, async (req, res) => {
+  app.post('/api/feature-flags/:key', requireAdmin, async (req, res) => {
     try {
-      const email = (req.user && req.user.email) ? String(req.user.email).toLowerCase() : '';
-      if (email !== 'findgreatstocks@gmail.com') {
-        return res.status(403).json({ message: 'Forbidden' });
-      }
       const flagKey = String(req.params.key || '').trim();
       if (!flagKey) return res.status(400).json({ message: 'key is required' });
       const { enabled, rolloutPercent, allowlistEmails } = req.body || {};
@@ -648,7 +640,7 @@ export function setupRoutes(app, supabase) {
       try {
         await supabase.from('feature_flag_audit').insert({
           key: flagKey,
-          actor_email: email,
+          actor_email: (req.user && req.user.email) ? String(req.user.email).toLowerCase() : null,
           prev: prev,
           next: upserted || null,
           changed_at: new Date().toISOString(),
@@ -685,13 +677,9 @@ export function setupRoutes(app, supabase) {
     return res.json({ status: 'ok', commit: COMMIT_SHA, timestamp: new Date().toISOString() });
   });
 
-  // Audit listing for feature flag changes (owner only)
-  app.get('/api/feature-flags/audit', isAuthenticated, async (req, res) => {
+  // Audit listing for feature flag changes (admin only)
+  app.get('/api/feature-flags/audit', requireAdmin, async (req, res) => {
     try {
-      const email = (req.user && req.user.email) ? String(req.user.email).toLowerCase() : '';
-      if (email !== 'findgreatstocks@gmail.com') {
-        return res.status(403).json({ message: 'Forbidden' });
-      }
       const limit = Math.min(parseInt(req.query.limit) || 200, 2000);
       const key = (req.query.key ? String(req.query.key) : '').trim();
       let q = supabase.from('feature_flag_audit').select('*').order('changed_at', { ascending: false }).limit(limit);
