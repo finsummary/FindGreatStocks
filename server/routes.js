@@ -686,7 +686,8 @@ export function setupRoutes(app, supabase) {
             return out;
           };
           const y = padTo(10, last10);
-          const avg = y.filter(v => v !== null).length ? (y.filter(v => v !== null).reduce((a, b) => a + (b as number), 0) / y.filter(v => v !== null).length) : null;
+          const vals = y.filter(v => v !== null).map(v => Number(v));
+          const avg = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length) : null;
           const upd = {
             roic_y1: y[0], roic_y2: y[1], roic_y3: y[2], roic_y4: y[3], roic_y5: y[4],
             roic_y6: y[5], roic_y7: y[6], roic_y8: y[7], roic_y9: y[8], roic_y10: y[9],
