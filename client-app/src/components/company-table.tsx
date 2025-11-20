@@ -94,7 +94,7 @@ export const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'assetTurnover', label: 'Asset Turnover', width: 'w-[84px] sm:w-[110px]', defaultVisible: true },
   { id: 'financialLeverage', label: 'Financial Leverage', width: 'w-[84px] sm:w-[110px]', defaultVisible: true },
   { id: 'roe', label: 'ROE %', width: 'w-[84px] sm:w-[110px]', defaultVisible: true },
-  { id: 'roic', label: 'ROIC %', width: 'w-[84px] sm:w-[110px]', defaultVisible: false },
+  { id: 'roic', label: 'ROIC % (Latest)', width: 'w-[84px] sm:w-[110px]', defaultVisible: false },
   { id: 'roic10YAvg', label: 'ROIC 10Y Avg %', width: 'w-[100px] sm:w-[120px]', defaultVisible: false },
 ];
 
