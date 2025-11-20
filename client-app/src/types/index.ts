@@ -43,6 +43,7 @@ export interface Company {
   latestFcf: number | string | null;
   roic?: number | string | null;
   roic10YAvg?: number | string | null;
+  roic10YStd?: number | string | null;
   isWatched?: boolean;
 }
 

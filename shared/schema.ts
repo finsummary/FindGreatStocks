@@ -70,6 +70,7 @@ export const dowJonesCompanies = pgTable("dow_jones_companies", {
 	roe: numeric({ precision: 10, scale:  4 }),
 	roic: numeric("roic", { precision: 10, scale:  4 }),
 	roic10YAvg: numeric("roic_10y_avg", { precision: 10, scale:  4 }),
+	roic10YStd: numeric("roic_10y_std", { precision: 10, scale:  4 }),
 	roicY1: numeric("roic_y1", { precision: 10, scale:  4 }),
 	roicY2: numeric("roic_y2", { precision: 10, scale:  4 }),
 	roicY3: numeric("roic_y3", { precision: 10, scale:  4 }),

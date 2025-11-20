@@ -710,10 +710,16 @@ export function setupRoutes(app, supabase) {
           const y = padTo(10, last10);
           const vals = y.filter(v => v !== null).map(v => Number(v));
           const avg = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+          let std = null;
+          if (vals.length >= 2 && avg !== null) {
+            const variance = vals.reduce((acc, v) => acc + Math.pow(v - avg, 2), 0) / vals.length; // population std
+            std = Math.sqrt(variance);
+          }
           const upd = {
             roic_y1: y[0], roic_y2: y[1], roic_y3: y[2], roic_y4: y[3], roic_y5: y[4],
             roic_y6: y[5], roic_y7: y[6], roic_y8: y[7], roic_y9: y[8], roic_y10: y[9],
             roic_10y_avg: avg,
+            roic_10y_std: std,
           };
           for (const t of tables) {
             try { await supabase.from(t).update(upd).eq('symbol', sym); } catch {}
@@ -760,6 +766,55 @@ export function setupRoutes(app, supabase) {
     } catch (e) {
       console.error('dcf/recompute-mos-all error:', e);
       return res.status(500).json({ message: 'Failed to recompute MoS for all tables' });
+    }
+  });
+
+  // Recompute 10Y ROIC series and average for specific symbols
+  app.post('/api/metrics/recompute-roic-10y', requireAdmin, async (req, res) => {
+    try {
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      const fetchJson = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); };
+      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies', 'ftse100_companies'];
+      const symbolsParam = (req.query.symbols || req.body?.symbols || '').toString();
+      const symbols = symbolsParam.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      if (!symbols.length) return res.status(400).json({ message: 'Provide symbols as comma-separated list in ?symbols=' });
+      const results = [];
+      for (const sym of symbols) {
+        try {
+          const kmData = await fetchJson(`https://financialmodelingprep.com/api/v3/key-metrics/${sym}?period=annual&limit=12&apikey=${apiKey}`);
+          const arr = Array.isArray(kmData) ? kmData : [];
+          const series = arr.map(r => r && (r.roic ?? r.ROIC)).filter(v => v !== undefined && v !== null).map(Number);
+          const norm = series.map(v => (isFinite(v) && v > 1.5 ? v / 100 : v)).filter(v => isFinite(v));
+          const last10 = norm.slice(0, 10);
+          const padTo = (n, list) => { const out = [...list]; while (out.length < n) out.push(null); return out; };
+          const y = padTo(10, last10);
+          const vals = y.filter(v => v !== null).map(v => Number(v));
+          const avg = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+          let std = null;
+          if (vals.length >= 2 && avg !== null) {
+            const variance = vals.reduce((acc, v) => acc + Math.pow(v - avg, 2), 0) / vals.length;
+            std = Math.sqrt(variance);
+          }
+          const upd = {
+            roic_y1: y[0], roic_y2: y[1], roic_y3: y[2], roic_y4: y[3], roic_y5: y[4],
+            roic_y6: y[5], roic_y7: y[6], roic_y8: y[7], roic_y9: y[8], roic_y10: y[9],
+            roic_10y_avg: avg,
+            roic_10y_std: std,
+          };
+          for (const t of tables) {
+            try { await supabase.from(t).update(upd).eq('symbol', sym); } catch {}
+          }
+          results.push({ symbol: sym, updated: true, avg });
+        } catch (e) {
+          results.push({ symbol: sym, updated: false, error: e?.message || 'unknown' });
+        }
+        await new Promise(r => setTimeout(r, 100));
+      }
+      return res.json({ status: 'ok', results });
+    } catch (e) {
+      console.error('metrics/recompute-roic-10y error:', e);
+      return res.status(500).json({ message: 'Failed to recompute ROIC 10Y' });
     }
   });
 
@@ -1235,6 +1290,7 @@ export function setupRoutes(app, supabase) {
     roe: 'roe',
     roic: 'roic',
     roic10YAvg: 'roic_10y_avg',
+    roic10YStd: 'roic_10y_std',
   };
 
   async function listCompanies(req, res) {
@@ -1427,7 +1483,7 @@ export function setupRoutes(app, supabase) {
       // Overlay/fallback enrichment from master companies table for fresher metrics
       const symbols = rows.map(r => r.symbol).filter(Boolean);
       if (symbols.length) {
-        const cols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, total_assets, total_equity, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic';
+        const cols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, total_assets, total_equity, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg';
         const { data: master, error: mErr } = await supabase.from('companies').select(cols).in('symbol', symbols);
         if (!mErr && Array.isArray(master)) {
           const bySym = new Map(master.map(m => [m.symbol, m]));

@@ -95,7 +95,8 @@ export const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'financialLeverage', label: 'Financial Leverage', width: 'w-[84px] sm:w-[110px]', defaultVisible: true },
   { id: 'roe', label: 'ROE %', width: 'w-[84px] sm:w-[110px]', defaultVisible: true },
   { id: 'roic', label: 'ROIC % (Latest)', width: 'w-[84px] sm:w-[110px]', defaultVisible: false },
-  { id: 'roic10YAvg', label: 'ROIC 10Y Avg %', width: 'w-[100px] sm:w-[120px]', defaultVisible: false },
+  { id: 'roic10YAvg', label: 'ROIC 10Y Avg %', width: 'w-[110px] sm:w-[130px]', defaultVisible: false },
+  { id: 'roic10YStd', label: 'ROIC 10Y Volatility %', width: 'w-[130px] sm:w-[150px]', defaultVisible: false },
 ];
 
 const PRESET_LAYOUTS = {
@@ -118,7 +119,7 @@ const PRESET_LAYOUTS = {
   // Placeholder: we'll expand with ROIC etc. later; safe existing columns for now
   'compounders': {
     name: 'Compounders (ROIC, FCF)',
-    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'revenueGrowth10Y', 'roic', 'roic10YAvg'],
+    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'revenueGrowth10Y', 'roic', 'roic10YAvg', 'roic10YStd'],
   },
 };
 
@@ -248,7 +249,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       'maxDrawdown3Year', 'maxDrawdown5Year', 'maxDrawdown10Year',
       'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
       'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-            'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'dcfVerdict'
+            'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'dcfVerdict'
     ];
 
     const defaultVisibility = ALL_COLUMNS.reduce((acc, col) => {
@@ -293,7 +294,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           'maxDrawdown3Year', 'maxDrawdown5Year', 'maxDrawdown10Year',
           'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
           'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-          'assetTurnover', 'financialLeverage', 'roe', 'dcfVerdict'
+          'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'dcfVerdict'
         ];
         const vis = { ...(prefs.columnVisibility || {}) } as VisibilityState;
         if (!isPaidUser && dataset !== 'dowjones') {
@@ -669,6 +670,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           roe: row.roe,
           roic: row.roic,
           roic10YAvg: row.roic_10y_avg,
+          roic10YStd: row.roic_10y_std,
           assetTurnover: row.asset_turnover,
           financialLeverage: row.financial_leverage,
         });
@@ -1065,6 +1067,22 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                   cellContent = <Badge variant="outline" className={`${avgClass} font-mono`}>{formatPercentage(roic10Pct, true, 1)}</Badge>;
                 }
                 break;
+            case 'roic10YStd':
+                const roicStd = row.roic10YStd as number | null;
+                if (roicStd === null || roicStd === undefined) {
+                  cellContent = <Badge variant="outline" className="font-mono text-muted-foreground">N/A</Badge>;
+                } else {
+                  const roicStdPct = Number(roicStd) * 100;
+                  // Ниже — чем меньше волатильность, тем лучше (зелёный)
+                  let stdClass = "text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950";
+                  if (roicStdPct > 15) {
+                    stdClass = "text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950";
+                  } else if (roicStdPct > 8) {
+                    stdClass = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
+                  }
+                  cellContent = <Badge variant="outline" className={`${stdClass} font-mono`}>{formatPercentage(roicStdPct, true, 1)}</Badge>;
+                }
+                break;
             default:
                 cellContent = <span className="text-muted-foreground">-</span>;
               break;
@@ -1347,7 +1365,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                         'maxDrawdown3Year', 'maxDrawdown5Year', 'maxDrawdown10Year',
                         'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
                         'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-                        'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'dcfVerdict'
+                        'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'dcfVerdict'
                       ];
 
                       const isLocked = !isPaidUser && dataset !== 'dowjones' && lockedColumns.includes(colConfig.id);
