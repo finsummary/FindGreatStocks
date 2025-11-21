@@ -44,6 +44,7 @@ export interface Company {
   roic?: number | string | null;
   roic10YAvg?: number | string | null;
   roic10YStd?: number | string | null;
+  roicStability?: number | string | null;
   isWatched?: boolean;
 }
 
