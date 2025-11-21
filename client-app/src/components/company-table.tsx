@@ -547,13 +547,15 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         string,
       ];
 
+      const isDerived = currentSortBy === 'roicStability' || currentSortBy === 'roicStabilityScore';
       const params = new URLSearchParams({
-        offset: String(page * limit),
-        limit: String(limit),
+        offset: String(isDerived ? 0 : (page * limit)),
+        // fetch all to sort client-side when derived sorting is requested
+        limit: String(isDerived ? 5000 : limit),
       });
 
-      // Only add sorting parameters if a sort order is actually selected
-      if (currentSortBy && currentSortBy !== 'none') {
+      // Only add server-side sorting if not a derived column
+      if (currentSortBy && currentSortBy !== 'none' && !isDerived) {
         params.append("sortBy", currentSortBy);
         params.append("sortOrder", sortOrder);
       }
@@ -731,20 +733,32 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         }
       } catch {}
       try {
+        // Derive runtime fields needed for client-side sorting (e.g., stability/score)
+        if (json?.companies) {
+          json.companies = json.companies.map((c: any) => {
+            const avg = (c.roic10YAvg != null) ? Number(c.roic10YAvg) : (c.roic_10y_avg != null ? Number(c.roic_10y_avg) : null);
+            const std = (c.roic10YStd != null) ? Number(c.roic10YStd) : (c.roic_10y_std != null ? Number(c.roic_10y_std) : null);
+            const ratio = (avg != null && std != null && isFinite(std) && std > 0) ? (avg / std) : null;
+            const score = (ratio != null) ? Math.min(100, Math.max(0, ratio * 30)) : null;
+            return { ...c, roicStability: ratio, roicStabilityScore: score };
+          });
+        }
         if (json?.companies && currentSortBy && currentSortBy !== 'none') {
           const rows = [...json.companies];
           const asc = (String(sortOrder).toLowerCase() === 'asc');
-          const toNum = (v: any) => {
-            if (v === null || v === undefined) return Number.NEGATIVE_INFINITY;
-            if (typeof v === 'number') return v;
-            const n = parseFloat(String(v).replace(/[%,$\s]/g, ''));
-            return Number.isNaN(n) ? Number.NEGATIVE_INFINITY : n;
-          };
           rows.sort((a: any, b: any) => {
-            const na = toNum(a?.[currentSortBy]);
-            const nb = toNum(b?.[currentSortBy]);
-            if (na === nb) return 0;
-            return asc ? (na - nb) : (nb - na);
+            const va = a?.[currentSortBy];
+            const vb = b?.[currentSortBy];
+            const aNull = (va === null || va === undefined);
+            const bNull = (vb === null || vb === undefined);
+            if (aNull && bNull) return 0;
+            if (aNull) return 1; // nulls last
+            if (bNull) return -1;
+            const na = (typeof va === 'number') ? va : parseFloat(String(va).replace(/[%,$\s]/g, ''));
+            const nb = (typeof vb === 'number') ? vb : parseFloat(String(vb).replace(/[%,$\s]/g, ''));
+            if (!Number.isNaN(na) && !Number.isNaN(nb)) return asc ? (na - nb) : (nb - na);
+            // fallback to string compare
+            return asc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
           });
           json.companies = rows;
         }
@@ -769,7 +783,11 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         const explicit = (company as any).isWatched;
         const base = typeof explicit === 'boolean' ? explicit : watchlistSymbols.has(company.symbol);
         const isWatched = typeof override === 'boolean' ? override : base;
-        return { ...company, isWatched } as any;
+        const avg = (company.roic10YAvg != null) ? Number(company.roic10YAvg) : null;
+        const std = (company.roic10YStd != null) ? Number(company.roic10YStd) : null;
+        const ratio = (avg != null && std != null && isFinite(std) && std > 0) ? (avg / std) : null;
+        const score = (ratio != null) ? Math.min(100, Math.max(0, ratio * 30)) : null;
+        return { ...company, isWatched, roicStability: ratio, roicStabilityScore: score } as any;
       });
     }
     return [];
@@ -1119,6 +1137,31 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
               break;
           }
           return cellContent;
+        },
+        sortingFn: (rowA, rowB, colId) => {
+          const numericCols = new Set([
+            'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore',
+            'marketCap','price','peRatio','priceToSalesRatio','dividendYield',
+            'return3Year','return5Year','return10Year','maxDrawdown3Year','maxDrawdown5Year','maxDrawdown10Year',
+            'arMddRatio3Year','arMddRatio5Year','arMddRatio10Year','dcfEnterpriseValue','marginOfSafety','dcfImpliedGrowth'
+          ]);
+          const a = rowA.getValue(colId) as any;
+          const b = rowB.getValue(colId) as any;
+          if (!numericCols.has(colId)) {
+            const sa = String(a ?? '');
+            const sb = String(b ?? '');
+            return sa.localeCompare(sb);
+          }
+          const toNum = (v: any) => {
+            if (v === null || v === undefined) return Number.NEGATIVE_INFINITY;
+            if (typeof v === 'number') return v;
+            const n = parseFloat(String(v).replace(/[%,$\s]/g, ''));
+            return Number.isNaN(n) ? Number.NEGATIVE_INFINITY : n;
+          };
+          const va = toNum(a);
+          const vb = toNum(b);
+          if (va === vb) return 0;
+          return va < vb ? -1 : 1;
         },
         meta: {
           columnConfig: colConfig,
