@@ -96,7 +96,7 @@ export const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'roe', label: 'ROE %', width: 'w-[84px] sm:w-[110px]', defaultVisible: true },
   { id: 'roic', label: 'ROIC % (Latest)', width: 'w-[84px] sm:w-[110px]', defaultVisible: false },
   { id: 'roic10YAvg', label: 'ROIC 10Y Avg %', width: 'w-[110px] sm:w-[130px]', defaultVisible: false },
-  { id: 'roic10YStd', label: 'ROIC 10Y Volatility %', width: 'w-[130px] sm:w-[150px]', defaultVisible: false },
+  { id: 'roic10YStd', label: 'ROIC Volatility %', width: 'w-[130px] sm:w-[150px]', defaultVisible: false },
 ];
 
 const PRESET_LAYOUTS = {
