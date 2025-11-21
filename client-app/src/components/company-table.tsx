@@ -577,7 +577,13 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         if (!allRes.ok) throw new Error('Failed to fetch companies-all');
         const allJson = await allRes.json();
         const allBySym = new Map((allJson?.companies || []).map((c: any) => [c.symbol, c]));
-        let rows = wlSymbols.map(sym => allBySym.get(sym)).filter(Boolean);
+        let rows = wlSymbols.map(sym => allBySym.get(sym)).filter(Boolean).map((c: any) => {
+          const avg = (c.roic10YAvg != null) ? Number(c.roic10YAvg) : (c.roic_10y_avg != null ? Number(c.roic_10y_avg) : null);
+          const std = (c.roic10YStd != null) ? Number(c.roic10YStd) : (c.roic_10y_std != null ? Number(c.roic_10y_std) : null);
+          const ratio = (avg != null && std != null && isFinite(std) && std > 0) ? (avg / std) : null;
+          const score = (ratio != null) ? Math.min(100, Math.max(0, ratio * 30)) : null;
+          return { ...c, roicStability: ratio, roicStabilityScore: score };
+        });
         // Фильтрация по поиску (если задан)
         if (search) {
           const s = String(search).toLowerCase();
@@ -1311,6 +1317,11 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     if (dataset === 'watchlist') {
       return;
     }
+    const isDerivedSort = sortBy === 'roicStability' || sortBy === 'roicStabilityScore';
+    // Для производных колонок пропускаем префетч, чтобы не кэшировать серверно отсортированные страницы
+    if (isDerivedSort) {
+      return;
+    }
     const datasets: Array<{ key: CompanyTableProps['dataset']; endpoint: string }> = [
       { key: 'sp500', endpoint: '/api/sp500' },
       { key: 'nasdaq100', endpoint: '/api/nasdaq100' },
@@ -1323,7 +1334,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     const pagesToPrefetchCurrent = [page + 1, page + 2].filter(p => p >= 0);
     for (const p of pagesToPrefetchCurrent) {
       const params = new URLSearchParams({ offset: String(p * limit), limit: String(limit) });
-      if (sortBy && sortBy !== 'none') { params.append('sortBy', sortBy); params.append('sortOrder', sortOrder); }
+      if (sortBy && sortBy !== 'none' && !isDerivedSort) { params.append('sortBy', sortBy); params.append('sortOrder', sortOrder); }
       if (searchQuery) params.append('search', searchQuery);
       const qk = [current.endpoint, p, sortBy, sortOrder, searchQuery] as const;
       queryClient.prefetchQuery({
@@ -1342,7 +1353,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     for (const d of others) {
       for (const p of [0, 1, 2]) {
         const params = new URLSearchParams({ offset: String(p * limit), limit: String(limit) });
-        if (sortBy && sortBy !== 'none') { params.append('sortBy', sortBy); params.append('sortOrder', sortOrder); }
+        if (sortBy && sortBy !== 'none' && !isDerivedSort) { params.append('sortBy', sortBy); params.append('sortOrder', sortOrder); }
         if (searchQuery) params.append('search', searchQuery);
         const qk = [d.endpoint, p, sortBy, sortOrder, searchQuery] as const;
         queryClient.prefetchQuery({
