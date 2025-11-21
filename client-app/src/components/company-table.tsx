@@ -98,6 +98,7 @@ export const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'roic10YAvg', label: 'ROIC 10Y Avg %', width: 'w-[110px] sm:w-[130px]', defaultVisible: false },
   { id: 'roic10YStd', label: 'ROIC Volatility %', width: 'w-[130px] sm:w-[150px]', defaultVisible: false },
   { id: 'roicStability', label: 'ROIC Stability Ratio', width: 'w-[120px] sm:w-[140px]', defaultVisible: false },
+  { id: 'roicStabilityScore', label: 'ROIC Stability Score', width: 'w-[130px] sm:w-[150px]', defaultVisible: false },
 ];
 
 const PRESET_LAYOUTS = {
@@ -120,7 +121,7 @@ const PRESET_LAYOUTS = {
   // Placeholder: we'll expand with ROIC etc. later; safe existing columns for now
   'compounders': {
     name: 'Compounders (ROIC, FCF)',
-    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'revenueGrowth10Y', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability'],
+    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'revenueGrowth10Y', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore'],
   },
 };
 
@@ -1098,6 +1099,21 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                 }
                 break;
             }
+            case 'roicStabilityScore': {
+                const avg = row.roic10YAvg as number | null;
+                const std = row.roic10YStd as number | null;
+                if (avg == null || std == null || !isFinite(Number(std)) || Number(std) <= 0) {
+                  cellContent = <Badge variant="outline" className="font-mono text-muted-foreground">N/A</Badge>;
+                } else {
+                  const ratio = Number(avg) / Number(std);
+                  const score = Math.min(100, Math.max(0, ratio * 30));
+                  let cls = "text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950";
+                  if (score >= 70) cls = "text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950";
+                  else if (score >= 30) cls = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
+                  cellContent = <Badge variant="outline" className={`${cls} font-mono`}>{formatNumber(score, 0)}</Badge>;
+                }
+                break;
+            }
             default:
                 cellContent = <span className="text-muted-foreground">-</span>;
               break;
@@ -1342,7 +1358,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                     'maxDrawdown5Year', 'maxDrawdown10Year',
                     'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
                     'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-                    'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability'
+                    'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore'
                   ];
                   const isLocked = !isPaidUser && dataset !== 'dowjones' && lockedColumns.includes(col.id);
 
@@ -1380,7 +1396,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                         'maxDrawdown3Year', 'maxDrawdown5Year', 'maxDrawdown10Year',
                         'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
                         'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-                        'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'dcfVerdict'
+            'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'dcfVerdict'
                       ];
 
                       const isLocked = !isPaidUser && dataset !== 'dowjones' && lockedColumns.includes(colConfig.id);
