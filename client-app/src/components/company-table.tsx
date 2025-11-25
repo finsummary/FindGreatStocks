@@ -75,6 +75,7 @@ export const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'dividendYield', label: 'Dividend Yield', width: 'w-[80px] sm:w-[100px]', defaultVisible: true },
   { id: 'netProfitMargin', label: 'Net Profit Margin', width: 'w-[96px] sm:w-[120px]', defaultVisible: false },
   { id: 'freeCashFlow', label: 'Free Cash Flow', width: 'w-[100px] sm:w-[120px]', defaultVisible: true },
+  { id: 'fcfMargin', label: 'FCF Margin %', width: 'w-[90px] sm:w-[110px]', defaultVisible: false },
   { id: 'revenueGrowth3Y', label: 'Rev G 3Y', width: 'w-[72px] sm:w-[90px]', defaultVisible: false },
   { id: 'revenueGrowth5Y', label: 'Rev G 5Y', width: 'w-[72px] sm:w-[90px]', defaultVisible: false },
   { id: 'revenueGrowth10Y', label: 'Rev G 10Y', width: 'w-[72px] sm:w-[90px]', defaultVisible: true },
@@ -121,7 +122,7 @@ const PRESET_LAYOUTS = {
   // Placeholder: we'll expand with ROIC etc. later; safe existing columns for now
   'compounders': {
     name: 'Compounders (ROIC, FCF)',
-    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'revenueGrowth10Y', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore'],
+    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'fcfMargin', 'revenueGrowth10Y', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore'],
   },
 };
 
@@ -183,6 +184,7 @@ const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlis
   assetTurnover: 'Measures how efficiently a company uses its assets to generate revenue. Calculated as Total Revenue / Total Assets.',
   financialLeverage: 'Measures the extent to which a company uses debt to finance its assets. Calculated as Total Assets / Total Equity.',
   roe: 'Return on Equity measures a company\'s profitability in relation to stockholders\' equity. Calculated as Net Income / Total Equity.',
+  fcfMargin: 'Free Cash Flow Margin = Free Cash Flow ÷ Revenue. Shows how much cash is generated from each dollar of sales.',
   roic: 'ROIC % (Latest) = Return on Invested Capital using the most recent fiscal year. Shows how efficiently a company generates returns on its invested capital.',
   roic10YAvg: 'Average ROIC % over the last 10 fiscal years (or available history). Higher means consistently strong capital efficiency.',
   roic10YStd: 'ROIC Volatility % = Standard deviation of annual ROIC over the last 10 years. Lower values mean more stable returns.',
@@ -256,7 +258,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       'maxDrawdown3Year', 'maxDrawdown5Year', 'maxDrawdown10Year',
       'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
       'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-            'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'dcfVerdict'
+            'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'fcfMargin', 'dcfVerdict'
     ];
 
     const defaultVisibility = ALL_COLUMNS.reduce((acc, col) => {
@@ -301,7 +303,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           'maxDrawdown3Year', 'maxDrawdown5Year', 'maxDrawdown10Year',
           'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
           'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-          'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'dcfVerdict'
+          'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'fcfMargin', 'dcfVerdict'
         ];
         const vis = { ...(prefs.columnVisibility || {}) } as VisibilityState;
         if (!isPaidUser && dataset !== 'dowjones') {
@@ -552,7 +554,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         string,
       ];
 
-      const isDerived = currentSortBy === 'roicStability' || currentSortBy === 'roicStabilityScore';
+      const isDerived = currentSortBy === 'roicStability' || currentSortBy === 'roicStabilityScore' || currentSortBy === 'fcfMargin';
       const params = new URLSearchParams({
         offset: String(isDerived ? 0 : (page * limit)),
         // fetch all to sort client-side when derived sorting is requested
@@ -587,7 +589,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           const std = (c.roic10YStd != null) ? Number(c.roic10YStd) : (c.roic_10y_std != null ? Number(c.roic_10y_std) : null);
           const ratio = (avg != null && std != null && isFinite(std) && std > 0) ? (avg / std) : null;
           const score = (ratio != null) ? Math.min(100, Math.max(0, ratio * 30)) : null;
-          return { ...c, roicStability: ratio, roicStabilityScore: score };
+          const revenue = c.revenue != null ? Number(c.revenue) : (c.revenue_ttm != null ? Number(c.revenue_ttm) : null);
+          const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : (c.free_cash_flow != null ? Number(c.free_cash_flow) : null);
+          const fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+          return { ...c, roicStability: ratio, roicStabilityScore: score, fcfMargin };
         });
         // Фильтрация по поиску (если задан)
         if (search) {
@@ -689,7 +694,16 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           assetTurnover: row.asset_turnover,
           financialLeverage: row.financial_leverage,
         });
-        const companies = (rows || []).map(mapRow);
+        const companies = (rows || []).map(mapRow).map((c) => {
+          const avg = c.roic10YAvg != null ? Number(c.roic10YAvg) : null;
+          const std = c.roic10YStd != null ? Number(c.roic10YStd) : null;
+          const ratio = (avg !== null && std !== null && isFinite(std) && std > 0) ? (avg / std) : null;
+          const score = (ratio != null) ? Math.min(100, Math.max(0, ratio * 30)) : null;
+          const revenue = c.revenue != null ? Number(c.revenue) : null;
+          const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : null;
+          const fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+          return { ...c, roicStability: ratio, roicStabilityScore: score, fcfMargin };
+        });
         // Client-side sort, same as below
         if (currentSortBy && currentSortBy !== 'none') {
           const asc = (String(sortOrder).toLowerCase() === 'asc');
@@ -751,7 +765,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
             const std = (c.roic10YStd != null) ? Number(c.roic10YStd) : (c.roic_10y_std != null ? Number(c.roic_10y_std) : null);
             const ratio = (avg != null && std != null && isFinite(std) && std > 0) ? (avg / std) : null;
             const score = (ratio != null) ? Math.min(100, Math.max(0, ratio * 30)) : null;
-            return { ...c, roicStability: ratio, roicStabilityScore: score };
+            const revenue = c.revenue != null ? Number(c.revenue) : (c.revenue_ttm != null ? Number(c.revenue_ttm) : null);
+            const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : (c.free_cash_flow != null ? Number(c.free_cash_flow) : null);
+            const fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+            return { ...c, roicStability: ratio, roicStabilityScore: score, fcfMargin };
           });
         }
         if (json?.companies && currentSortBy && currentSortBy !== 'none') {
@@ -798,7 +815,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         const std = (company.roic10YStd != null) ? Number(company.roic10YStd) : null;
         const ratio = (avg != null && std != null && isFinite(std) && std > 0) ? (avg / std) : null;
         const score = (ratio != null) ? Math.min(100, Math.max(0, ratio * 30)) : null;
-        return { ...company, isWatched, roicStability: ratio, roicStabilityScore: score } as any;
+        const revenue = company.revenue != null ? Number(company.revenue) : null;
+        const fcf = company.freeCashFlow != null ? Number(company.freeCashFlow) : null;
+        const fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+        return { ...company, isWatched, roicStability: ratio, roicStabilityScore: score, fcfMargin } as any;
       });
     }
     return [];
@@ -941,6 +961,19 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
             case 'freeCashFlow':
               cellContent = <div className="font-mono">{formatMarketCap(row.freeCashFlow)}</div>;
               break;
+            case 'fcfMargin': {
+              const margin = row.fcfMargin;
+              if (margin == null || !isFinite(Number(margin))) {
+                cellContent = <Badge variant="outline" className="font-mono text-muted-foreground">N/A</Badge>;
+              } else {
+                const value = Number(margin);
+                let cls = "text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950";
+                if (value >= 0.15) cls = "text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950";
+                else if (value >= 0.05) cls = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
+                cellContent = <Badge variant="outline" className={`${cls} font-mono`}>{formatPercentageFromDecimal(value, true)}</Badge>;
+              }
+              break;
+            }
             case 'revenueGrowth3Y':
               cellContent = <div className="font-mono">{formatPercentage(row.revenueGrowth3Y, false, 1)}</div>;
               break;
@@ -1151,7 +1184,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         },
         sortingFn: (rowA, rowB, colId) => {
           const numericCols = new Set([
-            'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore',
+            'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'fcfMargin',
             'marketCap','price','peRatio','priceToSalesRatio','dividendYield',
             'return3Year','return5Year','return10Year','maxDrawdown3Year','maxDrawdown5Year','maxDrawdown10Year',
             'arMddRatio3Year','arMddRatio5Year','arMddRatio10Year','dcfEnterpriseValue','marginOfSafety','dcfImpliedGrowth'
@@ -1255,7 +1288,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       'arMddRatio3Year','arMddRatio5Year','arMddRatio10Year',
       'return3Year','return5Year','return10Year',
       'maxDrawdown3Year','maxDrawdown5Year','maxDrawdown10Year',
-      'price','marketCap','peRatio','priceToSalesRatio','dividendYield'
+      'price','marketCap','peRatio','priceToSalesRatio','dividendYield','fcfMargin','roic','roic10YAvg','roic10YStd','roicStability','roicStabilityScore'
     ]);
     let nextOrder: 'asc' | 'desc' = 'asc';
     if (sortBy === column) {
@@ -1322,7 +1355,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     if (dataset === 'watchlist') {
       return;
     }
-    const isDerivedSort = sortBy === 'roicStability' || sortBy === 'roicStabilityScore';
+    const isDerivedSort = sortBy === 'roicStability' || sortBy === 'roicStabilityScore' || sortBy === 'fcfMargin';
     // Для производных колонок пропускаем префетч, чтобы не кэшировать серверно отсортированные страницы
     if (isDerivedSort) {
       return;
@@ -1417,7 +1450,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                     'maxDrawdown5Year', 'maxDrawdown10Year',
                     'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
                     'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-                    'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore'
+                    'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'fcfMargin'
                   ];
                   const isLocked = !isPaidUser && dataset !== 'dowjones' && lockedColumns.includes(col.id);
 
@@ -1455,7 +1488,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                         'maxDrawdown3Year', 'maxDrawdown5Year', 'maxDrawdown10Year',
                         'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
                         'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-            'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'dcfVerdict'
+            'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'fcfMargin', 'dcfVerdict'
                       ];
 
                       const isLocked = !isPaidUser && dataset !== 'dowjones' && lockedColumns.includes(colConfig.id);

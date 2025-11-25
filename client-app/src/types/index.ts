@@ -46,6 +46,7 @@ export interface Company {
   roic10YStd?: number | string | null;
   roicStability?: number | string | null;
   roicStabilityScore?: number | string | null;
+  fcfMargin?: number | string | null;
   isWatched?: boolean;
 }
 
