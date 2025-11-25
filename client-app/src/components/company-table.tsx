@@ -183,6 +183,11 @@ const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlis
   assetTurnover: 'Measures how efficiently a company uses its assets to generate revenue. Calculated as Total Revenue / Total Assets.',
   financialLeverage: 'Measures the extent to which a company uses debt to finance its assets. Calculated as Total Assets / Total Equity.',
   roe: 'Return on Equity measures a company\'s profitability in relation to stockholders\' equity. Calculated as Net Income / Total Equity.',
+  roic: 'ROIC % (Latest) = Return on Invested Capital using the most recent fiscal year. Shows how efficiently a company generates returns on its invested capital.',
+  roic10YAvg: 'Average ROIC % over the last 10 fiscal years (or available history). Higher means consistently strong capital efficiency.',
+  roic10YStd: 'ROIC Volatility % = Standard deviation of annual ROIC over the last 10 years. Lower values mean more stable returns.',
+  roicStability: 'ROIC Stability Ratio = ROIC 10Y Average ÷ ROIC Volatility. Higher indicates strong returns with low variability.',
+  roicStabilityScore: 'ROIC Stability Score = min(100, ROIC Stability Ratio × 30). Green ≥70, Yellow 30-69, Red <30.',
 };
 
 
