@@ -76,6 +76,7 @@ export const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'netProfitMargin', label: 'Net Profit Margin', width: 'w-[96px] sm:w-[120px]', defaultVisible: false },
   { id: 'freeCashFlow', label: 'Free Cash Flow', width: 'w-[100px] sm:w-[120px]', defaultVisible: true },
   { id: 'fcfMargin', label: 'FCF Margin %', width: 'w-[90px] sm:w-[110px]', defaultVisible: false },
+  { id: 'fcfMarginMedian10Y', label: 'FCF Margin 10Y Median %', width: 'w-[120px] sm:w-[150px]', defaultVisible: false },
   { id: 'revenueGrowth3Y', label: 'Rev G 3Y', width: 'w-[72px] sm:w-[90px]', defaultVisible: false },
   { id: 'revenueGrowth5Y', label: 'Rev G 5Y', width: 'w-[72px] sm:w-[90px]', defaultVisible: false },
   { id: 'revenueGrowth10Y', label: 'Rev G 10Y', width: 'w-[72px] sm:w-[90px]', defaultVisible: true },
@@ -122,7 +123,7 @@ const PRESET_LAYOUTS = {
   // Placeholder: we'll expand with ROIC etc. later; safe existing columns for now
   'compounders': {
     name: 'Compounders (ROIC, FCF)',
-    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'fcfMargin', 'revenueGrowth10Y', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore'],
+    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'fcfMargin', 'fcfMarginMedian10Y', 'revenueGrowth10Y', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore'],
   },
 };
 
@@ -185,6 +186,7 @@ const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlis
   financialLeverage: 'Measures the extent to which a company uses debt to finance its assets. Calculated as Total Assets / Total Equity.',
   roe: 'Return on Equity measures a company\'s profitability in relation to stockholders\' equity. Calculated as Net Income / Total Equity.',
   fcfMargin: 'Free Cash Flow Margin = Free Cash Flow ÷ Revenue. Shows how much cash is generated from each dollar of sales.',
+  fcfMarginMedian10Y: 'Median FCF margin over the last 10 fiscal years (FCF ÷ Revenue each year). Higher median indicates consistently strong cash conversion.',
   roic: 'ROIC % (Latest) = Return on Invested Capital using the most recent fiscal year. Shows how efficiently a company generates returns on its invested capital.',
   roic10YAvg: 'Average ROIC % over the last 10 fiscal years (or available history). Higher means consistently strong capital efficiency.',
   roic10YStd: 'ROIC Volatility % = Standard deviation of annual ROIC over the last 10 years. Lower values mean more stable returns.',
@@ -258,7 +260,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       'maxDrawdown3Year', 'maxDrawdown5Year', 'maxDrawdown10Year',
       'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
       'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-            'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'fcfMargin', 'dcfVerdict'
+            'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'fcfMargin', 'fcfMarginMedian10Y', 'dcfVerdict'
     ];
 
     const defaultVisibility = ALL_COLUMNS.reduce((acc, col) => {
@@ -303,7 +305,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           'maxDrawdown3Year', 'maxDrawdown5Year', 'maxDrawdown10Year',
           'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
           'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-          'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'fcfMargin', 'dcfVerdict'
+          'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'fcfMargin', 'fcfMarginMedian10Y', 'dcfVerdict'
         ];
         const vis = { ...(prefs.columnVisibility || {}) } as VisibilityState;
         if (!isPaidUser && dataset !== 'dowjones') {
@@ -592,7 +594,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           const revenue = c.revenue != null ? Number(c.revenue) : (c.revenue_ttm != null ? Number(c.revenue_ttm) : null);
           const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : (c.free_cash_flow != null ? Number(c.free_cash_flow) : null);
           const fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
-          return { ...c, roicStability: ratio, roicStabilityScore: score, fcfMargin };
+          const median = (c.fcf_margin_median_10y != null) ? Number(c.fcf_margin_median_10y) : (c.fcfMarginMedian10Y != null ? Number(c.fcfMarginMedian10Y) : null);
+          return { ...c, roicStability: ratio, roicStabilityScore: score, fcfMargin, fcfMarginMedian10Y: median };
         });
         // Фильтрация по поиску (если задан)
         if (search) {
@@ -691,6 +694,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           roic: row.roic,
           roic10YAvg: row.roic_10y_avg,
           roic10YStd: row.roic_10y_std,
+          fcfMarginMedian10Y: row.fcf_margin_median_10y,
           assetTurnover: row.asset_turnover,
           financialLeverage: row.financial_leverage,
         });
@@ -702,7 +706,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
           const revenue = c.revenue != null ? Number(c.revenue) : null;
           const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : null;
           const fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
-          return { ...c, roicStability: ratio, roicStabilityScore: score, fcfMargin };
+          const median = c.fcfMarginMedian10Y != null ? Number(c.fcfMarginMedian10Y) : null;
+          return { ...c, roicStability: ratio, roicStabilityScore: score, fcfMargin, fcfMarginMedian10Y: median };
         });
         // Client-side sort, same as below
         if (currentSortBy && currentSortBy !== 'none') {
@@ -768,7 +773,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
             const revenue = c.revenue != null ? Number(c.revenue) : (c.revenue_ttm != null ? Number(c.revenue_ttm) : null);
             const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : (c.free_cash_flow != null ? Number(c.free_cash_flow) : null);
             const fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
-            return { ...c, roicStability: ratio, roicStabilityScore: score, fcfMargin };
+            const median = (c.fcf_margin_median_10y != null) ? Number(c.fcf_margin_median_10y) : (c.fcfMarginMedian10Y != null ? Number(c.fcfMarginMedian10Y) : null);
+            return { ...c, roicStability: ratio, roicStabilityScore: score, fcfMargin, fcfMarginMedian10Y: median };
           });
         }
         if (json?.companies && currentSortBy && currentSortBy !== 'none') {
@@ -818,7 +824,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         const revenue = company.revenue != null ? Number(company.revenue) : null;
         const fcf = company.freeCashFlow != null ? Number(company.freeCashFlow) : null;
         const fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
-        return { ...company, isWatched, roicStability: ratio, roicStabilityScore: score, fcfMargin } as any;
+        const fcfMarginMedian10Y = (company as any).fcfMarginMedian10Y ?? (company as any).fcf_margin_median_10y ?? null;
+        return { ...company, isWatched, roicStability: ratio, roicStabilityScore: score, fcfMargin, fcfMarginMedian10Y } as any;
       });
     }
     return [];
@@ -963,6 +970,19 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
               break;
             case 'fcfMargin': {
               const margin = row.fcfMargin;
+              if (margin == null || !isFinite(Number(margin))) {
+                cellContent = <Badge variant="outline" className="font-mono text-muted-foreground">N/A</Badge>;
+              } else {
+                const value = Number(margin);
+                let cls = "text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950";
+                if (value >= 0.15) cls = "text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950";
+                else if (value >= 0.05) cls = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
+                cellContent = <Badge variant="outline" className={`${cls} font-mono`}>{formatPercentageFromDecimal(value, true)}</Badge>;
+              }
+              break;
+            }
+            case 'fcfMarginMedian10Y': {
+              const margin = row.fcfMarginMedian10Y;
               if (margin == null || !isFinite(Number(margin))) {
                 cellContent = <Badge variant="outline" className="font-mono text-muted-foreground">N/A</Badge>;
               } else {
@@ -1184,7 +1204,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         },
         sortingFn: (rowA, rowB, colId) => {
           const numericCols = new Set([
-            'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'fcfMargin',
+            'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'fcfMargin', 'fcfMarginMedian10Y',
             'marketCap','price','peRatio','priceToSalesRatio','dividendYield',
             'return3Year','return5Year','return10Year','maxDrawdown3Year','maxDrawdown5Year','maxDrawdown10Year',
             'arMddRatio3Year','arMddRatio5Year','arMddRatio10Year','dcfEnterpriseValue','marginOfSafety','dcfImpliedGrowth'
@@ -1288,7 +1308,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       'arMddRatio3Year','arMddRatio5Year','arMddRatio10Year',
       'return3Year','return5Year','return10Year',
       'maxDrawdown3Year','maxDrawdown5Year','maxDrawdown10Year',
-      'price','marketCap','peRatio','priceToSalesRatio','dividendYield','fcfMargin','roic','roic10YAvg','roic10YStd','roicStability','roicStabilityScore'
+      'price','marketCap','peRatio','priceToSalesRatio','dividendYield','fcfMargin','fcfMarginMedian10Y','roic','roic10YAvg','roic10YStd','roicStability','roicStabilityScore'
     ]);
     let nextOrder: 'asc' | 'desc' = 'asc';
     if (sortBy === column) {
@@ -1450,7 +1470,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                     'maxDrawdown5Year', 'maxDrawdown10Year',
                     'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
                     'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-                    'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'fcfMargin'
+                    'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'fcfMargin', 'fcfMarginMedian10Y'
                   ];
                   const isLocked = !isPaidUser && dataset !== 'dowjones' && lockedColumns.includes(col.id);
 
@@ -1488,7 +1508,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                         'maxDrawdown3Year', 'maxDrawdown5Year', 'maxDrawdown10Year',
                         'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
                         'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-            'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'fcfMargin', 'dcfVerdict'
+                        'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'fcfMargin', 'fcfMarginMedian10Y', 'dcfVerdict'
                       ];
 
                       const isLocked = !isPaidUser && dataset !== 'dowjones' && lockedColumns.includes(colConfig.id);

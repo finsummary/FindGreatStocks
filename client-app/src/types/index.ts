@@ -47,6 +47,7 @@ export interface Company {
   roicStability?: number | string | null;
   roicStabilityScore?: number | string | null;
   fcfMargin?: number | string | null;
+  fcfMarginMedian10Y?: number | string | null;
   isWatched?: boolean;
 }
 

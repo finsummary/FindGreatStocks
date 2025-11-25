@@ -63,6 +63,9 @@ function applyAgeBasedWindowNulls(rows, ipoMap) {
         if ('ar_mdd_ratio_10_year' in r) r.ar_mdd_ratio_10_year = null;
         if ('max_drawdown_10_year' in r) r.max_drawdown_10_year = null;
         if ('revenue_growth_10y' in r) r.revenue_growth_10y = null;
+        if ('roic_10y_avg' in r) r.roic_10y_avg = null;
+        if ('roic_10y_std' in r) r.roic_10y_std = null;
+        if ('fcf_margin_median_10y' in r) r.fcf_margin_median_10y = null;
       }
       if (years < 5) {
         if ('return_5_year' in r) r.return_5_year = null;
@@ -76,6 +79,19 @@ function applyAgeBasedWindowNulls(rows, ipoMap) {
       }
     }
   } catch {}
+}
+
+function computeMedian(values = []) {
+  try {
+    const arr = (values || []).filter(v => Number.isFinite(v));
+    if (!arr.length) return null;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    if (sorted.length % 2 === 1) return sorted[mid];
+    return (sorted[mid - 1] + sorted[mid]) / 2;
+  } catch {
+    return null;
+  }
 }
 
 export function setupStripeWebhook(app, supabase) {
@@ -327,6 +343,7 @@ function mapDbRowToCompany(row) {
     roic: row.roic,
     roic10YAvg: row.roic_10y_avg,
     roic10YStd: row.roic_10y_std,
+    fcfMarginMedian10Y: row.fcf_margin_median_10y,
   };
 }
 
@@ -417,6 +434,180 @@ export function setupRoutes(app, supabase) {
       return res.json(cachedFlags);
     } catch (e) {
       return res.json({ flags: { education: { enabled: false } } });
+    }
+  });
+
+  // Recompute 10Y FCF margin median (and store revenue/fcf history) for selected symbols
+  app.post('/api/metrics/recompute-fcf-margin-10y', requireAdmin, async (req, res) => {
+    try {
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      const symbolsParam = (req.query.symbols || req.body?.symbols || '').toString();
+      const symbols = symbolsParam.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      if (!symbols.length) return res.status(400).json({ message: 'Provide symbols as comma-separated list in ?symbols=' });
+      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies', 'ftse100_companies'];
+      const fetchJson = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); };
+
+      const recomputeOne = async (sym) => {
+        try {
+          const incomeUrl = `https://financialmodelingprep.com/api/v3/income-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`;
+          const cashUrl = `https://financialmodelingprep.com/api/v3/cash-flow-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`;
+          const income = await fetchJson(incomeUrl);
+          const cash = await fetchJson(cashUrl);
+          const incArr = Array.isArray(income) ? income : [];
+          const cfArr = Array.isArray(cash) ? cash : [];
+          const toNum = (val) => {
+            const n = Number(val);
+            return Number.isFinite(n) ? n : null;
+          };
+          const revSeries = [];
+          const fcfSeries = [];
+          const margins = [];
+          const clamp = (val) => {
+            if (!Number.isFinite(val)) return val;
+            if (val > 2) return 2;
+            if (val < -2) return -2;
+            return val;
+          };
+          for (let i = 0; i < 10; i++) {
+            const inc = incArr[i] || {};
+            const cf = cfArr[i] || {};
+            const rev = toNum(inc.revenue ?? inc.totalRevenue ?? inc.revenueTTM ?? inc.sales ?? inc.salesRevenueNet);
+            const fcf = toNum(cf.freeCashFlow ?? cf.freeCashFlowTTM ?? cf.freeCashFlowPerShare);
+            revSeries.push(rev);
+            fcfSeries.push(fcf);
+            if (rev !== null && rev !== 0 && fcf !== null) {
+              const margin = clamp(fcf / rev);
+              if (Number.isFinite(margin)) margins.push(margin);
+            }
+          }
+          const padSeries = (arr) => {
+            const out = [...arr];
+            while (out.length < 10) out.push(null);
+            return out.slice(0, 10);
+          };
+          const revCols = padSeries(revSeries);
+          const fcfCols = padSeries(fcfSeries);
+          const assignYears = (prefix, series) => {
+            const obj = {};
+            for (let i = 0; i < 10; i++) {
+              obj[`${prefix}_y${i + 1}`] = series[i] ?? null;
+            }
+            return obj;
+          };
+          const median = computeMedian(margins);
+          const upd = {
+            ...assignYears('revenue', revCols),
+            ...assignYears('fcf', fcfCols),
+            fcf_margin_median_10y: median,
+          };
+          for (const t of tables) {
+            try { await supabase.from(t).update(upd).eq('symbol', sym); } catch {}
+          }
+          return { symbol: sym, updated: true, median };
+        } catch (e) {
+          return { symbol: sym, updated: false, error: e?.message || 'unknown' };
+        }
+      };
+
+      const results = [];
+      for (const sym of symbols) {
+        results.push(await recomputeOne(sym));
+        await new Promise(r => setTimeout(r, 150));
+      }
+      return res.json({ status: 'ok', results });
+    } catch (e) {
+      console.error('metrics/recompute-fcf-margin-10y error:', e);
+      return res.status(500).json({ message: 'Failed to recompute FCF margin history' });
+    }
+  });
+
+  // Recompute 10Y FCF margin median for all known symbols
+  app.post('/api/metrics/recompute-fcf-margin-10y-all', requireAdmin, async (_req, res) => {
+    try {
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies', 'ftse100_companies'];
+      const fetchJson = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); };
+      const symSet = new Set();
+      for (const t of tables) {
+        try {
+          const { data } = await supabase.from(t).select('symbol');
+          for (const r of (data || [])) if (r?.symbol) symSet.add(String(r.symbol).toUpperCase());
+        } catch {}
+      }
+      const symbols = Array.from(symSet);
+      const recomputeOne = async (sym) => {
+        try {
+          const incomeUrl = `https://financialmodelingprep.com/api/v3/income-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`;
+          const cashUrl = `https://financialmodelingprep.com/api/v3/cash-flow-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`;
+          const income = await fetchJson(incomeUrl);
+          const cash = await fetchJson(cashUrl);
+          const incArr = Array.isArray(income) ? income : [];
+          const cfArr = Array.isArray(cash) ? cash : [];
+          const toNum = (val) => {
+            const n = Number(val);
+            return Number.isFinite(n) ? n : null;
+          };
+          const revSeries = [];
+          const fcfSeries = [];
+          const margins = [];
+          const clamp = (val) => {
+            if (!Number.isFinite(val)) return val;
+            if (val > 2) return 2;
+            if (val < -2) return -2;
+            return val;
+          };
+          for (let i = 0; i < 10; i++) {
+            const inc = incArr[i] || {};
+            const cf = cfArr[i] || {};
+            const rev = toNum(inc.revenue ?? inc.totalRevenue ?? inc.revenueTTM ?? inc.sales ?? inc.salesRevenueNet);
+            const fcf = toNum(cf.freeCashFlow ?? cf.freeCashFlowTTM ?? cf.freeCashFlowPerShare);
+            revSeries.push(rev);
+            fcfSeries.push(fcf);
+            if (rev !== null && rev !== 0 && fcf !== null) {
+              const margin = clamp(fcf / rev);
+              if (Number.isFinite(margin)) margins.push(margin);
+            }
+          }
+          const padSeries = (arr) => {
+            const out = [...arr];
+            while (out.length < 10) out.push(null);
+            return out.slice(0, 10);
+          };
+          const assignYears = (prefix, series) => {
+            const obj = {};
+            for (let i = 0; i < 10; i++) {
+              obj[`${prefix}_y${i + 1}`] = series[i] ?? null;
+            }
+            return obj;
+          };
+          const revCols = padSeries(revSeries);
+          const fcfCols = padSeries(fcfSeries);
+          const median = computeMedian(margins);
+          const upd = {
+            ...assignYears('revenue', revCols),
+            ...assignYears('fcf', fcfCols),
+            fcf_margin_median_10y: median,
+          };
+          for (const t of tables) {
+            try { await supabase.from(t).update(upd).eq('symbol', sym); } catch {}
+          }
+          return { symbol: sym, updated: true, median };
+        } catch (e) {
+          return { symbol: sym, updated: false, error: e?.message || 'unknown' };
+        }
+      };
+
+      const results = [];
+      for (const sym of symbols) {
+        results.push(await recomputeOne(sym));
+        await new Promise(r => setTimeout(r, 150));
+      }
+      return res.json({ status: 'ok', count: results.length, results });
+    } catch (e) {
+      console.error('metrics/recompute-fcf-margin-10y-all error:', e);
+      return res.status(500).json({ message: 'Failed to recompute FCF margins for all' });
     }
   });
 
@@ -701,8 +892,47 @@ export function setupRoutes(app, supabase) {
           // Normalize to latest first
           const series = arr.map(r => r && (r.roic ?? r.ROIC)).filter(v => v !== undefined && v !== null).map(Number);
           // Convert percent → decimal if likely percent
-          const norm = series.map(v => (isFinite(v) && v > 1.5 ? v / 100 : v)).filter(v => isFinite(v));
-          const last10 = norm.slice(0, 10);
+          // Convert to decimals and clamp per-year ROIC to a sane range (±200%) to reduce outliers
+          const norm = series
+            .map(v => (isFinite(v) && v > 1.5 ? v / 100 : v))
+            .map(v => Math.max(-2, Math.min(2, v)))
+            .filter(v => isFinite(v));
+          let last10 = norm.slice(0, 10);
+          // Fallback: if not enough annual ROIC points, derive from financial statements
+          if (last10.length < 2) {
+            try {
+              const inc = await fetchJson(`https://financialmodelingprep.com/api/v3/income-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`);
+              const bal = await fetchJson(`https://financialmodelingprep.com/api/v3/balance-sheet-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`);
+              const incArr = Array.isArray(inc) ? inc : [];
+              const balArr = Array.isArray(bal) ? bal : [];
+              const len = Math.min(incArr.length, balArr.length, 10);
+              const seq = [];
+              for (let i = 0; i < len; i++) {
+                const ii = incArr[i] || {};
+                const bb = balArr[i] || {};
+                const ebit = Number(ii.ebit ?? ii.operatingIncome);
+                const preTax = Number(ii.incomeBeforeTax);
+                const taxExp = Number(ii.incomeTaxExpense);
+                const taxRate = Number.isFinite(preTax) && preTax > 0 && Number.isFinite(taxExp) ? Math.max(0, Math.min(0.5, taxExp / preTax)) : 0.21;
+                const nopat = Number.isFinite(ebit) ? ebit * (1 - taxRate) : NaN;
+                const totalDebt = Number(bb.totalDebt);
+                const equity = Number(bb.totalStockholdersEquity);
+                const cash = Number(bb.cashAndShortTermInvestments ?? bb.cashAndCashEquivalents);
+                let invested = 0;
+                if (Number.isFinite(totalDebt)) invested += totalDebt;
+                if ( Number.isFinite(equity)) invested += equity;
+                if (Number.isFinite(cash)) invested -= cash;
+                if (!Number.isFinite(nopat) || !Number.isFinite(invested) || invested <= 0) continue;
+                let roic = nopat / invested;
+                if (!Number.isFinite(roic)) continue;
+                // clamp to ±200% in decimal space
+                if (roic > 2) roic = 2;
+                if (roic < -2) roic = -2;
+                seq.push(roic);
+              }
+              if (seq.length) last10 = seq.slice(0, 10);
+            } catch {}
+          }
           const padTo = (n, list) => {
             const out = [...list];
             while (out.length < n) out.push(null);
@@ -770,6 +1000,58 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Aggregate existing per-year ROIC columns (roic_y1..roic_y10) to roic_10y_avg / roic_10y_std (no external API)
+  app.post('/api/metrics/aggregate-roic-10y', requireAdmin, async (req, res) => {
+    try {
+      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies', 'ftse100_companies'];
+      const symbolsParam = (req.query.symbols || req.body?.symbols || '').toString();
+      const only = symbolsParam ? symbolsParam.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : null;
+      const results = [];
+      for (const t of tables) {
+        let rows = [];
+        try {
+          let q = supabase.from(t).select('*');
+          if (only && only.length) q = q.in('symbol', only);
+          const { data, error } = await q;
+          if (error) { results.push({ table: t, updated: 0, error: error.message }); continue; }
+          rows = data || [];
+        } catch (e) {
+          results.push({ table: t, updated: 0, error: e?.message || 'select error' });
+          continue;
+        }
+        let updated = 0, inspected = 0;
+        for (const r of rows) {
+          inspected++;
+          const seq = [];
+          for (let i = 1; i <= 10; i++) {
+            const k = `roic_y${i}`;
+            if (Object.prototype.hasOwnProperty.call(r, k) && r[k] !== null && r[k] !== undefined) {
+              const val = Number(r[k]);
+              if (Number.isFinite(val)) seq.push(val);
+            }
+          }
+          if (!seq.length) continue;
+          const mean = seq.reduce((a, b) => a + b, 0) / seq.length;
+          let stdev = null;
+          if (seq.length >= 2) {
+            const variance = seq.reduce((acc, x) => acc + (x - mean) * (x - mean), 0) / seq.length;
+            stdev = Math.sqrt(variance);
+          }
+          try {
+            await supabase.from(t).update({ roic_10y_avg: mean, roic_10y_std: stdev }).eq('symbol', r.symbol);
+            updated++;
+          } catch (e) {
+            results.push({ table: t, symbol: r.symbol, error: e?.message || 'update error' });
+          }
+        }
+        results.push({ table: t, updated, inspected, total: rows.length });
+      }
+      return res.json({ status: 'ok', results });
+    } catch (e) {
+      console.error('metrics/aggregate-roic-10y error:', e);
+      return res.status(500).json({ message: 'Failed to aggregate ROIC 10Y from DB' });
+    }
+  });
   // Recompute 10Y ROIC series and average for specific symbols
   app.post('/api/metrics/recompute-roic-10y', requireAdmin, async (req, res) => {
     try {
@@ -786,8 +1068,44 @@ export function setupRoutes(app, supabase) {
           const kmData = await fetchJson(`https://financialmodelingprep.com/api/v3/key-metrics/${sym}?period=annual&limit=12&apikey=${apiKey}`);
           const arr = Array.isArray(kmData) ? kmData : [];
           const series = arr.map(r => r && (r.roic ?? r.ROIC)).filter(v => v !== undefined && v !== null).map(Number);
-          const norm = series.map(v => (isFinite(v) && v > 1.5 ? v / 100 : v)).filter(v => isFinite(v));
-          const last10 = norm.slice(0, 10);
+          let norm = series
+            .map(v => (isFinite(v) && v > 1.5 ? v / 100 : v))
+            .map(v => Math.max(-2, Math.min(2, v)))
+            .filter(v => isFinite(v));
+          let last10 = norm.slice(0, 10);
+          if (last10.length < 2) {
+            try {
+              const inc = await fetchJson(`https://financialmodelingprep.com/api/v3/income-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`);
+              const bal = await fetchJson(`https://financialmodelingprep.com/api/v3/balance-sheet-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`);
+              const incArr = Array.isArray(inc) ? inc : [];
+              const balArr = Array.isArray(bal) ? bal : [];
+              const len = Math.min(incArr.length, balArr.length, 10);
+              const seq = [];
+              for (let i = 0; i < len; i++) {
+                const ii = incArr[i] || {};
+                const bb = balArr[i] || {};
+                const ebit = Number(ii.ebit ?? ii.operatingIncome);
+                const preTax = Number(ii.incomeBeforeTax);
+                const taxExp = Number(ii.incomeTaxExpense);
+                const taxRate = Number.isFinite(preTax) && preTax > 0 && Number.isFinite(taxExp) ? Math.max(0, Math.min(0.5, taxExp / preTax)) : 0.21;
+                const nopat = Number.isFinite(ebit) ? ebit * (1 - taxRate) : NaN;
+                const totalDebt = Number(bb.totalDebt);
+                const equity = Number(bb.totalStockholdersEquity);
+                const cash = Number(bb.cashAndShortTermInvestments ?? bb.cashAndCashEquivalents);
+                let invested = 0;
+                if (Number.isFinite(totalDebt)) invested += totalDebt;
+                if (Number.isFinite(equity)) invested += equity;
+                if (Number.isFinite(cash)) invested -= cash;
+                if (!Number.isFinite(nopat) || !Number.isFinite(invested) || invested <= 0) continue;
+                let roic = nopat / invested;
+                if (!Number.isFinite(roic)) continue;
+                if (roic > 2) roic = 2;
+                if (roic < -2) roic = -2;
+                seq.push(roic);
+              }
+              if (seq.length) last10 = seq.slice(0, 10);
+            } catch {}
+          }
           const padTo = (n, list) => { const out = [...list]; while (out.length < n) out.push(null); return out; };
           const y = padTo(10, last10);
           const vals = y.filter(v => v !== null).map(v => Number(v));
@@ -1292,6 +1610,7 @@ export function setupRoutes(app, supabase) {
     roic: 'roic',
     roic10YAvg: 'roic_10y_avg',
     roic10YStd: 'roic_10y_std',
+    fcfMarginMedian10Y: 'fcf_margin_median_10y',
   };
 
   async function listCompanies(req, res) {
@@ -1301,7 +1620,7 @@ export function setupRoutes(app, supabase) {
       const sortBy = req.query.sortBy || 'marketCap';
       const sortOrder = (req.query.sortOrder || 'desc') === 'asc';
       const search = (req.query.search || '').trim();
-      const orderCol = sortMap[sortBy] || 'market_cap';
+      let orderCol = sortMap[sortBy] || 'market_cap';
 
       let query = supabase
         .from('companies')
@@ -1336,7 +1655,7 @@ export function setupRoutes(app, supabase) {
       } catch (e) { console.warn('age-based nulls (companies) error', e?.message || e); }
       const symbols = rows.map(r => r.symbol).filter(Boolean);
       if (symbols.length) {
-        const selectCols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic';
+        const selectCols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std, fcf_margin_median_10y';
         const [sp500, ndx, dji] = await Promise.all([
           supabase.from('sp500_companies').select(selectCols).in('symbol', symbols),
           supabase.from('nasdaq100_companies').select(selectCols).in('symbol', symbols),
@@ -1361,7 +1680,11 @@ export function setupRoutes(app, supabase) {
                 maxDrawdown10Year: r.max_drawdown_10_year,
                 dcfEnterpriseValue: r.dcf_enterprise_value,
                 marginOfSafety: r.margin_of_safety,
-                dcfImpliedGrowth: r.dcf_implied_growth,
+              dcfImpliedGrowth: r.dcf_implied_growth,
+              roic: r.roic,
+              roic10YAvg: r.roic_10y_avg,
+              roic10YStd: r.roic_10y_std,
+              fcfMarginMedian10Y: r.fcf_margin_median_10y,
               });
             }
           }
@@ -1426,6 +1749,10 @@ export function setupRoutes(app, supabase) {
           if (r.dcf_enterprise_value == null && fb.dcfEnterpriseValue != null) r.dcf_enterprise_value = fb.dcfEnterpriseValue;
           if (r.margin_of_safety == null && fb.marginOfSafety != null) r.margin_of_safety = fb.marginOfSafety;
           if (r.dcf_implied_growth == null && fb.dcfImpliedGrowth != null) r.dcf_implied_growth = fb.dcfImpliedGrowth;
+          if (r.roic == null && fb.roic != null) r.roic = fb.roic;
+          if (r.roic_10y_avg == null && fb.roic10YAvg != null) r.roic_10y_avg = fb.roic10YAvg;
+          if (r.roic_10y_std == null && fb.roic10YStd != null) r.roic_10y_std = fb.roic10YStd;
+          if (r.fcf_margin_median_10y == null && fb.fcfMarginMedian10Y != null) r.fcf_margin_median_10y = fb.fcfMarginMedian10Y;
 
           // Guard: clamp unrealistic DCF vs MarketCap
           const mcapNum = Number(r.market_cap);
@@ -1463,7 +1790,10 @@ export function setupRoutes(app, supabase) {
       const sortBy = req.query.sortBy || 'marketCap';
       const sortOrder = (req.query.sortOrder || 'desc') === 'asc';
       const search = (req.query.search || '').trim();
-      const orderCol = sortMap[sortBy] || 'market_cap';
+      let orderCol = sortMap[sortBy] || 'market_cap';
+      if ((orderCol === 'roic_10y_avg' || orderCol === 'roic_10y_std' || orderCol === 'fcf_margin_median_10y') && tableName !== 'companies') {
+        orderCol = 'market_cap';
+      }
 
       let query = supabase
         .from(tableName)
@@ -1484,7 +1814,7 @@ export function setupRoutes(app, supabase) {
       // Overlay/fallback enrichment from master companies table for fresher metrics
       const symbols = rows.map(r => r.symbol).filter(Boolean);
       if (symbols.length) {
-        const cols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, total_assets, total_equity, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std';
+        const cols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, total_assets, total_equity, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std, fcf_margin_median_10y';
         const { data: master, error: mErr } = await supabase.from('companies').select(cols).in('symbol', symbols);
         if (!mErr && Array.isArray(master)) {
           const bySym = new Map(master.map(m => [m.symbol, m]));
@@ -1528,6 +1858,10 @@ export function setupRoutes(app, supabase) {
             if (m.dcf_enterprise_value !== null && m.dcf_enterprise_value !== undefined) r.dcf_enterprise_value = m.dcf_enterprise_value;
             if (m.margin_of_safety !== null && m.margin_of_safety !== undefined) r.margin_of_safety = m.margin_of_safety;
             if (m.dcf_implied_growth !== null && m.dcf_implied_growth !== undefined) r.dcf_implied_growth = m.dcf_implied_growth;
+            applyIfMissing('roic', m.roic);
+            applyIfMissing('roic_10y_avg', m.roic_10y_avg);
+            applyIfMissing('roic_10y_std', m.roic_10y_std);
+            if (m.fcf_margin_median_10y !== null && m.fcf_margin_median_10y !== undefined) r.fcf_margin_median_10y = m.fcf_margin_median_10y;
           }
         }
       }
