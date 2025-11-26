@@ -102,6 +102,8 @@ export const dowJonesCompanies = pgTable("dow_jones_companies", {
 	fcfY9: numeric("fcf_y9", { precision: 20, scale:  0 }),
 	fcfY10: numeric("fcf_y10", { precision: 20, scale:  0 }),
 	fcfMarginMedian10Y: numeric("fcf_margin_median_10y", { precision: 10, scale:  4 }),
+	debtToEquity: numeric("debt_to_equity", { precision: 10, scale:  4 }),
+	interestCoverage: numeric("interest_coverage", { precision: 10, scale:  4 }),
 	returnDrawdownRatio10Year: doublePrecision("return_drawdown_ratio_10_year"),
 	latestFcf: numeric("latest_fcf", { precision: 20, scale:  0 }),
 }, (table) => {
@@ -206,6 +208,8 @@ export const companies = pgTable("companies", {
 	fcfY9: numeric("fcf_y9", { precision: 20, scale:  0 }),
 	fcfY10: numeric("fcf_y10", { precision: 20, scale:  0 }),
 	fcfMarginMedian10Y: numeric("fcf_margin_median_10y", { precision: 10, scale:  4 }),
+	debtToEquity: numeric("debt_to_equity", { precision: 10, scale:  4 }),
+	interestCoverage: numeric("interest_coverage", { precision: 10, scale:  4 }),
 }, (table) => {
 	return {
 		companiesSymbolUnique: unique("companies_symbol_unique").on(table.symbol),
@@ -348,6 +352,8 @@ export const nasdaq100Companies = pgTable("nasdaq100_companies", {
 	fcfY9: numeric("fcf_y9", { precision: 20, scale:  0 }),
 	fcfY10: numeric("fcf_y10", { precision: 20, scale:  0 }),
 	fcfMarginMedian10Y: numeric("fcf_margin_median_10y", { precision: 10, scale:  4 }),
+	debtToEquity: numeric("debt_to_equity", { precision: 10, scale:  4 }),
+	interestCoverage: numeric("interest_coverage", { precision: 10, scale:  4 }),
 }, (table) => {
 	return {
 		nasdaq100CompaniesSymbolUnique: unique("nasdaq100_companies_symbol_unique").on(table.symbol),
@@ -451,6 +457,8 @@ export const sp500Companies = pgTable("sp500_companies", {
 	fcfY9: numeric("fcf_y9", { precision: 20, scale:  0 }),
 	fcfY10: numeric("fcf_y10", { precision: 20, scale:  0 }),
 	fcfMarginMedian10Y: numeric("fcf_margin_median_10y", { precision: 10, scale:  4 }),
+	debtToEquity: numeric("debt_to_equity", { precision: 10, scale:  4 }),
+	interestCoverage: numeric("interest_coverage", { precision: 10, scale:  4 }),
 }, (table) => {
 	return {
 		sp500CompaniesSymbolUnique: unique("sp500_companies_symbol_unique").on(table.symbol),

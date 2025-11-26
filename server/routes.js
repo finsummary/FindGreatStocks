@@ -344,6 +344,8 @@ function mapDbRowToCompany(row) {
     roic10YAvg: row.roic_10y_avg,
     roic10YStd: row.roic_10y_std,
     fcfMarginMedian10Y: row.fcf_margin_median_10y,
+    debtToEquity: row.debt_to_equity,
+    interestCoverage: row.interest_coverage,
   };
 }
 
@@ -715,6 +717,152 @@ export function setupRoutes(app, supabase) {
     } catch (e) {
       console.error('metrics/recompute-fcf-margin-10y-all error:', e);
       return res.status(500).json({ message: 'Failed to recompute FCF margins for all' });
+    }
+  });
+
+  // Recompute Debt-to-Equity and Interest Coverage ratios from FMP API (annual data)
+  app.post('/api/metrics/recompute-debt-ratios', requireAdmin, async (req, res) => {
+    try {
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      const symbolsParam = (req.query.symbols || req.body?.symbols || '').toString();
+      const symbols = symbolsParam.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      if (!symbols.length) return res.status(400).json({ message: 'symbols parameter required' });
+
+      const fetchJson = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); };
+      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies', 'ftse100_companies'];
+      const results = [];
+
+      for (const sym of symbols) {
+        try {
+          // Fetch annual ratios from FMP API
+          const ratiosData = await fetchJson(`https://financialmodelingprep.com/api/v3/ratios/${sym}?period=annual&limit=1&apikey=${apiKey}`);
+          const ratio = Array.isArray(ratiosData) && ratiosData[0] ? ratiosData[0] : null;
+
+          // Extract Debt-to-Equity and Interest Coverage
+          let debtToEquity = ratio && (ratio.debtEquityRatio !== undefined && ratio.debtEquityRatio !== null) 
+            ? Number(ratio.debtEquityRatio) 
+            : null;
+          let interestCoverage = ratio && (ratio.interestCoverage !== undefined && ratio.interestCoverage !== null) 
+            ? Number(ratio.interestCoverage) 
+            : null;
+
+          // Clamp extreme values
+          if (isFinite(debtToEquity)) {
+            if (debtToEquity < 0) debtToEquity = null;
+            if (debtToEquity > 100) debtToEquity = 100; // Cap at 100
+          }
+          if (isFinite(interestCoverage)) {
+            if (interestCoverage < 0) interestCoverage = null;
+            if (interestCoverage > 1000) interestCoverage = 1000; // Cap at 1000
+          }
+
+          const upd = {
+            debt_to_equity: isFinite(debtToEquity) ? Number(debtToEquity.toFixed(4)) : null,
+            interest_coverage: isFinite(interestCoverage) ? Number(interestCoverage.toFixed(4)) : null,
+          };
+
+          for (const t of tables) {
+            try { await supabase.from(t).update(upd).eq('symbol', sym); } catch {}
+          }
+
+          results.push({ 
+            symbol: sym, 
+            updated: true, 
+            debtToEquity: upd.debt_to_equity,
+            interestCoverage: upd.interest_coverage
+          });
+          await new Promise(r => setTimeout(r, 150));
+        } catch (e) {
+          results.push({ symbol: sym, updated: false, error: e?.message || 'unknown' });
+        }
+      }
+      return res.json({ status: 'ok', results });
+    } catch (e) {
+      console.error('metrics/recompute-debt-ratios error:', e);
+      return res.status(500).json({ message: 'Failed to recompute debt ratios' });
+    }
+  });
+
+  // Batch processing for debt ratios to avoid timeout
+  app.post('/api/metrics/recompute-debt-ratios-batch', requireAdmin, async (req, res) => {
+    try {
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      
+      const offset = parseInt(req.query.offset || '0', 10);
+      const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
+      
+      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies', 'ftse100_companies'];
+      const fetchJson = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); };
+      const symSet = new Set();
+      for (const t of tables) {
+        try {
+          const { data } = await supabase.from(t).select('symbol');
+          for (const r of (data || [])) if (r?.symbol) symSet.add(String(r.symbol).toUpperCase());
+        } catch {}
+      }
+      const allSymbols = Array.from(symSet).sort();
+      const total = allSymbols.length;
+      const symbols = allSymbols.slice(offset, offset + limit);
+      const hasMore = offset + limit < total;
+
+      const results = [];
+      for (const sym of symbols) {
+        try {
+          const ratiosData = await fetchJson(`https://financialmodelingprep.com/api/v3/ratios/${sym}?period=annual&limit=1&apikey=${apiKey}`);
+          const ratio = Array.isArray(ratiosData) && ratiosData[0] ? ratiosData[0] : null;
+
+          let debtToEquity = ratio && (ratio.debtEquityRatio !== undefined && ratio.debtEquityRatio !== null) 
+            ? Number(ratio.debtEquityRatio) 
+            : null;
+          let interestCoverage = ratio && (ratio.interestCoverage !== undefined && ratio.interestCoverage !== null) 
+            ? Number(ratio.interestCoverage) 
+            : null;
+
+          if (isFinite(debtToEquity)) {
+            if (debtToEquity < 0) debtToEquity = null;
+            if (debtToEquity > 100) debtToEquity = 100;
+          }
+          if (isFinite(interestCoverage)) {
+            if (interestCoverage < 0) interestCoverage = null;
+            if (interestCoverage > 1000) interestCoverage = 1000;
+          }
+
+          const upd = {
+            debt_to_equity: isFinite(debtToEquity) ? Number(debtToEquity.toFixed(4)) : null,
+            interest_coverage: isFinite(interestCoverage) ? Number(interestCoverage.toFixed(4)) : null,
+          };
+
+          for (const t of tables) {
+            try { await supabase.from(t).update(upd).eq('symbol', sym); } catch {}
+          }
+
+          results.push({ 
+            symbol: sym, 
+            updated: true, 
+            debtToEquity: upd.debt_to_equity,
+            interestCoverage: upd.interest_coverage
+          });
+          await new Promise(r => setTimeout(r, 150));
+        } catch (e) {
+          results.push({ symbol: sym, updated: false, error: e?.message || 'unknown' });
+        }
+      }
+      
+      return res.json({
+        status: 'ok',
+        processed: results.length,
+        offset,
+        total,
+        hasMore,
+        nextOffset: hasMore ? offset + limit : null,
+        progress: total > 0 ? Math.round((offset + results.length) / total * 100) : 0,
+        results
+      });
+    } catch (e) {
+      console.error('metrics/recompute-debt-ratios-batch error:', e);
+      return res.status(500).json({ message: 'Failed to recompute debt ratios batch' });
     }
   });
 
@@ -1822,6 +1970,8 @@ export function setupRoutes(app, supabase) {
     roic10YAvg: 'roic_10y_avg',
     roic10YStd: 'roic_10y_std',
     fcfMarginMedian10Y: 'fcf_margin_median_10y',
+    debtToEquity: 'debt_to_equity',
+    interestCoverage: 'interest_coverage',
   };
 
   async function listCompanies(req, res) {
@@ -1866,7 +2016,7 @@ export function setupRoutes(app, supabase) {
       } catch (e) { console.warn('age-based nulls (companies) error', e?.message || e); }
       const symbols = rows.map(r => r.symbol).filter(Boolean);
       if (symbols.length) {
-        const selectCols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std, fcf_margin_median_10y';
+        const selectCols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std, fcf_margin_median_10y, debt_to_equity, interest_coverage';
         const [sp500, ndx, dji] = await Promise.all([
           supabase.from('sp500_companies').select(selectCols).in('symbol', symbols),
           supabase.from('nasdaq100_companies').select(selectCols).in('symbol', symbols),

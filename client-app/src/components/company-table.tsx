@@ -77,6 +77,8 @@ export const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'freeCashFlow', label: 'Free Cash Flow', width: 'w-[100px] sm:w-[120px]', defaultVisible: true },
   { id: 'fcfMargin', label: 'FCF Margin %', width: 'w-[90px] sm:w-[110px]', defaultVisible: false },
   { id: 'fcfMarginMedian10Y', label: 'FCF Margin 10Y Median %', width: 'w-[120px] sm:w-[150px]', defaultVisible: false },
+  { id: 'debtToEquity', label: 'Debt-to-Equity', width: 'w-[100px] sm:w-[120px]', defaultVisible: false },
+  { id: 'interestCoverage', label: 'Interest Coverage', width: 'w-[110px] sm:w-[130px]', defaultVisible: false },
   { id: 'revenueGrowth3Y', label: 'Rev G 3Y', width: 'w-[72px] sm:w-[90px]', defaultVisible: false },
   { id: 'revenueGrowth5Y', label: 'Rev G 5Y', width: 'w-[72px] sm:w-[90px]', defaultVisible: false },
   { id: 'revenueGrowth10Y', label: 'Rev G 10Y', width: 'w-[72px] sm:w-[90px]', defaultVisible: true },
@@ -123,7 +125,7 @@ const PRESET_LAYOUTS = {
   // Placeholder: we'll expand with ROIC etc. later; safe existing columns for now
   'compounders': {
     name: 'Compounders (ROIC, FCF)',
-    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'fcfMargin', 'fcfMarginMedian10Y', 'revenueGrowth10Y', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore'],
+    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'fcfMargin', 'fcfMarginMedian10Y', 'revenueGrowth10Y', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'debtToEquity', 'interestCoverage'],
   },
 };
 
@@ -192,6 +194,8 @@ const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlis
   roic10YStd: 'ROIC Volatility % = Standard deviation of annual ROIC over the last 10 years. Lower values mean more stable returns.',
   roicStability: 'ROIC Stability Ratio = ROIC 10Y Average ÷ ROIC Volatility. Higher indicates strong returns with low variability.',
   roicStabilityScore: 'ROIC Stability Score = min(100, ROIC Stability Ratio × 30). Green ≥70, Yellow 30-69, Red <30.',
+  debtToEquity: 'Debt-to-Equity Ratio = Total Debt ÷ Total Equity. Measures a company\'s financial leverage. Lower is generally better (green <0.5, yellow 0.5-1.0, red >1.0).',
+  interestCoverage: 'Interest Coverage Ratio = EBIT ÷ Interest Expense. Measures a company\'s ability to pay interest on its debt. Higher is better (green ≥5, yellow 2-5, red <2).',
 };
 
 
@@ -260,7 +264,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       'maxDrawdown3Year', 'maxDrawdown5Year', 'maxDrawdown10Year',
       'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
       'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
-            'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'fcfMargin', 'fcfMarginMedian10Y', 'dcfVerdict'
+            'assetTurnover', 'financialLeverage', 'roe', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'fcfMargin', 'fcfMarginMedian10Y', 'debtToEquity', 'interestCoverage', 'dcfVerdict'
     ];
 
     const defaultVisibility = ALL_COLUMNS.reduce((acc, col) => {
@@ -991,6 +995,32 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                 if (value >= 0.15) cls = "text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950";
                 else if (value >= 0.05) cls = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
                 cellContent = <Badge variant="outline" className={`${cls} font-mono`}>{formatPercentageFromDecimal(value, true)}</Badge>;
+              }
+              break;
+            }
+            case 'debtToEquity': {
+              const ratio = row.debtToEquity;
+              if (ratio == null || !isFinite(Number(ratio))) {
+                cellContent = <Badge variant="outline" className="font-mono text-muted-foreground">N/A</Badge>;
+              } else {
+                const value = Number(ratio);
+                let cls = "text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950";
+                if (value < 0.5) cls = "text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950";
+                else if (value <= 1.0) cls = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
+                cellContent = <Badge variant="outline" className={`${cls} font-mono`}>{value.toFixed(2)}</Badge>;
+              }
+              break;
+            }
+            case 'interestCoverage': {
+              const coverage = row.interestCoverage;
+              if (coverage == null || !isFinite(Number(coverage))) {
+                cellContent = <Badge variant="outline" className="font-mono text-muted-foreground">N/A</Badge>;
+              } else {
+                const value = Number(coverage);
+                let cls = "text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950";
+                if (value >= 5) cls = "text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950";
+                else if (value >= 2) cls = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
+                cellContent = <Badge variant="outline" className={`${cls} font-mono`}>{value.toFixed(2)}</Badge>;
               }
               break;
             }
