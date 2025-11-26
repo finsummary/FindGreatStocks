@@ -256,7 +256,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     if (selectedLayout) return;
     if (didLoadPrefs) return;
 
-          const lockedColumns = [
+    const lockedColumns = [
       'maxDrawdown3Year', 'maxDrawdown5Year', 'maxDrawdown10Year',
       'arMddRatio3Year', 'arMddRatio5Year', 'arMddRatio10Year',
       'dcfEnterpriseValue', 'marginOfSafety', 'dcfImpliedGrowth',
@@ -1661,20 +1661,20 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                   {headerGroup.headers.map(header => {
                     const hid = ((header.column.columnDef.meta as any)?.columnConfig.id) as string;
                     return (
-                      <TableHead
-                        key={header.id}
+                    <TableHead
+                      key={header.id}
                         className={`text-right cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(hid) } ${ getStickyHeaderClass(hid) } ${
-                          sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
-                        }`}
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
+                        sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
+                      }`}
+                      onClick={header.column.getToggleSortingHandler()}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
                     );
                   })}
                 </TableRow>
@@ -1728,8 +1728,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                             : 'text-right';
                         return (
                           <TableCell key={cell.id} className={`${alignClass} ${getStickyCellClass(cid)}`}>
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
                         );
                       })}
                     </TableRow>

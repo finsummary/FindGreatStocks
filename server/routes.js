@@ -1680,7 +1680,7 @@ export function setupRoutes(app, supabase) {
                 maxDrawdown10Year: r.max_drawdown_10_year,
                 dcfEnterpriseValue: r.dcf_enterprise_value,
                 marginOfSafety: r.margin_of_safety,
-              dcfImpliedGrowth: r.dcf_implied_growth,
+                dcfImpliedGrowth: r.dcf_implied_growth,
               roic: r.roic,
               roic10YAvg: r.roic_10y_avg,
               roic10YStd: r.roic_10y_std,
