@@ -143,38 +143,89 @@ curl -X POST "https://findgreatstocks.com/api/metrics/recompute-fcf-margin-10y?s
 ### 3.3. Массовый пересчёт для всех компаний
 ⚠️ **Внимание**: Это может занять много времени (несколько часов) и сделать много запросов к FMP API.
 
-⚠️ **Важно**: Копируйте только команды, БЕЗ символов ```powershell, ```javascript и ``` в начале и конце!
+⚠️ **Важно**: Используйте batch endpoint, чтобы избежать таймаута! Старый endpoint `/recompute-fcf-margin-10y-all` будет таймаутить для больших датасетов.
 
-**Вариант 1: PowerShell**
-```
-$token = "<YOUR_TOKEN>"
-$url = "https://findgreatstocks.com/api/metrics/recompute-fcf-margin-10y-all"
-Invoke-RestMethod -Uri $url -Method POST -Headers @{ "Authorization" = "Bearer $token" }
-```
-(Замените `<YOUR_TOKEN>` на ваш токен)
-
-**Вариант 2: Через браузер Console**
+**Вариант 1: Автоматический пересчёт через браузер Console** (рекомендуется)
 1. Откройте https://findgreatstocks.com
 2. Войдите с admin email
 3. Откройте DevTools (F12) → вкладка **"Console"**
-4. Вставьте и выполните:
+4. Вставьте и выполните (скрипт автоматически обработает все батчи):
 
 ```
 (async () => {
   const k = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
   const s = JSON.parse(localStorage.getItem(k));
   const t = s?.access_token || s?.currentSession?.access_token;
-  const res = await fetch('https://findgreatstocks.com/api/metrics/recompute-fcf-margin-10y-all', {
+  
+  let offset = 0;
+  const limit = 50;
+  let totalProcessed = 0;
+  let totalErrors = 0;
+  
+  const processBatch = async (off) => {
+    const url = `https://findgreatstocks.com/api/metrics/recompute-fcf-margin-10y-batch?offset=${off}&limit=${limit}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${t}` }
+    });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+    }
+    return await res.json();
+  };
+  
+  console.log('🚀 Начинаем массовый пересчёт FCF Margin 10Y Median...');
+  
+  while (true) {
+    try {
+      const result = await processBatch(offset);
+      const success = result.results?.filter(r => r.updated).length || 0;
+      const errors = result.results?.filter(r => !r.updated).length || 0;
+      totalProcessed += success;
+      totalErrors += errors;
+      
+      console.log(`✅ Батч ${Math.floor(offset/limit) + 1}: обработано ${success} успешно, ${errors} ошибок. Прогресс: ${result.progress}% (${offset + result.processed}/${result.total})`);
+      
+      if (!result.hasMore) {
+        console.log(`🎉 Завершено! Всего обработано: ${totalProcessed} успешно, ${totalErrors} ошибок`);
+        break;
+      }
+      
+      offset = result.nextOffset;
+      // Небольшая задержка между батчами
+      await new Promise(r => setTimeout(r, 1000));
+    } catch (e) {
+      console.error(`❌ Ошибка при обработке батча (offset ${offset}):`, e);
+      totalErrors++;
+      offset += limit; // Пропускаем этот батч и продолжаем
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+})();
+```
+
+**Вариант 2: Ручная обработка батчей**
+Если хотите контролировать процесс вручную, обрабатывайте батчи по одному:
+
+```
+(async () => {
+  const k = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+  const s = JSON.parse(localStorage.getItem(k));
+  const t = s?.access_token || s?.currentSession?.access_token;
+  
+  // Обработать первые 50 компаний
+  const res = await fetch('https://findgreatstocks.com/api/metrics/recompute-fcf-margin-10y-batch?offset=0&limit=50', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${t}` }
   });
   const json = await res.json();
-  console.log('Result:', json);
-  // Это долгий процесс, проверяйте статус периодически
+  console.log('Результат:', json);
+  console.log('Следующий offset:', json.nextOffset);
+  console.log('Прогресс:', json.progress + '%');
 })();
 ```
 
-**Рекомендация**: Запустите массовый пересчёт в фоне или через Railway CLI/API, чтобы не держать браузер открытым.
+Затем вызывайте снова с новым offset для следующего батча.
 
 ---
 
@@ -222,14 +273,20 @@ Invoke-RestMethod -Uri $url -Method POST -Headers @{ "Authorization" = "Bearer $
 - Проверьте, что у вас есть права на изменение схемы
 - Если колонка уже существует, ошибка будет проигнорирована (благодаря `IF NOT EXISTS`)
 
+### Ошибка 502 (Bad Gateway) при массовом пересчёте
+- **Причина**: Старый endpoint `/api/metrics/recompute-fcf-margin-10y-all` пытается обработать все компании за один раз, что занимает слишком много времени и превышает таймаут сервера.
+- **Решение**: Используйте batch endpoint `/api/metrics/recompute-fcf-margin-10y-batch` с параметрами `offset` и `limit` (см. раздел 3.3).
+- **Автоматизация**: Используйте скрипт из раздела 3.3, который автоматически обработает все батчи один за другим.
+
 ---
 
 ## Дополнительная информация
 
 - Файл SQL скрипта: `migrations/add-fcf-margin-10y-columns.sql`
 - Backend endpoints:
-  - `/api/metrics/recompute-fcf-margin-10y?symbols=SYM1,SYM2` — для отдельных символов
-  - `/api/metrics/recompute-fcf-margin-10y-all` — для всех символов
+  - `/api/metrics/recompute-fcf-margin-10y?symbols=SYM1,SYM2` — для отдельных символов (тест)
+  - `/api/metrics/recompute-fcf-margin-10y-batch?offset=0&limit=50` — для порционной обработки (рекомендуется для массового пересчёта)
+  - `/api/metrics/recompute-fcf-margin-10y-all` — для всех символов за раз (⚠️ может таймаутить для больших датасетов)
 - Frontend колонка: `fcfMarginMedian10Y` в Compounders layout
 
 
