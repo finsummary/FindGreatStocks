@@ -607,68 +607,6 @@ export function setupRoutes(app, supabase) {
         }
       };
 
-      const recomputeOne = async (sym) => {
-        try {
-          const incomeUrl = `https://financialmodelingprep.com/api/v3/income-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`;
-          const cashUrl = `https://financialmodelingprep.com/api/v3/cash-flow-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`;
-          const income = await fetchJson(incomeUrl);
-          const cash = await fetchJson(cashUrl);
-          const incArr = Array.isArray(income) ? income : [];
-          const cfArr = Array.isArray(cash) ? cash : [];
-          const toNum = (val) => {
-            const n = Number(val);
-            return Number.isFinite(n) ? n : null;
-          };
-          const revSeries = [];
-          const fcfSeries = [];
-          const margins = [];
-          const clamp = (val) => {
-            if (!Number.isFinite(val)) return val;
-            if (val > 2) return 2;
-            if (val < -2) return -2;
-            return val;
-          };
-          for (let i = 0; i < 10; i++) {
-            const inc = incArr[i] || {};
-            const cf = cfArr[i] || {};
-            const rev = toNum(inc.revenue ?? inc.totalRevenue ?? inc.revenueTTM ?? inc.sales ?? inc.salesRevenueNet);
-            const fcf = toNum(cf.freeCashFlow ?? cf.freeCashFlowTTM ?? cf.freeCashFlowPerShare);
-            revSeries.push(rev);
-            fcfSeries.push(fcf);
-            if (rev !== null && rev !== 0 && fcf !== null) {
-              const margin = clamp(fcf / rev);
-              if (Number.isFinite(margin)) margins.push(margin);
-            }
-          }
-          const padSeries = (arr) => {
-            const out = [...arr];
-            while (out.length < 10) out.push(null);
-            return out.slice(0, 10);
-          };
-          const assignYears = (prefix, series) => {
-            const obj = {};
-            for (let i = 0; i < 10; i++) {
-              obj[`${prefix}_y${i + 1}`] = series[i] ?? null;
-            }
-            return obj;
-          };
-          const revCols = padSeries(revSeries);
-          const fcfCols = padSeries(fcfSeries);
-          const median = computeMedian(margins);
-          const upd = {
-            ...assignYears('revenue', revCols),
-            ...assignYears('fcf', fcfCols),
-            fcf_margin_median_10y: median,
-          };
-          for (const t of tables) {
-            try { await supabase.from(t).update(upd).eq('symbol', sym); } catch {}
-          }
-          return { symbol: sym, updated: true, median };
-        } catch (e) {
-          return { symbol: sym, updated: false, error: e?.message || 'unknown' };
-        }
-      };
-
       const results = [];
       for (const sym of symbols) {
         results.push(await recomputeOne(sym));
