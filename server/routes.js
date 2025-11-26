@@ -1327,6 +1327,110 @@ export function setupRoutes(app, supabase) {
     return res.json({ status: 'ok', commit: COMMIT_SHA, timestamp: new Date().toISOString() });
   });
 
+  // Test endpoint to check available fields in FMP API for Debt-to-Equity and Interest Coverage
+  app.get('/api/test/fmp-ratios', requireAdmin, async (req, res) => {
+    try {
+      const symbol = (req.query.symbol || 'AAPL').toString().toUpperCase();
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+
+      const fetchJson = async (url) => {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error(`${url} ${r.status}`);
+        return r.json();
+      };
+
+      const results = {};
+
+      // Check ratios endpoint
+      try {
+        const ratios = await fetchJson(`https://financialmodelingprep.com/api/v3/ratios/${symbol}?period=annual&limit=1&apikey=${apiKey}`);
+        const ratio = Array.isArray(ratios) && ratios[0] ? ratios[0] : null;
+        results.ratios = {
+          available: !!ratio,
+          fields: ratio ? Object.keys(ratio).filter(k => 
+            k.toLowerCase().includes('debt') || 
+            k.toLowerCase().includes('equity') || 
+            k.toLowerCase().includes('interest') || 
+            k.toLowerCase().includes('coverage')
+          ).map(k => ({ key: k, value: ratio[k] })) : []
+        };
+      } catch (e) {
+        results.ratios = { error: e.message };
+      }
+
+      // Check ratios-ttm endpoint
+      try {
+        const ratiosTTM = await fetchJson(`https://financialmodelingprep.com/api/v3/ratios-ttm/${symbol}?apikey=${apiKey}`);
+        const ratioTTM = Array.isArray(ratiosTTM) && ratiosTTM[0] ? ratiosTTM[0] : ratiosTTM;
+        results.ratiosTTM = {
+          available: !!ratioTTM,
+          fields: ratioTTM ? Object.keys(ratioTTM).filter(k => 
+            k.toLowerCase().includes('debt') || 
+            k.toLowerCase().includes('equity') || 
+            k.toLowerCase().includes('interest') || 
+            k.toLowerCase().includes('coverage')
+          ).map(k => ({ key: k, value: ratioTTM[k] })) : []
+        };
+      } catch (e) {
+        results.ratiosTTM = { error: e.message };
+      }
+
+      // Check key-metrics endpoint
+      try {
+        const keyMetrics = await fetchJson(`https://financialmodelingprep.com/api/v3/key-metrics/${symbol}?period=annual&limit=1&apikey=${apiKey}`);
+        const km = Array.isArray(keyMetrics) && keyMetrics[0] ? keyMetrics[0] : null;
+        results.keyMetrics = {
+          available: !!km,
+          fields: km ? Object.keys(km).filter(k => 
+            k.toLowerCase().includes('debt') || 
+            k.toLowerCase().includes('equity') || 
+            k.toLowerCase().includes('interest') || 
+            k.toLowerCase().includes('coverage')
+          ).map(k => ({ key: k, value: km[k] })) : []
+        };
+      } catch (e) {
+        results.keyMetrics = { error: e.message };
+      }
+
+      // Check balance sheet for debt and equity
+      try {
+        const balance = await fetchJson(`https://financialmodelingprep.com/api/v3/balance-sheet-statement/${symbol}?period=annual&limit=1&apikey=${apiKey}`);
+        const bs = Array.isArray(balance) && balance[0] ? balance[0] : null;
+        results.balanceSheet = {
+          available: !!bs,
+          fields: bs ? Object.keys(bs).filter(k => 
+            k.toLowerCase().includes('debt') || 
+            k.toLowerCase().includes('equity')
+          ).map(k => ({ key: k, value: bs[k] })) : []
+        };
+      } catch (e) {
+        results.balanceSheet = { error: e.message };
+      }
+
+      // Check income statement for EBIT and Interest Expense
+      try {
+        const income = await fetchJson(`https://financialmodelingprep.com/api/v3/income-statement/${symbol}?period=annual&limit=1&apikey=${apiKey}`);
+        const inc = Array.isArray(income) && income[0] ? income[0] : null;
+        results.incomeStatement = {
+          available: !!inc,
+          fields: inc ? Object.keys(inc).filter(k => 
+            k.toLowerCase().includes('ebit') || 
+            k.toLowerCase().includes('interest') || 
+            k.toLowerCase().includes('operating')
+          ).map(k => ({ key: k, value: inc[k] })) : []
+        };
+      } catch (e) {
+        results.incomeStatement = { error: e.message };
+      }
+
+      return res.json({ symbol, results });
+    } catch (e) {
+      console.error('test/fmp-ratios error:', e);
+      return res.status(500).json({ message: 'Failed to test FMP ratios', error: e.message });
+    }
+  });
+
   // Last-chance error handler to capture errors (Sentry if loaded) before default express handler
   app.use((err, req, res, next) => {
     try {
