@@ -38,9 +38,27 @@
 ## Шаг 2: Деплой изменений в Git
 
 ### 2.1. Закоммитьте изменения
-Откройте терминал в папке проекта и выполните:
+⚠️ **Важно**: Копируйте только команды ниже, БЕЗ символов ```bash и ``` в начале и конце!
 
-```bash
+Откройте терминал в папке проекта (PowerShell) и выполните команды по одной:
+
+**Команда 1:**
+```
+git add shared/schema.ts server/routes.js client-app/src/types/index.ts client-app/src/components/company-table.tsx migrations/add-fcf-margin-10y-columns.sql
+```
+
+**Команда 2:**
+```
+git commit -m "feat: add FCF Margin 10Y Median column with revenue/fcf history"
+```
+
+**Команда 3:**
+```
+git push
+```
+
+Или скопируйте все три команды сразу (без ```bash и ```):
+```
 git add shared/schema.ts server/routes.js client-app/src/types/index.ts client-app/src/components/company-table.tsx migrations/add-fcf-margin-10y-columns.sql
 git commit -m "feat: add FCF Margin 10Y Median column with revenue/fcf history"
 git push
@@ -75,27 +93,32 @@ git push
 7. Найдите поле `access_token` и скопируйте его значение
 
 ### 3.2. Тестовый пересчёт для нескольких компаний
-Откройте терминал (PowerShell или Command Prompt) и выполните:
+⚠️ **Важно**: Копируйте только команды, БЕЗ символов ```powershell, ```bash и ``` в начале и конце!
 
-```powershell
-# Замените <YOUR_TOKEN> на токен из шага 3.1
+**Вариант 1: PowerShell** (рекомендуется для Windows)
+Откройте PowerShell в папке проекта и выполните (замените `<YOUR_TOKEN>` на токен из шага 3.1):
+
+```
 $token = "<YOUR_TOKEN>"
 $url = "https://findgreatstocks.com/api/metrics/recompute-fcf-margin-10y?symbols=AAPL,MSFT,GOOGL"
 Invoke-RestMethod -Uri $url -Method POST -Headers @{ "Authorization" = "Bearer $token" }
 ```
 
-**Или через curl** (если установлен):
-```bash
+**Вариант 2: curl** (если установлен)
+```
 curl -X POST "https://findgreatstocks.com/api/metrics/recompute-fcf-margin-10y?symbols=AAPL,MSFT,GOOGL" -H "Authorization: Bearer <YOUR_TOKEN>"
 ```
+(Замените `<YOUR_TOKEN>` на ваш токен)
 
-**Или через браузер** (если используете admin email):
+**Вариант 3: Через браузер Console** (если используете admin email)
+⚠️ **Важно**: Копируйте только код внутри, БЕЗ символов ```javascript и ``` в начале и конце!
+
 1. Откройте https://findgreatstocks.com
 2. Войдите с admin email
 3. Откройте DevTools (F12) → вкладка **"Console"**
-4. Вставьте и выполните:
+4. Вставьте и выполните (нажмите Enter):
 
-```javascript
+```
 (async () => {
   const k = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
   const s = JSON.parse(localStorage.getItem(k));
@@ -112,15 +135,23 @@ curl -X POST "https://findgreatstocks.com/api/metrics/recompute-fcf-margin-10y?s
 ### 3.3. Массовый пересчёт для всех компаний
 ⚠️ **Внимание**: Это может занять много времени (несколько часов) и сделать много запросов к FMP API.
 
-**Через PowerShell:**
-```powershell
+⚠️ **Важно**: Копируйте только команды, БЕЗ символов ```powershell, ```javascript и ``` в начале и конце!
+
+**Вариант 1: PowerShell**
+```
 $token = "<YOUR_TOKEN>"
 $url = "https://findgreatstocks.com/api/metrics/recompute-fcf-margin-10y-all"
 Invoke-RestMethod -Uri $url -Method POST -Headers @{ "Authorization" = "Bearer $token" }
 ```
+(Замените `<YOUR_TOKEN>` на ваш токен)
 
-**Через браузер Console:**
-```javascript
+**Вариант 2: Через браузер Console**
+1. Откройте https://findgreatstocks.com
+2. Войдите с admin email
+3. Откройте DevTools (F12) → вкладка **"Console"**
+4. Вставьте и выполните:
+
+```
 (async () => {
   const k = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
   const s = JSON.parse(localStorage.getItem(k));
@@ -192,4 +223,5 @@ Invoke-RestMethod -Uri $url -Method POST -Headers @{ "Authorization" = "Bearer $
   - `/api/metrics/recompute-fcf-margin-10y?symbols=SYM1,SYM2` — для отдельных символов
   - `/api/metrics/recompute-fcf-margin-10y-all` — для всех символов
 - Frontend колонка: `fcfMarginMedian10Y` в Compounders layout
+
 
