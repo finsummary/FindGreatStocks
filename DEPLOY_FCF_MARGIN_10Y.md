@@ -128,7 +128,15 @@ curl -X POST "https://findgreatstocks.com/api/metrics/recompute-fcf-margin-10y?s
     headers: { 'Authorization': `Bearer ${t}` }
   });
   const json = await res.json();
-  console.log('Result:', json);
+  console.log('✅ Результат:', json);
+  console.log('📊 Детали по компаниям:', json.results);
+  json.results?.forEach(r => {
+    if (r.updated) {
+      console.log(`✅ ${r.symbol}: обновлено, median = ${r.median !== null ? (r.median * 100).toFixed(2) + '%' : 'N/A'}`);
+    } else {
+      console.log(`❌ ${r.symbol}: ошибка - ${r.error || 'unknown'}`);
+    }
+  });
 })();
 ```
 
