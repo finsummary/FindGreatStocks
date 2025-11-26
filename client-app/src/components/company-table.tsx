@@ -582,7 +582,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         // Абсолютно независим от бэкенда: строим список из /api/watchlist + /api/companies-all и сортируем/пагинируем на клиенте
         const wlArr = await authFetch('/api/watchlist', undefined, session.access_token);
         const wlSymbols: string[] = Array.isArray(wlArr) ? wlArr.map((i: any) => i.companySymbol).filter(Boolean) : [];
-        const allRes = await fetch(`https://findgreatstocks-production.up.railway.app/api/companies-all?limit=1000&_=${Date.now()}`, { cache: 'no-store' });
+        const allRes = await fetch(`/api/companies-all?limit=1000&_=${Date.now()}`, { cache: 'no-store' });
         if (!allRes.ok) throw new Error('Failed to fetch companies-all');
         const allJson = await allRes.json();
         const allBySym = new Map((allJson?.companies || []).map((c: any) => [c.symbol, c]));
@@ -729,7 +729,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         const total = offsetNum + (rows?.length || 0) + (hasMore ? 1 : 0);
         return { companies, total, limit: limitNum, offset: offsetNum, hasMore };
       }
-      const response = await fetch(`https://findgreatstocks-production.up.railway.app${url}?${qs}`, { cache: 'no-store' });
+      const response = await fetch(`${url}?${qs}`, { cache: 'no-store' });
       if (!response.ok) { try { (window as any).phCapture?.('api_error', { endpoint: url, status: response.status, dataset }); } catch {}; throw new Error("Failed to fetch companies"); }
       const json = await response.json();
 
@@ -1398,7 +1398,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       queryClient.prefetchQuery({
         queryKey: qk as any,
         queryFn: async () => {
-          const res = await fetch(`https://findgreatstocks-production.up.railway.app${current.endpoint}?${params.toString()}`, { cache: 'no-store' });
+          const res = await fetch(`${current.endpoint}?${params.toString()}`, { cache: 'no-store' });
           if (!res.ok) throw new Error('Failed to prefetch companies');
           return res.json();
         },
@@ -1417,7 +1417,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
         queryClient.prefetchQuery({
           queryKey: qk as any,
           queryFn: async () => {
-            const res = await fetch(`https://findgreatstocks-production.up.railway.app${d.endpoint}?${params.toString()}`, { cache: 'no-store' });
+            const res = await fetch(`${d.endpoint}?${params.toString()}`, { cache: 'no-store' });
             if (!res.ok) throw new Error('Failed to prefetch companies');
             return res.json();
           },

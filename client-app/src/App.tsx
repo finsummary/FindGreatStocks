@@ -24,7 +24,9 @@ import { useEffect, useRef } from 'react';
 
 declare global { interface Window { posthog?: any } }
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'https://findgreatstocks-production.up.railway.app';
+// Use relative paths to go through Vercel proxy (see vercel.json rewrites)
+// Only use absolute URL if explicitly set via env var (for local dev with Railway)
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '';
 
 function App() {
   useAnalytics();

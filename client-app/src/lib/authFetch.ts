@@ -18,7 +18,9 @@ export async function authFetch(url: string, options: RequestInit = {}, token?: 
   const headers = new Headers(options.headers || {});
   headers.append('Authorization', `Bearer ${sessionToken}`);
 
-  const fullUrl = url.startsWith('http') ? url : `https://findgreatstocks-production.up.railway.app${url}`;
+  // Use relative paths to go through Vercel proxy (see vercel.json rewrites)
+  // Only use absolute URL if explicitly provided (starts with http)
+  const fullUrl = url.startsWith('http') ? url : url;
   const response = await fetch(fullUrl, { ...options, headers });
 
   if (response.ok) {
