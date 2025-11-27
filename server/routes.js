@@ -1644,6 +1644,49 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Debug endpoint to check interest coverage value in database
+  app.get('/api/debug/interest-coverage', requireAdmin, async (req, res) => {
+    try {
+      const symbol = (req.query.symbol || 'AAPL').toString().toUpperCase();
+      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies', 'ftse100_companies'];
+      
+      const results = {};
+      for (const table of tables) {
+        try {
+          const { data, error } = await supabase
+            .from(table)
+            .select('symbol, interest_coverage, debt_to_equity')
+            .eq('symbol', symbol)
+            .limit(1);
+          
+          if (error) {
+            results[table] = { error: error.message };
+          } else if (data && data.length > 0) {
+            results[table] = {
+              found: true,
+              interest_coverage: data[0].interest_coverage,
+              debt_to_equity: data[0].debt_to_equity,
+              interest_coverage_type: typeof data[0].interest_coverage,
+              interest_coverage_value: data[0].interest_coverage === null ? 'null' : 
+                                      data[0].interest_coverage === 0 ? 'zero' : 
+                                      data[0].interest_coverage === '0' ? 'string_zero' : 
+                                      'other'
+            };
+          } else {
+            results[table] = { found: false };
+          }
+        } catch (e) {
+          results[table] = { error: e.message };
+        }
+      }
+      
+      return res.json({ symbol, results });
+    } catch (e) {
+      console.error('debug/interest-coverage error:', e);
+      return res.status(500).json({ message: 'Failed to check interest coverage', error: e.message });
+    }
+  });
+
   // Last-chance error handler to capture errors (Sentry if loaded) before default express handler
   app.use((err, req, res, next) => {
     try {
