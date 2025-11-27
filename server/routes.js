@@ -753,7 +753,9 @@ export function setupRoutes(app, supabase) {
             if (debtToEquity > 100) debtToEquity = 100; // Cap at 100
           }
           if (isFinite(interestCoverage)) {
-            if (interestCoverage < 0) interestCoverage = null;
+            // If interestCoverage is 0, it likely means no interest expense (or negative, meaning interest income)
+            // In this case, the ratio doesn't make sense, so set to null
+            if (interestCoverage <= 0) interestCoverage = null;
             if (interestCoverage > 1000) interestCoverage = 1000; // Cap at 1000
           }
 
@@ -825,7 +827,9 @@ export function setupRoutes(app, supabase) {
             if (debtToEquity > 100) debtToEquity = 100;
           }
           if (isFinite(interestCoverage)) {
-            if (interestCoverage < 0) interestCoverage = null;
+            // If interestCoverage is 0, it likely means no interest expense (or negative, meaning interest income)
+            // In this case, the ratio doesn't make sense, so set to null
+            if (interestCoverage <= 0) interestCoverage = null;
             if (interestCoverage > 1000) interestCoverage = 1000;
           }
 
@@ -1496,6 +1500,7 @@ export function setupRoutes(app, supabase) {
         const ratio = Array.isArray(ratios) && ratios[0] ? ratios[0] : null;
         results.ratios = {
           available: !!ratio,
+          fullData: ratio, // Include full ratio data for debugging
           fields: ratio ? Object.keys(ratio).filter(k => 
             k.toLowerCase().includes('debt') || 
             k.toLowerCase().includes('equity') || 
