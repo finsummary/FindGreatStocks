@@ -777,8 +777,25 @@ export function setupRoutes(app, supabase) {
             interest_coverage: isFinite(interestCoverage) ? Number(interestCoverage.toFixed(4)) : null,
           };
 
+          if (sym === 'AAPL') {
+            console.log(`[${sym}] Updating tables (single) with values:`, upd);
+          }
+
           for (const t of tables) {
-            try { await supabase.from(t).update(upd).eq('symbol', sym); } catch {}
+            try { 
+              const { error, data } = await supabase.from(t).update(upd).eq('symbol', sym).select('interest_coverage');
+              if (sym === 'AAPL') {
+                if (error) {
+                  console.log(`[${sym}] ❌ Error updating ${t} (single):`, error);
+                } else {
+                  console.log(`[${sym}] ✅ Successfully updated ${t} (single), new value:`, data?.[0]?.interest_coverage);
+                }
+              }
+            } catch (e) {
+              if (sym === 'AAPL') {
+                console.log(`[${sym}] ❌ Exception updating ${t} (single):`, e?.message);
+              }
+            }
           }
 
           results.push({ 
@@ -864,8 +881,25 @@ export function setupRoutes(app, supabase) {
             interest_coverage: isFinite(interestCoverage) ? Number(interestCoverage.toFixed(4)) : null,
           };
 
+          if (sym === 'AAPL') {
+            console.log(`[${sym}] Updating tables (batch) with values:`, upd);
+          }
+
           for (const t of tables) {
-            try { await supabase.from(t).update(upd).eq('symbol', sym); } catch {}
+            try { 
+              const { error, data } = await supabase.from(t).update(upd).eq('symbol', sym).select('interest_coverage');
+              if (sym === 'AAPL') {
+                if (error) {
+                  console.log(`[${sym}] ❌ Error updating ${t} (batch):`, error);
+                } else {
+                  console.log(`[${sym}] ✅ Successfully updated ${t} (batch), new value:`, data?.[0]?.interest_coverage);
+                }
+              }
+            } catch (e) {
+              if (sym === 'AAPL') {
+                console.log(`[${sym}] ❌ Exception updating ${t} (batch):`, e?.message);
+              }
+            }
           }
 
           results.push({ 
