@@ -747,6 +747,12 @@ export function setupRoutes(app, supabase) {
             ? Number(ratio.interestCoverage) 
             : null;
 
+          // Debug logging for AAPL
+          if (sym === 'AAPL') {
+            console.log(`[${sym}] FMP API interestCoverage raw:`, ratio?.interestCoverage);
+            console.log(`[${sym}] interestCoverage after Number():`, interestCoverage);
+          }
+
           // Clamp extreme values
           if (isFinite(debtToEquity)) {
             if (debtToEquity < 0) debtToEquity = null;
@@ -755,8 +761,15 @@ export function setupRoutes(app, supabase) {
           if (isFinite(interestCoverage)) {
             // If interestCoverage is 0, it likely means no interest expense (or negative, meaning interest income)
             // In this case, the ratio doesn't make sense, so set to null
-            if (interestCoverage <= 0) interestCoverage = null;
+            if (interestCoverage <= 0) {
+              if (sym === 'AAPL') console.log(`[${sym}] Setting interestCoverage to null because value is <= 0`);
+              interestCoverage = null;
+            }
             if (interestCoverage > 1000) interestCoverage = 1000; // Cap at 1000
+          }
+
+          if (sym === 'AAPL') {
+            console.log(`[${sym}] Final interestCoverage value:`, interestCoverage);
           }
 
           const upd = {
@@ -822,6 +835,12 @@ export function setupRoutes(app, supabase) {
             ? Number(ratio.interestCoverage) 
             : null;
 
+          // Debug logging for AAPL
+          if (sym === 'AAPL') {
+            console.log(`[${sym}] FMP API interestCoverage raw:`, ratio?.interestCoverage);
+            console.log(`[${sym}] interestCoverage after Number():`, interestCoverage);
+          }
+
           if (isFinite(debtToEquity)) {
             if (debtToEquity < 0) debtToEquity = null;
             if (debtToEquity > 100) debtToEquity = 100;
@@ -829,8 +848,15 @@ export function setupRoutes(app, supabase) {
           if (isFinite(interestCoverage)) {
             // If interestCoverage is 0, it likely means no interest expense (or negative, meaning interest income)
             // In this case, the ratio doesn't make sense, so set to null
-            if (interestCoverage <= 0) interestCoverage = null;
+            if (interestCoverage <= 0) {
+              if (sym === 'AAPL') console.log(`[${sym}] Setting interestCoverage to null because value is <= 0`);
+              interestCoverage = null;
+            }
             if (interestCoverage > 1000) interestCoverage = 1000;
+          }
+
+          if (sym === 'AAPL') {
+            console.log(`[${sym}] Final interestCoverage value:`, interestCoverage);
           }
 
           const upd = {
