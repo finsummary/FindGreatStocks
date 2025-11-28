@@ -880,22 +880,25 @@ export function setupRoutes(app, supabase) {
             interest_coverage: isFinite(interestCoverage) ? Number(interestCoverage.toFixed(4)) : null,
           };
 
-          if (sym === 'AAPL') {
+          if (debugSymbols.includes(sym)) {
             console.log(`[${sym}] Updating tables (single) with values:`, upd);
           }
 
           for (const t of tables) {
             try { 
-              const { error, data } = await supabase.from(t).update(upd).eq('symbol', sym).select('interest_coverage');
-              if (sym === 'AAPL') {
+              const { error, data } = await supabase.from(t).update(upd).eq('symbol', sym).select('interest_coverage, debt_to_equity');
+              if (debugSymbols.includes(sym)) {
                 if (error) {
                   console.log(`[${sym}] ❌ Error updating ${t} (single):`, error);
                 } else {
-                  console.log(`[${sym}] ✅ Successfully updated ${t} (single), new value:`, data?.[0]?.interest_coverage);
+                  console.log(`[${sym}] ✅ Successfully updated ${t} (single), new values:`, {
+                    interest_coverage: data?.[0]?.interest_coverage,
+                    debt_to_equity: data?.[0]?.debt_to_equity
+                  });
                 }
               }
             } catch (e) {
-              if (sym === 'AAPL') {
+              if (debugSymbols.includes(sym)) {
                 console.log(`[${sym}] ❌ Exception updating ${t} (single):`, e?.message);
               }
             }
@@ -1085,22 +1088,25 @@ export function setupRoutes(app, supabase) {
             interest_coverage: isFinite(interestCoverage) ? Number(interestCoverage.toFixed(4)) : null,
           };
 
-          if (sym === 'AAPL') {
+          if (debugSymbols.includes(sym)) {
             console.log(`[${sym}] Updating tables (batch) with values:`, upd);
           }
 
           for (const t of tables) {
             try { 
-              const { error, data } = await supabase.from(t).update(upd).eq('symbol', sym).select('interest_coverage');
-              if (sym === 'AAPL') {
+              const { error, data } = await supabase.from(t).update(upd).eq('symbol', sym).select('interest_coverage, debt_to_equity');
+              if (debugSymbols.includes(sym)) {
                 if (error) {
                   console.log(`[${sym}] ❌ Error updating ${t} (batch):`, error);
                 } else {
-                  console.log(`[${sym}] ✅ Successfully updated ${t} (batch), new value:`, data?.[0]?.interest_coverage);
+                  console.log(`[${sym}] ✅ Successfully updated ${t} (batch), new values:`, {
+                    interest_coverage: data?.[0]?.interest_coverage,
+                    debt_to_equity: data?.[0]?.debt_to_equity
+                  });
                 }
               }
             } catch (e) {
-              if (sym === 'AAPL') {
+              if (debugSymbols.includes(sym)) {
                 console.log(`[${sym}] ❌ Exception updating ${t} (batch):`, e?.message);
               }
             }
