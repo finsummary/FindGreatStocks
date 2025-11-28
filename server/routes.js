@@ -885,16 +885,30 @@ export function setupRoutes(app, supabase) {
           }
 
           for (const t of tables) {
-            try { 
-              const { error, data } = await supabase.from(t).update(upd).eq('symbol', sym).select('interest_coverage, debt_to_equity');
+            try {
+              // First check if record exists
+              const { data: existing } = await supabase.from(t).select('symbol').eq('symbol', sym).limit(1);
+              
               if (debugSymbols.includes(sym)) {
-                if (error) {
-                  console.log(`[${sym}] ❌ Error updating ${t} (single):`, error);
-                } else {
-                  console.log(`[${sym}] ✅ Successfully updated ${t} (single), new values:`, {
-                    interest_coverage: data?.[0]?.interest_coverage,
-                    debt_to_equity: data?.[0]?.debt_to_equity
-                  });
+                console.log(`[${sym}] Checking ${t}: exists=${!!existing && existing.length > 0}`);
+              }
+              
+              if (existing && existing.length > 0) {
+                const { error, data } = await supabase.from(t).update(upd).eq('symbol', sym).select('interest_coverage, debt_to_equity');
+                if (debugSymbols.includes(sym)) {
+                  if (error) {
+                    console.log(`[${sym}] ❌ Error updating ${t} (single):`, error);
+                  } else {
+                    console.log(`[${sym}] ✅ Successfully updated ${t} (single), new values:`, {
+                      interest_coverage: data?.[0]?.interest_coverage,
+                      debt_to_equity: data?.[0]?.debt_to_equity,
+                      rowsAffected: data?.length || 0
+                    });
+                  }
+                }
+              } else {
+                if (debugSymbols.includes(sym)) {
+                  console.log(`[${sym}] ⚠️ Symbol not found in ${t}, skipping update`);
                 }
               }
             } catch (e) {
@@ -1093,16 +1107,30 @@ export function setupRoutes(app, supabase) {
           }
 
           for (const t of tables) {
-            try { 
-              const { error, data } = await supabase.from(t).update(upd).eq('symbol', sym).select('interest_coverage, debt_to_equity');
+            try {
+              // First check if record exists
+              const { data: existing } = await supabase.from(t).select('symbol').eq('symbol', sym).limit(1);
+              
               if (debugSymbols.includes(sym)) {
-                if (error) {
-                  console.log(`[${sym}] ❌ Error updating ${t} (batch):`, error);
-                } else {
-                  console.log(`[${sym}] ✅ Successfully updated ${t} (batch), new values:`, {
-                    interest_coverage: data?.[0]?.interest_coverage,
-                    debt_to_equity: data?.[0]?.debt_to_equity
-                  });
+                console.log(`[${sym}] Checking ${t} (batch): exists=${!!existing && existing.length > 0}`);
+              }
+              
+              if (existing && existing.length > 0) {
+                const { error, data } = await supabase.from(t).update(upd).eq('symbol', sym).select('interest_coverage, debt_to_equity');
+                if (debugSymbols.includes(sym)) {
+                  if (error) {
+                    console.log(`[${sym}] ❌ Error updating ${t} (batch):`, error);
+                  } else {
+                    console.log(`[${sym}] ✅ Successfully updated ${t} (batch), new values:`, {
+                      interest_coverage: data?.[0]?.interest_coverage,
+                      debt_to_equity: data?.[0]?.debt_to_equity,
+                      rowsAffected: data?.length || 0
+                    });
+                  }
+                }
+              } else {
+                if (debugSymbols.includes(sym)) {
+                  console.log(`[${sym}] ⚠️ Symbol not found in ${t} (batch), skipping update`);
                 }
               }
             } catch (e) {
