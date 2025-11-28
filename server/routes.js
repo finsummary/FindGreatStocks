@@ -829,18 +829,45 @@ export function setupRoutes(app, supabase) {
           }
 
           // Clamp extreme values
+          // Debug logging for MCD and PM
+          const debugSymbols = ['MCD', 'PM', 'AAPL'];
+          if (debugSymbols.includes(sym)) {
+            console.log(`[${sym}] Before validation - debtToEquity: ${debtToEquity}, interestCoverage: ${interestCoverage}`);
+          }
+
           if (isFinite(debtToEquity)) {
-            if (debtToEquity < 0) debtToEquity = null;
-            if (debtToEquity > 100) debtToEquity = 100; // Cap at 100
+            if (debtToEquity < 0) {
+              if (debugSymbols.includes(sym)) {
+                console.log(`[${sym}] ⚠️ Debt-to-Equity is negative (${debtToEquity}), setting to null`);
+              }
+              debtToEquity = null;
+            }
+            if (debtToEquity > 100) {
+              if (debugSymbols.includes(sym)) {
+                console.log(`[${sym}] ⚠️ Debt-to-Equity is too high (${debtToEquity}), capping at 100`);
+              }
+              debtToEquity = 100; // Cap at 100
+            }
           }
           if (isFinite(interestCoverage)) {
             // If interestCoverage is 0, it likely means no interest expense (or negative, meaning interest income)
             // In this case, the ratio doesn't make sense, so set to null
             if (interestCoverage <= 0) {
-              if (sym === 'AAPL') console.log(`[${sym}] Setting interestCoverage to null because value is <= 0`);
+              if (debugSymbols.includes(sym)) {
+                console.log(`[${sym}] ⚠️ Setting interestCoverage to null because value is <= 0 (${interestCoverage})`);
+              }
               interestCoverage = null;
             }
-            if (interestCoverage > 1000) interestCoverage = 1000; // Cap at 1000
+            if (interestCoverage > 1000) {
+              if (debugSymbols.includes(sym)) {
+                console.log(`[${sym}] ⚠️ Interest Coverage is too high (${interestCoverage}), capping at 1000`);
+              }
+              interestCoverage = 1000; // Cap at 1000
+            }
+          }
+
+          if (debugSymbols.includes(sym)) {
+            console.log(`[${sym}] After validation - debtToEquity: ${debtToEquity}, interestCoverage: ${interestCoverage}`);
           }
 
           if (sym === 'AAPL') {
@@ -1010,22 +1037,45 @@ export function setupRoutes(app, supabase) {
             console.log(`[${sym}] interestCoverage after Number():`, interestCoverage);
           }
 
+          // Debug logging for MCD and PM
+          const debugSymbols = ['MCD', 'PM', 'AAPL'];
+          if (debugSymbols.includes(sym)) {
+            console.log(`[${sym}] Before validation (batch) - debtToEquity: ${debtToEquity}, interestCoverage: ${interestCoverage}`);
+          }
+
           if (isFinite(debtToEquity)) {
-            if (debtToEquity < 0) debtToEquity = null;
-            if (debtToEquity > 100) debtToEquity = 100;
+            if (debtToEquity < 0) {
+              if (debugSymbols.includes(sym)) {
+                console.log(`[${sym}] ⚠️ Debt-to-Equity is negative (${debtToEquity}), setting to null`);
+              }
+              debtToEquity = null;
+            }
+            if (debtToEquity > 100) {
+              if (debugSymbols.includes(sym)) {
+                console.log(`[${sym}] ⚠️ Debt-to-Equity is too high (${debtToEquity}), capping at 100`);
+              }
+              debtToEquity = 100;
+            }
           }
           if (isFinite(interestCoverage)) {
             // If interestCoverage is 0, it likely means no interest expense (or negative, meaning interest income)
             // In this case, the ratio doesn't make sense, so set to null
             if (interestCoverage <= 0) {
-              if (sym === 'AAPL') console.log(`[${sym}] Setting interestCoverage to null because value is <= 0`);
+              if (debugSymbols.includes(sym)) {
+                console.log(`[${sym}] ⚠️ Setting interestCoverage to null because value is <= 0 (${interestCoverage})`);
+              }
               interestCoverage = null;
             }
-            if (interestCoverage > 1000) interestCoverage = 1000;
+            if (interestCoverage > 1000) {
+              if (debugSymbols.includes(sym)) {
+                console.log(`[${sym}] ⚠️ Interest Coverage is too high (${interestCoverage}), capping at 1000`);
+              }
+              interestCoverage = 1000;
+            }
           }
 
-          if (sym === 'AAPL') {
-            console.log(`[${sym}] Final interestCoverage value:`, interestCoverage);
+          if (debugSymbols.includes(sym)) {
+            console.log(`[${sym}] After validation (batch) - debtToEquity: ${debtToEquity}, interestCoverage: ${interestCoverage}`);
           }
 
           const upd = {
