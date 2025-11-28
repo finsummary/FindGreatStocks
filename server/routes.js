@@ -733,6 +733,9 @@ export function setupRoutes(app, supabase) {
       const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies', 'ftse100_companies'];
       const results = [];
 
+      // Debug symbols for logging
+      const debugSymbols = ['MCD', 'PM', 'AAPL'];
+      
       for (const sym of symbols) {
         try {
           // Fetch annual ratios from FMP API
@@ -740,7 +743,6 @@ export function setupRoutes(app, supabase) {
           const ratio = Array.isArray(ratiosData) && ratiosData[0] ? ratiosData[0] : null;
 
           // Debug logging for companies with missing data
-          const debugSymbols = ['MCD', 'PM', 'AAPL'];
           if (debugSymbols.includes(sym)) {
             console.log(`[${sym}] FMP API ratios response:`, {
               isArray: Array.isArray(ratiosData),
@@ -830,7 +832,6 @@ export function setupRoutes(app, supabase) {
 
           // Clamp extreme values
           // Debug logging for MCD and PM
-          const debugSymbols = ['MCD', 'PM', 'AAPL'];
           if (debugSymbols.includes(sym)) {
             console.log(`[${sym}] Before validation - debtToEquity: ${debtToEquity}, interestCoverage: ${interestCoverage}`);
           }
@@ -941,6 +942,9 @@ export function setupRoutes(app, supabase) {
       const symbols = allSymbols.slice(offset, offset + limit);
       const hasMore = offset + limit < total;
 
+      // Debug symbols for logging
+      const debugSymbols = ['MCD', 'PM', 'AAPL'];
+
       const results = [];
       for (const sym of symbols) {
         try {
@@ -948,7 +952,6 @@ export function setupRoutes(app, supabase) {
           const ratio = Array.isArray(ratiosData) && ratiosData[0] ? ratiosData[0] : null;
 
           // Debug logging for companies with missing data
-          const debugSymbols = ['MCD', 'PM', 'AAPL'];
           if (debugSymbols.includes(sym)) {
             console.log(`[${sym}] FMP API ratios response:`, {
               isArray: Array.isArray(ratiosData),
@@ -1038,7 +1041,6 @@ export function setupRoutes(app, supabase) {
           }
 
           // Debug logging for MCD and PM
-          const debugSymbols = ['MCD', 'PM', 'AAPL'];
           if (debugSymbols.includes(sym)) {
             console.log(`[${sym}] Before validation (batch) - debtToEquity: ${debtToEquity}, interestCoverage: ${interestCoverage}`);
           }
