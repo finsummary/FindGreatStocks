@@ -739,13 +739,88 @@ export function setupRoutes(app, supabase) {
           const ratiosData = await fetchJson(`https://financialmodelingprep.com/api/v3/ratios/${sym}?period=annual&limit=1&apikey=${apiKey}`);
           const ratio = Array.isArray(ratiosData) && ratiosData[0] ? ratiosData[0] : null;
 
+          // Debug logging for companies with missing data
+          const debugSymbols = ['MCD', 'PM', 'AAPL'];
+          if (debugSymbols.includes(sym)) {
+            console.log(`[${sym}] FMP API ratios response:`, {
+              isArray: Array.isArray(ratiosData),
+              arrayLength: Array.isArray(ratiosData) ? ratiosData.length : 0,
+              hasRatio: !!ratio,
+              debtEquityRatio: ratio?.debtEquityRatio,
+              interestCoverage: ratio?.interestCoverage,
+              allDebtEquityKeys: ratio ? Object.keys(ratio).filter(k => k.toLowerCase().includes('debt') && k.toLowerCase().includes('equity')) : [],
+              allInterestKeys: ratio ? Object.keys(ratio).filter(k => k.toLowerCase().includes('interest') || k.toLowerCase().includes('coverage')) : []
+            });
+          }
+
           // Extract Debt-to-Equity and Interest Coverage
-          let debtToEquity = ratio && (ratio.debtEquityRatio !== undefined && ratio.debtEquityRatio !== null) 
-            ? Number(ratio.debtEquityRatio) 
-            : null;
-          let interestCoverage = ratio && (ratio.interestCoverage !== undefined && ratio.interestCoverage !== null) 
-            ? Number(ratio.interestCoverage) 
-            : null;
+          // Try multiple possible field names
+          let debtToEquity = null;
+          if (ratio) {
+            debtToEquity = ratio.debtEquityRatio !== undefined && ratio.debtEquityRatio !== null 
+              ? Number(ratio.debtEquityRatio) 
+              : (ratio.debtToEquity !== undefined && ratio.debtToEquity !== null 
+                ? Number(ratio.debtToEquity) 
+                : null);
+          }
+
+          let interestCoverage = null;
+          if (ratio) {
+            interestCoverage = ratio.interestCoverage !== undefined && ratio.interestCoverage !== null 
+              ? Number(ratio.interestCoverage) 
+              : (ratio.interestCoverageRatio !== undefined && ratio.interestCoverageRatio !== null 
+                ? Number(ratio.interestCoverageRatio) 
+                : (ratio.timesInterestEarned !== undefined && ratio.timesInterestEarned !== null 
+                  ? Number(ratio.timesInterestEarned) 
+                  : null));
+          }
+
+          // If ratios endpoint doesn't have the data, try to calculate from balance sheet and income statement
+          if ((debtToEquity === null || interestCoverage === null) && apiKey) {
+            try {
+              const [balanceSheetData, incomeStatementData] = await Promise.all([
+                fetchJson(`https://financialmodelingprep.com/api/v3/balance-sheet-statement/${sym}?period=annual&limit=1&apikey=${apiKey}`).catch(() => null),
+                fetchJson(`https://financialmodelingprep.com/api/v3/income-statement/${sym}?period=annual&limit=1&apikey=${apiKey}`).catch(() => null)
+              ]);
+
+              const balanceSheet = Array.isArray(balanceSheetData) && balanceSheetData[0] ? balanceSheetData[0] : null;
+              const incomeStatement = Array.isArray(incomeStatementData) && incomeStatementData[0] ? incomeStatementData[0] : null;
+
+              // Calculate Debt-to-Equity manually if not available
+              if (debtToEquity === null && balanceSheet) {
+                const totalDebt = balanceSheet.totalDebt || balanceSheet.totalLiabilities || null;
+                const totalEquity = balanceSheet.totalStockholdersEquity || balanceSheet.totalEquity || balanceSheet.stockholdersEquity || null;
+                if (totalDebt !== null && totalEquity !== null && Number(totalEquity) !== 0) {
+                  debtToEquity = Number(totalDebt) / Number(totalEquity);
+                  if (debugSymbols.includes(sym)) {
+                    console.log(`[${sym}] ✅ Calculated Debt-to-Equity manually: ${debtToEquity.toFixed(4)} (debt: ${totalDebt}, equity: ${totalEquity})`);
+                  }
+                }
+              }
+
+              // Calculate Interest Coverage manually if not available
+              if (interestCoverage === null && incomeStatement) {
+                const ebit = incomeStatement.ebit || incomeStatement.operatingIncome || null;
+                const interestExpense = incomeStatement.interestExpense || incomeStatement.interestAndDebtExpense || null;
+                if (ebit !== null && interestExpense !== null && Number(interestExpense) !== 0) {
+                  interestCoverage = Number(ebit) / Number(interestExpense);
+                  if (debugSymbols.includes(sym)) {
+                    console.log(`[${sym}] ✅ Calculated Interest Coverage manually: ${interestCoverage.toFixed(4)} (EBIT: ${ebit}, Interest: ${interestExpense})`);
+                  }
+                } else if (ebit !== null && (interestExpense === null || Number(interestExpense) === 0)) {
+                  // If no interest expense, set to null (company has no debt or receives interest income)
+                  interestCoverage = null;
+                  if (debugSymbols.includes(sym)) {
+                    console.log(`[${sym}] ⚠️ No interest expense found, setting Interest Coverage to null`);
+                  }
+                }
+              }
+            } catch (calcError) {
+              if (debugSymbols.includes(sym)) {
+                console.log(`[${sym}] ❌ Error calculating ratios manually:`, calcError.message);
+              }
+            }
+          }
 
           // Debug logging for AAPL
           if (sym === 'AAPL') {
@@ -845,12 +920,89 @@ export function setupRoutes(app, supabase) {
           const ratiosData = await fetchJson(`https://financialmodelingprep.com/api/v3/ratios/${sym}?period=annual&limit=1&apikey=${apiKey}`);
           const ratio = Array.isArray(ratiosData) && ratiosData[0] ? ratiosData[0] : null;
 
-          let debtToEquity = ratio && (ratio.debtEquityRatio !== undefined && ratio.debtEquityRatio !== null) 
-            ? Number(ratio.debtEquityRatio) 
-            : null;
-          let interestCoverage = ratio && (ratio.interestCoverage !== undefined && ratio.interestCoverage !== null) 
-            ? Number(ratio.interestCoverage) 
-            : null;
+          // Debug logging for companies with missing data
+          const debugSymbols = ['MCD', 'PM', 'AAPL'];
+          if (debugSymbols.includes(sym)) {
+            console.log(`[${sym}] FMP API ratios response:`, {
+              isArray: Array.isArray(ratiosData),
+              arrayLength: Array.isArray(ratiosData) ? ratiosData.length : 0,
+              hasRatio: !!ratio,
+              debtEquityRatio: ratio?.debtEquityRatio,
+              interestCoverage: ratio?.interestCoverage,
+              allDebtEquityKeys: ratio ? Object.keys(ratio).filter(k => k.toLowerCase().includes('debt') && k.toLowerCase().includes('equity')) : [],
+              allInterestKeys: ratio ? Object.keys(ratio).filter(k => k.toLowerCase().includes('interest') || k.toLowerCase().includes('coverage')) : []
+            });
+          }
+
+          // Extract Debt-to-Equity and Interest Coverage
+          // Try multiple possible field names
+          let debtToEquity = null;
+          if (ratio) {
+            debtToEquity = ratio.debtEquityRatio !== undefined && ratio.debtEquityRatio !== null 
+              ? Number(ratio.debtEquityRatio) 
+              : (ratio.debtToEquity !== undefined && ratio.debtToEquity !== null 
+                ? Number(ratio.debtToEquity) 
+                : null);
+          }
+
+          let interestCoverage = null;
+          if (ratio) {
+            interestCoverage = ratio.interestCoverage !== undefined && ratio.interestCoverage !== null 
+              ? Number(ratio.interestCoverage) 
+              : (ratio.interestCoverageRatio !== undefined && ratio.interestCoverageRatio !== null 
+                ? Number(ratio.interestCoverageRatio) 
+                : (ratio.timesInterestEarned !== undefined && ratio.timesInterestEarned !== null 
+                  ? Number(ratio.timesInterestEarned) 
+                  : null));
+          }
+
+          // If ratios endpoint doesn't have the data, try to calculate from balance sheet and income statement
+          if ((debtToEquity === null || interestCoverage === null) && apiKey) {
+            try {
+              // Try to get balance sheet and income statement to calculate manually
+              const [balanceSheetData, incomeStatementData] = await Promise.all([
+                fetchJson(`https://financialmodelingprep.com/api/v3/balance-sheet-statement/${sym}?period=annual&limit=1&apikey=${apiKey}`).catch(() => null),
+                fetchJson(`https://financialmodelingprep.com/api/v3/income-statement/${sym}?period=annual&limit=1&apikey=${apiKey}`).catch(() => null)
+              ]);
+
+              const balanceSheet = Array.isArray(balanceSheetData) && balanceSheetData[0] ? balanceSheetData[0] : null;
+              const incomeStatement = Array.isArray(incomeStatementData) && incomeStatementData[0] ? incomeStatementData[0] : null;
+
+              // Calculate Debt-to-Equity manually if not available
+              if (debtToEquity === null && balanceSheet) {
+                const totalDebt = balanceSheet.totalDebt || balanceSheet.totalLiabilities || null;
+                const totalEquity = balanceSheet.totalStockholdersEquity || balanceSheet.totalEquity || balanceSheet.stockholdersEquity || null;
+                if (totalDebt !== null && totalEquity !== null && Number(totalEquity) !== 0) {
+                  debtToEquity = Number(totalDebt) / Number(totalEquity);
+                  if (debugSymbols.includes(sym)) {
+                    console.log(`[${sym}] Calculated Debt-to-Equity manually: ${debtToEquity} (debt: ${totalDebt}, equity: ${totalEquity})`);
+                  }
+                }
+              }
+
+              // Calculate Interest Coverage manually if not available
+              if (interestCoverage === null && incomeStatement) {
+                const ebit = incomeStatement.ebit || incomeStatement.operatingIncome || null;
+                const interestExpense = incomeStatement.interestExpense || incomeStatement.interestAndDebtExpense || null;
+                if (ebit !== null && interestExpense !== null && Number(interestExpense) !== 0) {
+                  interestCoverage = Number(ebit) / Number(interestExpense);
+                  if (debugSymbols.includes(sym)) {
+                    console.log(`[${sym}] Calculated Interest Coverage manually: ${interestCoverage} (EBIT: ${ebit}, Interest: ${interestExpense})`);
+                  }
+                } else if (ebit !== null && (interestExpense === null || Number(interestExpense) === 0)) {
+                  // If no interest expense, set to null (company has no debt or receives interest income)
+                  interestCoverage = null;
+                  if (debugSymbols.includes(sym)) {
+                    console.log(`[${sym}] No interest expense found, setting Interest Coverage to null`);
+                  }
+                }
+              }
+            } catch (calcError) {
+              if (debugSymbols.includes(sym)) {
+                console.log(`[${sym}] Error calculating ratios manually:`, calcError.message);
+              }
+            }
+          }
 
           // Debug logging for AAPL
           if (sym === 'AAPL') {
