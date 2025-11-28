@@ -1687,6 +1687,67 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Force update interest coverage to null for companies with 0 value
+  app.post('/api/metrics/force-fix-interest-coverage', requireAdmin, async (req, res) => {
+    try {
+      const symbol = (req.body?.symbol || req.query?.symbol || '').toString().toUpperCase();
+      if (!symbol) {
+        return res.status(400).json({ message: 'Symbol is required' });
+      }
+
+      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies', 'ftse100_companies'];
+      const results = [];
+
+      for (const table of tables) {
+        try {
+          // First, check current value
+          const { data: current } = await supabase
+            .from(table)
+            .select('symbol, interest_coverage')
+            .eq('symbol', symbol)
+            .limit(1);
+
+          if (!current || current.length === 0) {
+            results.push({ table, status: 'not_found' });
+            continue;
+          }
+
+          const currentValue = current[0].interest_coverage;
+          const isZero = currentValue === 0 || currentValue === '0' || currentValue === '0.00' || Number(currentValue) === 0;
+
+          if (isZero) {
+            // Force update to null
+            const { error, data } = await supabase
+              .from(table)
+              .update({ interest_coverage: null })
+              .eq('symbol', symbol)
+              .select('interest_coverage');
+
+            if (error) {
+              results.push({ table, status: 'error', error: error.message, oldValue: currentValue });
+            } else {
+              results.push({ 
+                table, 
+                status: 'updated', 
+                oldValue: currentValue, 
+                newValue: data?.[0]?.interest_coverage 
+              });
+            }
+          } else {
+            results.push({ table, status: 'no_change', value: currentValue });
+          }
+        } catch (e) {
+          results.push({ table, status: 'error', error: e.message });
+        }
+      }
+
+      return res.json({ symbol, results });
+    } catch (e) {
+      console.error('force-fix-interest-coverage error:', e);
+      return res.status(500).json({ message: 'Failed to fix interest coverage', error: e.message });
+    }
+  });
+
   // Last-chance error handler to capture errors (Sentry if loaded) before default express handler
   app.use((err, req, res, next) => {
     try {
