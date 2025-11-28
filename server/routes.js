@@ -2546,7 +2546,7 @@ export function setupRoutes(app, supabase) {
       // Overlay/fallback enrichment from master companies table for fresher metrics
       const symbols = rows.map(r => r.symbol).filter(Boolean);
       if (symbols.length) {
-        const cols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, total_assets, total_equity, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std, fcf_margin_median_10y';
+        const cols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, total_assets, total_equity, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std, fcf_margin_median_10y, debt_to_equity, interest_coverage';
         const { data: master, error: mErr } = await supabase.from('companies').select(cols).in('symbol', symbols);
         if (!mErr && Array.isArray(master)) {
           const bySym = new Map(master.map(m => [m.symbol, m]));
