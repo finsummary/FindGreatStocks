@@ -537,56 +537,76 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   };
 
   const handleMoveToWatchlist = (toWatchlistId: number) => {
-    if (companyToMove && companyToMove.watchlistId) {
-      authFetch('/api/watchlist/move', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          companySymbol: companyToMove.symbol,
-          fromWatchlistId: companyToMove.watchlistId,
-          toWatchlistId,
-        }),
-      }).then(() => {
-        queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/watchlists'] });
-        toast({ title: "Success", description: "Company moved" });
-        setMoveCompanyDialogOpen(false);
-        setCompanyToMove(null);
-      }).catch((error: any) => {
-        toast({ 
-          title: "Error", 
-          description: error?.message || "Failed to move company",
-          variant: "destructive" 
-        });
-      });
+    if (!companyToMove) {
+      toast({ title: "Error", description: "No company selected", variant: "destructive" });
+      return;
     }
+    // Use current watchlistId if not set in companyToMove
+    const fromWatchlistId = companyToMove.watchlistId || watchlistId;
+    if (!fromWatchlistId) {
+      toast({ title: "Error", description: "Cannot determine source watchlist", variant: "destructive" });
+      return;
+    }
+    console.log('Moving company:', { symbol: companyToMove.symbol, fromWatchlistId, toWatchlistId });
+    authFetch('/api/watchlist/move', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        companySymbol: companyToMove.symbol,
+        fromWatchlistId,
+        toWatchlistId,
+      }),
+    }).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/watchlists'] });
+      toast({ title: "Success", description: "Company moved" });
+      setMoveCompanyDialogOpen(false);
+      setCompanyToMove(null);
+    }).catch((error: any) => {
+      console.error('Move error:', error);
+      toast({ 
+        title: "Error", 
+        description: error?.message || "Failed to move company",
+        variant: "destructive" 
+      });
+    });
   };
 
   const handleCopyToWatchlist = (toWatchlistId: number) => {
-    if (companyToMove && companyToMove.watchlistId) {
-      authFetch('/api/watchlist/copy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          companySymbol: companyToMove.symbol,
-          fromWatchlistId: companyToMove.watchlistId,
-          toWatchlistId,
-        }),
-      }).then(() => {
-        queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
-        toast({ title: "Success", description: "Company copied" });
-        setMoveCompanyDialogOpen(false);
-        setCompanyToMove(null);
-      }).catch((error: any) => {
-        toast({ 
-          title: "Error", 
-          description: error?.message || "Failed to copy company",
-          variant: "destructive" 
-        });
-      });
+    if (!companyToMove) {
+      toast({ title: "Error", description: "No company selected", variant: "destructive" });
+      return;
     }
+    // Use current watchlistId if not set in companyToMove
+    const fromWatchlistId = companyToMove.watchlistId || watchlistId;
+    if (!fromWatchlistId) {
+      toast({ title: "Error", description: "Cannot determine source watchlist", variant: "destructive" });
+      return;
+    }
+    console.log('Copying company:', { symbol: companyToMove.symbol, fromWatchlistId, toWatchlistId });
+    authFetch('/api/watchlist/copy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        companySymbol: companyToMove.symbol,
+        fromWatchlistId,
+        toWatchlistId,
+      }),
+    }).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
+      toast({ title: "Success", description: "Company copied" });
+      setMoveCompanyDialogOpen(false);
+      setCompanyToMove(null);
+    }).catch((error: any) => {
+      console.error('Copy error:', error);
+      toast({ 
+        title: "Error", 
+        description: error?.message || "Failed to copy company",
+        variant: "destructive" 
+      });
+    });
   };
 
   const handleWatchlistToggle = (symbol: string, isCurrentlyWatched: boolean) => {
@@ -1011,34 +1031,52 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  {isWatchlistPage && isLoggedIn && (
+                  {/* Always show menu on watchlist page - no login check needed */}
+                  {isWatchlistPage && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          className="p-1 h-auto text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 border border-gray-300 dark:border-gray-600"
-                          onClick={(e) => e.stopPropagation()}
+                          className="p-1 h-auto min-w-[32px] border-2 border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log('Menu button clicked:', { 
+                              symbol: row.symbol, 
+                              isWatchlistPage, 
+                              isLoggedIn, 
+                              watchlistData: watchlistData?.length,
+                              watchlistItem: watchlistData?.find((item: any) => item.companySymbol === row.symbol)
+                            });
+                          }}
                         >
-                          <MoreVertical className="h-4 w-4" />
+                          <MoreVertical className="h-4 w-4 text-blue-700 dark:text-blue-300" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-56">
                         <DropdownMenuLabel>Actions for {row.symbol}</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => {
-                          const watchlistItem = watchlistData?.find((item: any) => item.companySymbol === row.symbol);
-                          console.log('Move clicked:', { symbol: row.symbol, watchlistItem, watchlistData });
-                          setCompanyToMove({ symbol: row.symbol, watchlistId: watchlistItem?.watchlistId, mode: 'move' });
+                          // Find watchlist item - prefer current watchlist, then any watchlist
+                          const watchlistItem = watchlistData?.find((item: any) => 
+                            item.companySymbol === row.symbol && item.watchlistId === watchlistId
+                          ) || watchlistData?.find((item: any) => item.companySymbol === row.symbol);
+                          const currentWatchlistId = watchlistItem?.watchlistId || watchlistId;
+                          console.log('Move clicked:', { symbol: row.symbol, watchlistItem, watchlistId, currentWatchlistId, watchlistData });
+                          setCompanyToMove({ symbol: row.symbol, watchlistId: currentWatchlistId, mode: 'move' });
                           setMoveCompanyDialogOpen(true);
                         }}>
                           <Move className="h-4 w-4 mr-2" />
                           Move to another watchlist
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => {
-                          const watchlistItem = watchlistData?.find((item: any) => item.companySymbol === row.symbol);
-                          console.log('Copy clicked:', { symbol: row.symbol, watchlistItem, watchlistData });
-                          setCompanyToMove({ symbol: row.symbol, watchlistId: watchlistItem?.watchlistId, mode: 'copy' });
+                          // Find watchlist item - prefer current watchlist, then any watchlist
+                          const watchlistItem = watchlistData?.find((item: any) => 
+                            item.companySymbol === row.symbol && item.watchlistId === watchlistId
+                          ) || watchlistData?.find((item: any) => item.companySymbol === row.symbol);
+                          const currentWatchlistId = watchlistItem?.watchlistId || watchlistId;
+                          console.log('Copy clicked:', { symbol: row.symbol, watchlistItem, watchlistId, currentWatchlistId, watchlistData });
+                          setCompanyToMove({ symbol: row.symbol, watchlistId: currentWatchlistId, mode: 'copy' });
                           setMoveCompanyDialogOpen(true);
                         }}>
                           <Copy className="h-4 w-4 mr-2" />
