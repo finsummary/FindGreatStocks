@@ -50,6 +50,7 @@ export interface Company {
   fcfMarginMedian10Y?: number | string | null;
   debtToEquity?: number | string | null;
   interestCoverage?: number | string | null;
+  cashFlowToDebt?: number | string | null;
   isWatched?: boolean;
 }
 
