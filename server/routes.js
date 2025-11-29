@@ -906,8 +906,8 @@ export function setupRoutes(app, supabase) {
           }
 
           const upd = {
-            debt_to_equity: isFinite(debtToEquity) ? Number(debtToEquity.toFixed(4)) : null,
-            interest_coverage: isFinite(interestCoverage) ? Number(interestCoverage.toFixed(4)) : null,
+            debt_to_equity: (debtToEquity !== null && isFinite(debtToEquity)) ? Number(debtToEquity.toFixed(4)) : null,
+            interest_coverage: (interestCoverage !== null && isFinite(interestCoverage)) ? Number(interestCoverage.toFixed(4)) : null,
           };
 
           if (debugSymbols.includes(sym)) {
