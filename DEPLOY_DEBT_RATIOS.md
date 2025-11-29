@@ -42,7 +42,32 @@
 
 ### Массовый пересчёт (для всех компаний)
 
-Используйте batch endpoint для обработки порциями:
+**Вариант 1: Автоматический пересчет всех компаний (рекомендуется)**
+
+Простой endpoint, который обработает все компании автоматически:
+
+```
+(async () => {
+  const k = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+  const s = JSON.parse(localStorage.getItem(k));
+  const t = s?.access_token || s?.currentSession?.access_token;
+  
+  console.log('🚀 Запускаю массовый пересчёт для всех компаний...');
+  
+  const res = await fetch('/api/metrics/recompute-debt-ratios-all', {
+    method: 'POST',
+    headers: { 
+      'Authorization': `Bearer ${t}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  const json = await res.json();
+  console.log('✅ Результат:', json);
+  console.log('📊 Проверьте логи Railway для отслеживания прогресса');
+})();
+```
+
+**Вариант 2: Batch endpoint для обработки порциями (если нужен контроль)**
 
 ```
 (async () => {

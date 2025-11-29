@@ -79,6 +79,7 @@ export const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'fcfMarginMedian10Y', label: 'FCF Margin 10Y Median %', width: 'w-[120px] sm:w-[150px]', defaultVisible: false },
   { id: 'debtToEquity', label: 'Debt-to-Equity', width: 'w-[100px] sm:w-[120px]', defaultVisible: false },
   { id: 'interestCoverage', label: 'Interest Coverage', width: 'w-[110px] sm:w-[130px]', defaultVisible: false },
+  { id: 'cashFlowToDebt', label: 'Cash Flow to Debt', width: 'w-[110px] sm:w-[130px]', defaultVisible: false },
   { id: 'revenueGrowth3Y', label: 'Rev G 3Y', width: 'w-[72px] sm:w-[90px]', defaultVisible: false },
   { id: 'revenueGrowth5Y', label: 'Rev G 5Y', width: 'w-[72px] sm:w-[90px]', defaultVisible: false },
   { id: 'revenueGrowth10Y', label: 'Rev G 10Y', width: 'w-[72px] sm:w-[90px]', defaultVisible: true },
@@ -196,6 +197,7 @@ const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlis
   roicStabilityScore: 'ROIC Stability Score = min(100, ROIC Stability Ratio × 30). Green ≥70, Yellow 30-69, Red <30.',
   debtToEquity: 'Debt-to-Equity Ratio = Total Debt ÷ Total Equity. Measures a company\'s financial leverage. Lower is generally better (green <0.5, yellow 0.5-1.0, red >1.0).',
   interestCoverage: 'Interest Coverage Ratio = EBIT ÷ Interest Expense. Measures a company\'s ability to pay interest on its debt. Higher is better (green ≥5, yellow 2-5, red <2).',
+  cashFlowToDebt: 'Cash Flow to Debt Ratio = Operating Cash Flow ÷ Total Debt. Measures a company\'s ability to pay off its debt with operating cash flow. Higher is better (green ≥0.5, yellow 0.2-0.5, red <0.2).',
 };
 
 
@@ -1026,6 +1028,19 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
                 let cls = "text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950";
                 if (value >= 5) cls = "text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950";
                 else if (value >= 2) cls = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
+                cellContent = <Badge variant="outline" className={`${cls} font-mono`}>{value.toFixed(2)}</Badge>;
+              }
+              break;
+            }
+            case 'cashFlowToDebt': {
+              const ratio = row.cashFlowToDebt;
+              if (ratio == null || !isFinite(Number(ratio))) {
+                cellContent = <Badge variant="outline" className="font-mono text-muted-foreground">N/A</Badge>;
+              } else {
+                const value = Number(ratio);
+                let cls = "text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950";
+                if (value >= 0.5) cls = "text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950";
+                else if (value >= 0.2) cls = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
                 cellContent = <Badge variant="outline" className={`${cls} font-mono`}>{value.toFixed(2)}</Badge>;
               }
               break;

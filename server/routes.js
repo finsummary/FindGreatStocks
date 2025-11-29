@@ -346,6 +346,7 @@ function mapDbRowToCompany(row) {
     fcfMarginMedian10Y: row.fcf_margin_median_10y,
     debtToEquity: row.debt_to_equity,
     interestCoverage: row.interest_coverage,
+    cashFlowToDebt: row.cash_flow_to_debt,
   };
 }
 
@@ -893,6 +894,11 @@ export function setupRoutes(app, supabase) {
             interestCoverage = Number(ratio.interestCoverage);
           }
 
+          let cashFlowToDebt = null;
+          if (ratio && ratio.cashFlowToDebtRatio !== undefined && ratio.cashFlowToDebtRatio !== null) {
+            cashFlowToDebt = Number(ratio.cashFlowToDebtRatio);
+          }
+
           // Only cap extremely high values that are likely errors (keep negative values and 0 as-is)
           if (isFinite(debtToEquity) && debtToEquity > 10000) {
             debtToEquity = 10000; // Cap extremely high values only
@@ -900,14 +906,18 @@ export function setupRoutes(app, supabase) {
           if (isFinite(interestCoverage) && interestCoverage > 100000) {
             interestCoverage = 100000; // Cap extremely high values only
           }
+          if (isFinite(cashFlowToDebt) && cashFlowToDebt > 10000) {
+            cashFlowToDebt = 10000; // Cap extremely high values only
+          }
 
           if (debugSymbols.includes(sym)) {
-            console.log(`[${sym}] After validation (batch) - debtToEquity: ${debtToEquity}, interestCoverage: ${interestCoverage}`);
+            console.log(`[${sym}] After validation (batch) - debtToEquity: ${debtToEquity}, interestCoverage: ${interestCoverage}, cashFlowToDebt: ${cashFlowToDebt}`);
           }
 
           const upd = {
             debt_to_equity: (debtToEquity !== null && isFinite(debtToEquity)) ? Number(debtToEquity.toFixed(4)) : null,
             interest_coverage: (interestCoverage !== null && isFinite(interestCoverage)) ? Number(interestCoverage.toFixed(4)) : null,
+            cash_flow_to_debt: (cashFlowToDebt !== null && isFinite(cashFlowToDebt)) ? Number(cashFlowToDebt.toFixed(4)) : null,
           };
 
           if (debugSymbols.includes(sym)) {
@@ -1020,13 +1030,20 @@ export function setupRoutes(app, supabase) {
                 interestCoverage = Number(ratio.interestCoverage);
               }
 
+              let cashFlowToDebt = null;
+              if (ratio && ratio.cashFlowToDebtRatio !== undefined && ratio.cashFlowToDebtRatio !== null) {
+                cashFlowToDebt = Number(ratio.cashFlowToDebtRatio);
+              }
+
               // Only cap extremely high values
               if (isFinite(debtToEquity) && debtToEquity > 10000) debtToEquity = 10000;
               if (isFinite(interestCoverage) && interestCoverage > 100000) interestCoverage = 100000;
+              if (isFinite(cashFlowToDebt) && cashFlowToDebt > 10000) cashFlowToDebt = 10000;
 
               const upd = {
                 debt_to_equity: (debtToEquity !== null && isFinite(debtToEquity)) ? Number(debtToEquity.toFixed(4)) : null,
                 interest_coverage: (interestCoverage !== null && isFinite(interestCoverage)) ? Number(interestCoverage.toFixed(4)) : null,
+                cash_flow_to_debt: (cashFlowToDebt !== null && isFinite(cashFlowToDebt)) ? Number(cashFlowToDebt.toFixed(4)) : null,
               };
 
               for (const t of tables) {
@@ -2388,7 +2405,7 @@ export function setupRoutes(app, supabase) {
       } catch (e) { console.warn('age-based nulls (companies) error', e?.message || e); }
       const symbols = rows.map(r => r.symbol).filter(Boolean);
       if (symbols.length) {
-        const selectCols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std, fcf_margin_median_10y, debt_to_equity, interest_coverage';
+        const selectCols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std, fcf_margin_median_10y, debt_to_equity, interest_coverage, cash_flow_to_debt';
         const [sp500, ndx, dji] = await Promise.all([
           supabase.from('sp500_companies').select(selectCols).in('symbol', symbols),
           supabase.from('nasdaq100_companies').select(selectCols).in('symbol', symbols),
@@ -2547,7 +2564,7 @@ export function setupRoutes(app, supabase) {
       // Overlay/fallback enrichment from master companies table for fresher metrics
       const symbols = rows.map(r => r.symbol).filter(Boolean);
       if (symbols.length) {
-        const cols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, total_assets, total_equity, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std, fcf_margin_median_10y, debt_to_equity, interest_coverage';
+        const cols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, total_assets, total_equity, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std, fcf_margin_median_10y, debt_to_equity, interest_coverage, cash_flow_to_debt';
         const { data: master, error: mErr } = await supabase.from('companies').select(cols).in('symbol', symbols);
         if (!mErr && Array.isArray(master)) {
           const bySym = new Map(master.map(m => [m.symbol, m]));
@@ -2595,6 +2612,9 @@ export function setupRoutes(app, supabase) {
             applyIfMissing('roic_10y_avg', m.roic_10y_avg);
             applyIfMissing('roic_10y_std', m.roic_10y_std);
             if (m.fcf_margin_median_10y !== null && m.fcf_margin_median_10y !== undefined) r.fcf_margin_median_10y = m.fcf_margin_median_10y;
+            applyIfMissing('debt_to_equity', m.debt_to_equity);
+            applyIfMissing('interest_coverage', m.interest_coverage);
+            applyIfMissing('cash_flow_to_debt', m.cash_flow_to_debt);
           }
         }
       }

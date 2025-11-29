@@ -62,3 +62,4 @@ jobs:
           curl -fsSL "$PROD_BASE_URL/api/health" | jq . >/dev/null 2>&1 || curl -fsSL "$PROD_BASE_URL/api/health"
           echo "Health OK"
 
+

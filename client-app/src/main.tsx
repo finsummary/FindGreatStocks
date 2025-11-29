@@ -20,24 +20,24 @@ initGA();
 
 function Bootstrap() {
   return (
-    <React.StrictMode>
-      <HelmetProvider>
-        <BrowserRouter>
-          <ErrorBoundary>
-            <QueryClientProvider client={queryClient}>
-              <AuthProvider>
-                <ThemeProvider defaultTheme="light">
+  <React.StrictMode>
+    <HelmetProvider>
+      <BrowserRouter>
+        <ErrorBoundary>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <ThemeProvider defaultTheme="light">
                   <FeatureFlagsProvider>
-                    <App />
+                <App />
                   </FeatureFlagsProvider>
-                </ThemeProvider>
-              </AuthProvider>
-            </QueryClientProvider>
-          </ErrorBoundary>
-        </BrowserRouter>
-      </HelmetProvider>
-    </React.StrictMode>
-  );
+              </ThemeProvider>
+            </AuthProvider>
+          </QueryClientProvider>
+        </ErrorBoundary>
+      </BrowserRouter>
+    </HelmetProvider>
+  </React.StrictMode>
+);
 }
 
 createRoot(document.getElementById("root")!).render(<Bootstrap />);

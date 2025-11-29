@@ -127,7 +127,7 @@ export const useAnalytics = () => {
     const prev = prevLocationRef.current;
     if (prev !== null && location.pathname === prev) return;
     // GA
-    trackPageView(location.pathname);
+      trackPageView(location.pathname);
     // PostHog
     if (!key || (respectDnt && dnt)) {
       prevLocationRef.current = location.pathname;
