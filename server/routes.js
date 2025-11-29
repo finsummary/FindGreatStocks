@@ -3569,12 +3569,230 @@ export function setupRoutes(app, supabase) {
   app.get('/api/watchlist', isAuthenticated, async (req, res) => {
     try {
       const userId = req.user?.id;
-      const { data, error } = await supabase.from('watchlist').select('*').eq('user_id', userId);
+      const watchlistId = req.query.watchlistId ? parseInt(req.query.watchlistId) : null;
+      
+      // If watchlistId is provided, get items from that watchlist
+      // Otherwise, get items from default watchlist (for backward compatibility)
+      let query = supabase.from('watchlist').select('*').eq('user_id', userId);
+      
+      if (watchlistId) {
+        query = query.eq('watchlist_id', watchlistId);
+      } else {
+        // Get default watchlist for user
+        const { data: defaultWl } = await supabase
+          .from('watchlists')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('is_default', true)
+          .single();
+        if (defaultWl) {
+          query = query.eq('watchlist_id', defaultWl.id);
+        }
+      }
+      
+      const { data, error } = await query;
       if (error) return res.status(500).json({ message: 'Failed to fetch watchlist' });
-      const normalized = (data || []).map(i => ({ id: i.id, companySymbol: i.company_symbol, userId: i.user_id }));
+      const normalized = (data || []).map(i => ({ 
+        id: i.id, 
+        companySymbol: i.company_symbol, 
+        userId: i.user_id,
+        watchlistId: i.watchlist_id 
+      }));
       return res.json(normalized);
     } catch (e) {
       return res.status(500).json({ message: 'Failed to fetch watchlist' });
+    }
+  });
+
+  // Get all watchlists for user
+  app.get('/api/watchlists', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const { data, error } = await supabase
+        .from('watchlists')
+        .select('*')
+        .eq('user_id', userId)
+        .order('is_default', { ascending: false })
+        .order('created_at', { ascending: true });
+      if (error) return res.status(500).json({ message: 'Failed to fetch watchlists' });
+      return res.json(data || []);
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to fetch watchlists' });
+    }
+  });
+
+  // Create new watchlist
+  app.post('/api/watchlists', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const { name } = req.body || {};
+      if (!name || !name.trim()) return res.status(400).json({ message: 'Watchlist name is required' });
+      
+      const { data, error } = await supabase
+        .from('watchlists')
+        .insert({ user_id: userId, name: name.trim() })
+        .select('*')
+        .single();
+      
+      if (error) {
+        if (error.code === '23505') { // Unique constraint violation
+          return res.status(400).json({ message: 'Watchlist with this name already exists' });
+        }
+        return res.status(500).json({ message: 'Failed to create watchlist' });
+      }
+      return res.json(data);
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to create watchlist' });
+    }
+  });
+
+  // Update watchlist name
+  app.put('/api/watchlists/:id', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const watchlistId = parseInt(req.params.id);
+      const { name } = req.body || {};
+      
+      if (!name || !name.trim()) return res.status(400).json({ message: 'Watchlist name is required' });
+      
+      // Verify ownership
+      const { data: existing } = await supabase
+        .from('watchlists')
+        .select('*')
+        .eq('id', watchlistId)
+        .eq('user_id', userId)
+        .single();
+      
+      if (!existing) return res.status(404).json({ message: 'Watchlist not found' });
+      
+      const { data, error } = await supabase
+        .from('watchlists')
+        .update({ name: name.trim(), updated_at: new Date().toISOString() })
+        .eq('id', watchlistId)
+        .eq('user_id', userId)
+        .select('*')
+        .single();
+      
+      if (error) {
+        if (error.code === '23505') {
+          return res.status(400).json({ message: 'Watchlist with this name already exists' });
+        }
+        return res.status(500).json({ message: 'Failed to update watchlist' });
+      }
+      return res.json(data);
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to update watchlist' });
+    }
+  });
+
+  // Delete watchlist
+  app.delete('/api/watchlists/:id', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const watchlistId = parseInt(req.params.id);
+      
+      // Verify ownership and check if it's default
+      const { data: existing } = await supabase
+        .from('watchlists')
+        .select('*')
+        .eq('id', watchlistId)
+        .eq('user_id', userId)
+        .single();
+      
+      if (!existing) return res.status(404).json({ message: 'Watchlist not found' });
+      if (existing.is_default) return res.status(400).json({ message: 'Cannot delete default watchlist' });
+      
+      const { error } = await supabase
+        .from('watchlists')
+        .delete()
+        .eq('id', watchlistId)
+        .eq('user_id', userId);
+      
+      if (error) return res.status(500).json({ message: 'Failed to delete watchlist' });
+      return res.json({ message: 'Watchlist deleted' });
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to delete watchlist' });
+    }
+  });
+
+  // Move company from one watchlist to another
+  app.post('/api/watchlist/move', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const { companySymbol, fromWatchlistId, toWatchlistId } = req.body || {};
+      
+      if (!companySymbol || !fromWatchlistId || !toWatchlistId) {
+        return res.status(400).json({ message: 'Company symbol, fromWatchlistId, and toWatchlistId are required' });
+      }
+      
+      // Verify ownership of both watchlists
+      const { data: watchlists } = await supabase
+        .from('watchlists')
+        .select('id')
+        .eq('user_id', userId)
+        .in('id', [fromWatchlistId, toWatchlistId]);
+      
+      if (!watchlists || watchlists.length !== 2) {
+        return res.status(403).json({ message: 'Invalid watchlist ownership' });
+      }
+      
+      // Update watchlist_id
+      const { error } = await supabase
+        .from('watchlist')
+        .update({ watchlist_id: toWatchlistId })
+        .eq('user_id', userId)
+        .eq('company_symbol', companySymbol)
+        .eq('watchlist_id', fromWatchlistId);
+      
+      if (error) return res.status(500).json({ message: 'Failed to move company' });
+      return res.json({ message: 'Company moved successfully' });
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to move company' });
+    }
+  });
+
+  // Copy company to another watchlist
+  app.post('/api/watchlist/copy', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const { companySymbol, watchlistId } = req.body || {};
+      
+      if (!companySymbol || !watchlistId) {
+        return res.status(400).json({ message: 'Company symbol and watchlistId are required' });
+      }
+      
+      // Verify ownership
+      const { data: watchlist } = await supabase
+        .from('watchlists')
+        .select('id')
+        .eq('id', watchlistId)
+        .eq('user_id', userId)
+        .single();
+      
+      if (!watchlist) return res.status(403).json({ message: 'Invalid watchlist ownership' });
+      
+      // Check if already exists
+      const { data: existing } = await supabase
+        .from('watchlist')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('company_symbol', companySymbol)
+        .eq('watchlist_id', watchlistId)
+        .single();
+      
+      if (existing) return res.status(400).json({ message: 'Company already exists in this watchlist' });
+      
+      // Insert new entry
+      const { data, error } = await supabase
+        .from('watchlist')
+        .insert({ user_id: userId, company_symbol: companySymbol, watchlist_id: watchlistId })
+        .select('*')
+        .single();
+      
+      if (error) return res.status(500).json({ message: 'Failed to copy company' });
+      return res.json(data);
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to copy company' });
     }
   });
 
@@ -3582,14 +3800,30 @@ export function setupRoutes(app, supabase) {
   app.get('/api/watchlist/companies', isAuthenticated, async (req, res) => {
     try {
       const userId = req.user?.id;
+      const watchlistId = req.query.watchlistId ? parseInt(req.query.watchlistId) : null;
       const limit = parseInt(req.query.limit) || 50;
       const offset = parseInt(req.query.offset) || 0;
       const sortBy = (req.query.sortBy || 'marketCap').toString();
       const sortOrder = ((req.query.sortOrder || 'desc').toString() === 'asc') ? 'asc' : 'desc';
-      const { data: wl, error: wlErr } = await supabase
-        .from('watchlist')
-        .select('company_symbol')
-        .eq('user_id', userId);
+      
+      let query = supabase.from('watchlist').select('company_symbol').eq('user_id', userId);
+      
+      if (watchlistId) {
+        query = query.eq('watchlist_id', watchlistId);
+      } else {
+        // Get default watchlist
+        const { data: defaultWl } = await supabase
+          .from('watchlists')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('is_default', true)
+          .single();
+        if (defaultWl) {
+          query = query.eq('watchlist_id', defaultWl.id);
+        }
+      }
+      
+      const { data: wl, error: wlErr } = await query;
       if (wlErr) return res.status(500).json({ message: 'Failed to fetch watchlist' });
       const symbols = (wl || []).map(r => r.company_symbol).filter(Boolean);
       if (!symbols.length) return res.json({ companies: [], total: 0, limit, offset, hasMore: false });
@@ -3733,12 +3967,61 @@ export function setupRoutes(app, supabase) {
 
   app.post('/api/watchlist', isAuthenticated, async (req, res) => {
     try {
-      const { companySymbol } = req.body || {};
+      const { companySymbol, watchlistId } = req.body || {};
       const userId = req.user?.id;
       if (!companySymbol) return res.status(400).json({ message: 'Company symbol is required' });
-      const { data, error } = await supabase.from('watchlist').insert({ user_id: userId, company_symbol: companySymbol }).select('*').single();
-      if (error) console.warn('Insert watchlist error:', error);
-      const response = data ? { id: data.id, userId: data.user_id, companySymbol: data.company_symbol } : { userId, companySymbol };
+      
+      // If watchlistId not provided, use default watchlist
+      let targetWatchlistId = watchlistId;
+      if (!targetWatchlistId) {
+        const { data: defaultWl } = await supabase
+          .from('watchlists')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('is_default', true)
+          .single();
+        if (!defaultWl) {
+          // Create default watchlist if it doesn't exist
+          const { data: newWl } = await supabase
+            .from('watchlists')
+            .insert({ user_id: userId, name: 'My Watchlist', is_default: true })
+            .select('*')
+            .single();
+          targetWatchlistId = newWl?.id;
+        } else {
+          targetWatchlistId = defaultWl.id;
+        }
+      }
+      
+      // Verify ownership if watchlistId was provided
+      if (watchlistId) {
+        const { data: wl } = await supabase
+          .from('watchlists')
+          .select('id')
+          .eq('id', watchlistId)
+          .eq('user_id', userId)
+          .single();
+        if (!wl) return res.status(403).json({ message: 'Invalid watchlist ownership' });
+      }
+      
+      const { data, error } = await supabase
+        .from('watchlist')
+        .insert({ user_id: userId, company_symbol: companySymbol, watchlist_id: targetWatchlistId })
+        .select('*')
+        .single();
+      
+      if (error) {
+        if (error.code === '23505') { // Unique constraint violation
+          return res.status(400).json({ message: 'Company already in watchlist' });
+        }
+        console.warn('Insert watchlist error:', error);
+      }
+      const response = data ? { 
+        id: data.id, 
+        userId: data.user_id, 
+        companySymbol: data.company_symbol,
+        watchlistId: data.watchlist_id 
+      } : { userId, companySymbol, watchlistId: targetWatchlistId };
       return res.json(response);
     } catch (e) {
       return res.status(500).json({ message: 'Failed to add to watchlist' });
@@ -3749,11 +4032,253 @@ export function setupRoutes(app, supabase) {
     try {
       const userId = req.user?.id;
       const symbol = req.params.symbol;
-      const { error } = await supabase.from('watchlist').delete().match({ user_id: userId, company_symbol: symbol });
-      if (error) return res.status(500).json({ message: 'Failed to remove from watchlist' });
+      const { watchlistId } = req.query || {};
+      
+      // If watchlistId provided, delete only from that watchlist, otherwise from all
+      if (watchlistId) {
+        const { error } = await supabase
+          .from('watchlist')
+          .delete()
+          .match({ user_id: userId, company_symbol: symbol, watchlist_id: watchlistId });
+        if (error) return res.status(500).json({ message: 'Failed to remove from watchlist' });
+      } else {
+        const { error } = await supabase
+          .from('watchlist')
+          .delete()
+          .match({ user_id: userId, company_symbol: symbol });
+        if (error) return res.status(500).json({ message: 'Failed to remove from watchlist' });
+      }
       return res.json({ message: 'Removed from watchlist' });
     } catch (e) {
       return res.status(500).json({ message: 'Failed to remove from watchlist' });
+    }
+  });
+
+
+  // Create new watchlist
+  app.post('/api/watchlists', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const { name } = req.body || {};
+      if (!name || !name.trim()) return res.status(400).json({ message: 'Watchlist name is required' });
+      
+      // Check if name already exists for this user
+      const { data: existing } = await supabase
+        .from('watchlists')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('name', name.trim())
+        .single();
+      
+      if (existing) return res.status(400).json({ message: 'Watchlist with this name already exists' });
+      
+      const { data, error } = await supabase
+        .from('watchlists')
+        .insert({ user_id: userId, name: name.trim(), is_default: false })
+        .select('*')
+        .single();
+      
+      if (error) return res.status(500).json({ message: 'Failed to create watchlist' });
+      return res.json(data);
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to create watchlist' });
+    }
+  });
+
+  // Update watchlist (rename)
+  app.put('/api/watchlists/:id', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const watchlistId = parseInt(req.params.id);
+      const { name } = req.body || {};
+      
+      if (!name || !name.trim()) return res.status(400).json({ message: 'Watchlist name is required' });
+      
+      // Verify ownership
+      const { data: existing } = await supabase
+        .from('watchlists')
+        .select('id, name')
+        .eq('id', watchlistId)
+        .eq('user_id', userId)
+        .single();
+      
+      if (!existing) return res.status(404).json({ message: 'Watchlist not found' });
+      
+      // Check if new name already exists (excluding current watchlist)
+      const { data: nameExists } = await supabase
+        .from('watchlists')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('name', name.trim())
+        .neq('id', watchlistId)
+        .single();
+      
+      if (nameExists) return res.status(400).json({ message: 'Watchlist with this name already exists' });
+      
+      const { data, error } = await supabase
+        .from('watchlists')
+        .update({ name: name.trim(), updated_at: new Date().toISOString() })
+        .eq('id', watchlistId)
+        .eq('user_id', userId)
+        .select('*')
+        .single();
+      
+      if (error) return res.status(500).json({ message: 'Failed to update watchlist' });
+      return res.json(data);
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to update watchlist' });
+    }
+  });
+
+  // Delete watchlist
+  app.delete('/api/watchlists/:id', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const watchlistId = parseInt(req.params.id);
+      
+      // Verify ownership and check if it's default
+      const { data: existing } = await supabase
+        .from('watchlists')
+        .select('id, is_default')
+        .eq('id', watchlistId)
+        .eq('user_id', userId)
+        .single();
+      
+      if (!existing) return res.status(404).json({ message: 'Watchlist not found' });
+      if (existing.is_default) return res.status(400).json({ message: 'Cannot delete default watchlist' });
+      
+      // Delete watchlist (cascade will delete all items)
+      const { error } = await supabase
+        .from('watchlists')
+        .delete()
+        .eq('id', watchlistId)
+        .eq('user_id', userId);
+      
+      if (error) return res.status(500).json({ message: 'Failed to delete watchlist' });
+      return res.json({ message: 'Watchlist deleted' });
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to delete watchlist' });
+    }
+  });
+
+  // Move company from one watchlist to another
+  app.post('/api/watchlist/move', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const { companySymbol, fromWatchlistId, toWatchlistId } = req.body || {};
+      
+      if (!companySymbol || !fromWatchlistId || !toWatchlistId) {
+        return res.status(400).json({ message: 'Company symbol, from and to watchlist IDs are required' });
+      }
+      
+      // Verify ownership of both watchlists
+      const { data: watchlists } = await supabase
+        .from('watchlists')
+        .select('id')
+        .eq('user_id', userId)
+        .in('id', [fromWatchlistId, toWatchlistId]);
+      
+      if (!watchlists || watchlists.length !== 2) {
+        return res.status(403).json({ message: 'Invalid watchlist ownership' });
+      }
+      
+      // Check if company exists in source watchlist
+      const { data: existing } = await supabase
+        .from('watchlist')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('company_symbol', companySymbol)
+        .eq('watchlist_id', fromWatchlistId)
+        .single();
+      
+      if (!existing) {
+        return res.status(404).json({ message: 'Company not found in source watchlist' });
+      }
+      
+      // Check if company already exists in target watchlist
+      const { data: targetExists } = await supabase
+        .from('watchlist')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('company_symbol', companySymbol)
+        .eq('watchlist_id', toWatchlistId)
+        .single();
+      
+      if (targetExists) {
+        // Just delete from source if already in target
+        const { error: delError } = await supabase
+          .from('watchlist')
+          .delete()
+          .eq('id', existing.id);
+        if (delError) return res.status(500).json({ message: 'Failed to move company' });
+        return res.json({ message: 'Company moved (was already in target watchlist)' });
+      }
+      
+      // Update watchlist_id
+      const { data, error } = await supabase
+        .from('watchlist')
+        .update({ watchlist_id: toWatchlistId })
+        .eq('id', existing.id)
+        .select('*')
+        .single();
+      
+      if (error) return res.status(500).json({ message: 'Failed to move company' });
+      return res.json(data);
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to move company' });
+    }
+  });
+
+  // Copy company to another watchlist
+  app.post('/api/watchlist/copy', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const { companySymbol, fromWatchlistId, toWatchlistId } = req.body || {};
+      
+      if (!companySymbol || !fromWatchlistId || !toWatchlistId) {
+        return res.status(400).json({ message: 'Company symbol, from and to watchlist IDs are required' });
+      }
+      
+      // Verify ownership of both watchlists
+      const { data: watchlists } = await supabase
+        .from('watchlists')
+        .select('id')
+        .eq('user_id', userId)
+        .in('id', [fromWatchlistId, toWatchlistId]);
+      
+      if (!watchlists || watchlists.length !== 2) {
+        return res.status(403).json({ message: 'Invalid watchlist ownership' });
+      }
+      
+      // Check if company already exists in target watchlist
+      const { data: targetExists } = await supabase
+        .from('watchlist')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('company_symbol', companySymbol)
+        .eq('watchlist_id', toWatchlistId)
+        .single();
+      
+      if (targetExists) {
+        return res.status(400).json({ message: 'Company already exists in target watchlist' });
+      }
+      
+      // Insert into target watchlist
+      const { data, error } = await supabase
+        .from('watchlist')
+        .insert({ user_id: userId, company_symbol: companySymbol, watchlist_id: toWatchlistId })
+        .select('*')
+        .single();
+      
+      if (error) {
+        if (error.code === '23505') {
+          return res.status(400).json({ message: 'Company already exists in target watchlist' });
+        }
+        return res.status(500).json({ message: 'Failed to copy company' });
+      }
+      return res.json(data);
+    } catch (e) {
+      return res.status(500).json({ message: 'Failed to copy company' });
     }
   });
 

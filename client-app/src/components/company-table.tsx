@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { UpgradeModal } from './UpgradeModal';
+import { WatchlistManager } from './WatchlistManager';
 import {
   Tooltip,
   TooltipContent,
@@ -226,6 +227,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   const [watchlistPending, setWatchlistPending] = useState<Record<string, boolean>>({});
   const [watchOverrides, setWatchOverrides] = useState<Record<string, boolean>>({});
   const [didLoadPrefs, setDidLoadPrefs] = useState(false);
+  const [watchlistDialogOpen, setWatchlistDialogOpen] = useState(false);
+  const [selectedSymbolForWatchlist, setSelectedSymbolForWatchlist] = useState<string | null>(null);
   const { user, session, loading: authLoading } = useAuth();
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 640px)');
@@ -437,12 +440,12 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   });
 
   const { mutate: addToWatchlist } = useMutation({
-    mutationFn: (companySymbol: string) => authFetch('/api/watchlist', {
+    mutationFn: ({ companySymbol, watchlistId }: { companySymbol: string; watchlistId?: number }) => authFetch('/api/watchlist', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ companySymbol }),
+      body: JSON.stringify({ companySymbol, watchlistId }),
     }),
-    onMutate: async (companySymbol: string) => {
+    onMutate: async ({ companySymbol }: { companySymbol: string; watchlistId?: number }) => {
       setWatchlistPending(prev => ({ ...prev, [companySymbol]: true }));
       setWatchOverrides(prev => ({ ...prev, [companySymbol]: true }));
       try { (window as any).phCapture?.('watchlist_add', { symbol: companySymbol, dataset }); } catch {}
@@ -461,7 +464,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       });
       return { prevList, prevCompanies };
     },
-    onError: (_err, companySymbol, ctx) => {
+    onError: (_err, { companySymbol }, ctx) => {
       // Rollback on error
       if (ctx?.prevList) queryClient.setQueryData(['/api/watchlist'], ctx.prevList);
       if (ctx?.prevCompanies) queryClient.setQueryData([apiEndpoint, page, sortBy, sortOrder, searchQuery], ctx.prevCompanies);
@@ -469,13 +472,13 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       toast({ title: "Error", description: `Failed to add ${companySymbol} to watchlist.`, variant: "destructive" });
       try { (window as any).phCapture?.('api_error', { area: 'watchlist_add', symbol: companySymbol }); } catch {}
     },
-    onSuccess: (_data, companySymbol) => {
+    onSuccess: (_data, { companySymbol }) => {
       // Keep cache consistent
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
       toast({ title: "Success", description: `${companySymbol} added to watchlist.` });
     },
-    onSettled: (_data, _err, companySymbol) => {
+    onSettled: (_data, _err, { companySymbol }) => {
       if (companySymbol) setWatchlistPending(prev => ({ ...prev, [companySymbol]: false }));
     }
   });
@@ -507,10 +510,17 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
       toast({ title: "Success", description: `${companySymbol} removed from watchlist.` });
     },
-    onSettled: (_data, _err, companySymbol) => {
+    onSettled: (_data, _err, { companySymbol }) => {
       if (companySymbol) setWatchlistPending(prev => ({ ...prev, [companySymbol]: false }));
     }
   });
+
+  const handleWatchlistSelect = (watchlistId: number) => {
+    if (selectedSymbolForWatchlist) {
+      addToWatchlist({ companySymbol: selectedSymbolForWatchlist, watchlistId });
+      setSelectedSymbolForWatchlist(null);
+    }
+  };
 
   const handleWatchlistToggle = (symbol: string, isCurrentlyWatched: boolean) => {
     if (!isLoggedIn) {
@@ -526,7 +536,14 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
     if (isCurrentlyWatched) {
       removeFromWatchlist(symbol);
     } else {
-      addToWatchlist(symbol);
+      // For premium users, show watchlist selection dialog
+      if (isPaidUser) {
+        setSelectedSymbolForWatchlist(symbol);
+        setWatchlistDialogOpen(true);
+      } else {
+        // For free users, add to default watchlist
+        addToWatchlist({ companySymbol: symbol });
+      }
     }
   };
 
@@ -1793,6 +1810,15 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
 
       {/* Mobile scroll-hint */}
       <div className="sm:hidden text-xs text-muted-foreground mt-2">Swipe horizontally to see more →</div>
+
+      {/* Watchlist Manager Dialog */}
+      <WatchlistManager
+        open={watchlistDialogOpen}
+        onOpenChange={setWatchlistDialogOpen}
+        onSelectWatchlist={handleWatchlistSelect}
+        companySymbol={selectedSymbolForWatchlist || undefined}
+        mode="select"
+      />
 
       {/* Pagination */}
       {data && data.total > limit && (
