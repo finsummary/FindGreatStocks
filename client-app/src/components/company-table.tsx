@@ -212,9 +212,10 @@ interface CompanyTableProps {
     | 'sp500' | 'nasdaq100' | 'dowjones' | 'watchlist'
     | 'ftse100' | 'spmid400' | 'tsx60' | 'asx200' | 'dax40' | 'cac40'
     | 'ibex35' | 'nikkei225' | 'hangseng' | 'nifty50' | 'ibovespa';
+  watchlistId?: number;
 }
 
-export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTableProps) {
+export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: CompanyTableProps) {
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<string>('none'); // Default to 'none' for placeholder
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -569,14 +570,15 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
   }
 
   const { data, isLoading, error } = useQuery<any>({
-    queryKey: [apiEndpoint, page, sortBy, sortOrder, searchQuery],
+    queryKey: [apiEndpoint, page, sortBy, sortOrder, searchQuery, watchlistId],
     queryFn: async ({ queryKey }) => {
-      const [url, page, currentSortBy, sortOrder, search] = queryKey as [
+      const [url, page, currentSortBy, sortOrder, search, wlId] = queryKey as [
         string,
         number,
         string,
         string,
         string,
+        number | undefined,
       ];
 
       const isDerived = currentSortBy === 'roicStability' || currentSortBy === 'roicStabilityScore' || currentSortBy === 'fcfMargin';
@@ -598,10 +600,20 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
 
       params.append("_", new Date().getTime().toString());
 
+      // Add watchlistId to params if provided
+      if (wlId && url.startsWith('/api/watchlist/companies')) {
+        params.append('watchlistId', String(wlId));
+      }
+
       const qs = params.toString();
       // Watchlist endpoints требуют авторизации — используем authFetch
       if (url.startsWith('/api/watchlist')) {
         if (!session?.access_token) throw new Error('Unauthorized');
+        // Use the proper endpoint with watchlistId
+        if (url === '/api/watchlist/companies') {
+          const wlRes = await authFetch(`${url}?${qs}`, undefined, session.access_token);
+          return wlRes;
+        }
         // Абсолютно независим от бэкенда: строим список из /api/watchlist + /api/companies-all и сортируем/пагинируем на клиенте
         const wlArr = await authFetch('/api/watchlist', undefined, session.access_token);
         const wlSymbols: string[] = Array.isArray(wlArr) ? wlArr.map((i: any) => i.companySymbol).filter(Boolean) : [];
