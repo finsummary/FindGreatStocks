@@ -4258,29 +4258,46 @@ export function setupRoutes(app, supabase) {
       const userId = req.user?.id;
       const { companySymbol, fromWatchlistId, toWatchlistId } = req.body || {};
       
-      if (!companySymbol || !fromWatchlistId || !toWatchlistId) {
+      console.log('[COPY] Request:', { userId, companySymbol, fromWatchlistId, toWatchlistId, body: req.body });
+      
+      // Convert to numbers if they're strings
+      const fromId = typeof fromWatchlistId === 'string' ? parseInt(fromWatchlistId, 10) : fromWatchlistId;
+      const toId = typeof toWatchlistId === 'string' ? parseInt(toWatchlistId, 10) : toWatchlistId;
+      
+      if (!companySymbol || !fromId || !toId || isNaN(fromId) || isNaN(toId)) {
+        console.log('[COPY] Validation failed:', { companySymbol, fromId, toId });
         return res.status(400).json({ message: 'Company symbol, from and to watchlist IDs are required' });
       }
       
       // Verify ownership of both watchlists
-      const { data: watchlists } = await supabase
+      const { data: watchlists, error: watchlistsError } = await supabase
         .from('watchlists')
         .select('id')
         .eq('user_id', userId)
-        .in('id', [fromWatchlistId, toWatchlistId]);
+        .in('id', [fromId, toId]);
+      
+      console.log('[COPY] Watchlists check:', { watchlists, error: watchlistsError, userId, fromId, toId });
+      
+      if (watchlistsError) {
+        console.error('[COPY] Watchlists query error:', watchlistsError);
+        return res.status(500).json({ message: 'Failed to verify watchlist ownership' });
+      }
       
       if (!watchlists || watchlists.length !== 2) {
+        console.log('[COPY] Ownership check failed:', { watchlistsCount: watchlists?.length, watchlists });
         return res.status(403).json({ message: 'Invalid watchlist ownership' });
       }
       
       // Check if company already exists in target watchlist
-      const { data: targetExists } = await supabase
+      const { data: targetExists, error: existsError } = await supabase
         .from('watchlist')
         .select('id')
         .eq('user_id', userId)
         .eq('company_symbol', companySymbol)
-        .eq('watchlist_id', toWatchlistId)
-        .single();
+        .eq('watchlist_id', toId)
+        .maybeSingle();
+      
+      console.log('[COPY] Target exists check:', { targetExists, error: existsError });
       
       if (targetExists) {
         return res.status(400).json({ message: 'Company already exists in target watchlist' });
@@ -4289,19 +4306,23 @@ export function setupRoutes(app, supabase) {
       // Insert into target watchlist
       const { data, error } = await supabase
         .from('watchlist')
-        .insert({ user_id: userId, company_symbol: companySymbol, watchlist_id: toWatchlistId })
+        .insert({ user_id: userId, company_symbol: companySymbol, watchlist_id: toId })
         .select('*')
         .single();
       
+      console.log('[COPY] Insert result:', { data, error });
+      
       if (error) {
+        console.error('[COPY] Insert error:', error);
         if (error.code === '23505') {
           return res.status(400).json({ message: 'Company already exists in target watchlist' });
         }
-        return res.status(500).json({ message: 'Failed to copy company' });
+        return res.status(500).json({ message: 'Failed to copy company', error: error.message });
       }
       return res.json(data);
     } catch (e) {
-      return res.status(500).json({ message: 'Failed to copy company' });
+      console.error('[COPY] Exception:', e);
+      return res.status(500).json({ message: 'Failed to copy company', error: e.message });
     }
   });
 
