@@ -1986,6 +1986,72 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Batch fix: Update all companies with interest_coverage = 0 to null
+  app.post('/api/metrics/batch-fix-zero-interest-coverage', requireAdmin, async (req, res) => {
+    try {
+      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies', 'ftse100_companies'];
+      const limit = parseInt(req.query.limit || '100', 10);
+      const offset = parseInt(req.query.offset || '0', 10);
+      
+      const results = { totalFixed: 0, totalChecked: 0, errors: [] };
+
+      for (const table of tables) {
+        try {
+          // Find all companies with interest_coverage = 0 or '0' or '0.00'
+          const { data: companies, error: fetchError } = await supabase
+            .from(table)
+            .select('symbol, interest_coverage')
+            .or('interest_coverage.eq.0,interest_coverage.eq."0",interest_coverage.eq."0.00"')
+            .range(offset, offset + limit - 1);
+
+          if (fetchError) {
+            results.errors.push({ table, error: fetchError.message });
+            continue;
+          }
+
+          if (!companies || companies.length === 0) {
+            continue;
+          }
+
+          results.totalChecked += companies.length;
+
+          // Update all to null
+          const symbols = companies.map(c => c.symbol).filter(Boolean);
+          for (const symbol of symbols) {
+            try {
+              const { error: updateError } = await supabase
+                .from(table)
+                .update({ interest_coverage: null })
+                .eq('symbol', symbol);
+
+              if (updateError) {
+                results.errors.push({ table, symbol, error: updateError.message });
+              } else {
+                results.totalFixed++;
+              }
+            } catch (e) {
+              results.errors.push({ table, symbol, error: e.message });
+            }
+          }
+
+          // Small delay to avoid rate limiting
+          await new Promise(r => setTimeout(r, 50));
+        } catch (e) {
+          results.errors.push({ table, error: e.message });
+        }
+      }
+
+      return res.json({ 
+        status: 'ok', 
+        ...results,
+        message: `Fixed ${results.totalFixed} companies with zero interest coverage`
+      });
+    } catch (e) {
+      console.error('batch-fix-zero-interest-coverage error:', e);
+      return res.status(500).json({ message: 'Failed to batch fix interest coverage', error: e.message });
+    }
+  });
+
   // Last-chance error handler to capture errors (Sentry if loaded) before default express handler
   app.use((err, req, res, next) => {
     try {
