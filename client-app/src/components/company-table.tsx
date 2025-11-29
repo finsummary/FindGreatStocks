@@ -440,8 +440,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const { data: watchlistData } = useQuery<Array<{ companySymbol: string; watchlistId?: number }>>({
     queryKey: ['/api/watchlist', 'all'],
     queryFn: () => {
-      // Fetch all watchlist items without watchlistId filter to get watchlistId for any company
-      return authFetch('/api/watchlist');
+      // Fetch all watchlist items from all watchlists to get watchlistId for any company
+      return authFetch('/api/watchlist?all=true');
     },
     enabled: !!isLoggedIn,
     refetchOnMount: 'always',

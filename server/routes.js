@@ -3573,12 +3573,17 @@ export function setupRoutes(app, supabase) {
     try {
       const userId = req.user?.id;
       const watchlistId = req.query.watchlistId ? parseInt(req.query.watchlistId) : null;
+      const all = req.query.all === 'true' || req.query.all === '1'; // Get all watchlist items if all=true
       
       // If watchlistId is provided, get items from that watchlist
+      // If all=true, get all items from all watchlists
       // Otherwise, get items from default watchlist (for backward compatibility)
       let query = supabase.from('watchlist').select('*').eq('user_id', userId);
       
-      if (watchlistId) {
+      if (all) {
+        // Get all items from all watchlists - don't filter by watchlist_id
+        // This is used by frontend to determine which watchlist each company belongs to
+      } else if (watchlistId) {
         query = query.eq('watchlist_id', watchlistId);
       } else {
         // Get default watchlist for user
@@ -4190,65 +4195,95 @@ export function setupRoutes(app, supabase) {
       const userId = req.user?.id;
       const { companySymbol, fromWatchlistId, toWatchlistId } = req.body || {};
       
-      if (!companySymbol || !fromWatchlistId || !toWatchlistId) {
+      console.log('[MOVE] Request:', { userId, companySymbol, fromWatchlistId, toWatchlistId, body: req.body });
+      
+      // Convert to numbers if they're strings
+      const fromId = typeof fromWatchlistId === 'string' ? parseInt(fromWatchlistId, 10) : fromWatchlistId;
+      const toId = typeof toWatchlistId === 'string' ? parseInt(toWatchlistId, 10) : toWatchlistId;
+      
+      if (!companySymbol || !fromId || !toId || isNaN(fromId) || isNaN(toId)) {
+        console.log('[MOVE] Validation failed:', { companySymbol, fromId, toId });
         return res.status(400).json({ message: 'Company symbol, from and to watchlist IDs are required' });
       }
       
       // Verify ownership of both watchlists
-      const { data: watchlists } = await supabase
+      const { data: watchlists, error: watchlistsError } = await supabase
         .from('watchlists')
         .select('id')
         .eq('user_id', userId)
-        .in('id', [fromWatchlistId, toWatchlistId]);
+        .in('id', [fromId, toId]);
+      
+      console.log('[MOVE] Watchlists check:', { watchlists, error: watchlistsError, userId, fromId, toId });
+      
+      if (watchlistsError) {
+        console.error('[MOVE] Watchlists query error:', watchlistsError);
+        return res.status(500).json({ message: 'Failed to verify watchlist ownership' });
+      }
       
       if (!watchlists || watchlists.length !== 2) {
+        console.log('[MOVE] Ownership check failed:', { watchlistsCount: watchlists?.length, watchlists });
         return res.status(403).json({ message: 'Invalid watchlist ownership' });
       }
       
       // Check if company exists in source watchlist
-      const { data: existing } = await supabase
+      const { data: existing, error: existingError } = await supabase
         .from('watchlist')
         .select('id')
         .eq('user_id', userId)
         .eq('company_symbol', companySymbol)
-        .eq('watchlist_id', fromWatchlistId)
-        .single();
+        .eq('watchlist_id', fromId)
+        .maybeSingle();
+      
+      console.log('[MOVE] Source exists check:', { existing, error: existingError, fromId });
       
       if (!existing) {
+        console.log('[MOVE] Company not found in source watchlist');
         return res.status(404).json({ message: 'Company not found in source watchlist' });
       }
       
       // Check if company already exists in target watchlist
-      const { data: targetExists } = await supabase
+      const { data: targetExists, error: targetError } = await supabase
         .from('watchlist')
         .select('id')
         .eq('user_id', userId)
         .eq('company_symbol', companySymbol)
-        .eq('watchlist_id', toWatchlistId)
-        .single();
+        .eq('watchlist_id', toId)
+        .maybeSingle();
+      
+      console.log('[MOVE] Target exists check:', { targetExists, error: targetError, toId });
       
       if (targetExists) {
         // Just delete from source if already in target
+        console.log('[MOVE] Company already in target, deleting from source');
         const { error: delError } = await supabase
           .from('watchlist')
           .delete()
           .eq('id', existing.id);
-        if (delError) return res.status(500).json({ message: 'Failed to move company' });
+        if (delError) {
+          console.error('[MOVE] Delete error:', delError);
+          return res.status(500).json({ message: 'Failed to move company' });
+        }
         return res.json({ message: 'Company moved (was already in target watchlist)' });
       }
       
       // Update watchlist_id
       const { data, error } = await supabase
         .from('watchlist')
-        .update({ watchlist_id: toWatchlistId })
+        .update({ watchlist_id: toId })
         .eq('id', existing.id)
         .select('*')
         .single();
       
-      if (error) return res.status(500).json({ message: 'Failed to move company' });
+      console.log('[MOVE] Update result:', { data, error });
+      
+      if (error) {
+        console.error('[MOVE] Update error:', error);
+        return res.status(500).json({ message: 'Failed to move company', error: error.message });
+      }
       return res.json(data);
     } catch (e) {
-      return res.status(500).json({ message: 'Failed to move company' });
+      console.error('[MOVE] Exception:', e);
+      return res.status(500).json({ message: 'Failed to move company', error: e.message });
     }
   });
 
