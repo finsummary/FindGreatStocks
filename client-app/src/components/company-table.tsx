@@ -510,7 +510,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
       toast({ title: "Success", description: `${companySymbol} removed from watchlist.` });
     },
-    onSettled: (_data, _err, { companySymbol }) => {
+    onSettled: (_data, _err, companySymbol) => {
       if (companySymbol) setWatchlistPending(prev => ({ ...prev, [companySymbol]: false }));
     }
   });
