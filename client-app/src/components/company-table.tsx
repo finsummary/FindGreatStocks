@@ -966,8 +966,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
           let cellContent;
           switch (colConfig.id) {
             case 'watchlist':
-              const isWatched = row.isWatched || false;
               const isWatchlistPage = dataset === 'watchlist';
+              // On watchlist page, all companies are in watchlist, so isWatched should be true
+              const isWatched = isWatchlistPage ? true : (row.isWatched || false);
               cellContent = (
                 <div className="flex items-center gap-1">
                   <TooltipProvider>
@@ -1010,7 +1011,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  {isWatchlistPage && isWatched && (
+                  {isWatchlistPage && isLoggedIn && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -1043,7 +1044,29 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
-                          onClick={() => removeFromWatchlist(row.symbol)}
+                          onClick={() => {
+                            // Find the watchlist item to get watchlistId for deletion
+                            const watchlistItem = watchlistData?.find((item: any) => item.companySymbol === row.symbol);
+                            if (watchlistItem?.watchlistId) {
+                              // Delete from specific watchlist
+                              authFetch(`/api/watchlist/${row.symbol}?watchlistId=${watchlistItem.watchlistId}`, { 
+                                method: 'DELETE' 
+                              }).then(() => {
+                                queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
+                                queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
+                                toast({ title: "Success", description: `${row.symbol} removed from watchlist.` });
+                              }).catch((error: any) => {
+                                toast({ 
+                                  title: "Error", 
+                                  description: error?.message || "Failed to remove company",
+                                  variant: "destructive" 
+                                });
+                              });
+                            } else {
+                              // Fallback to old method
+                              removeFromWatchlist(row.symbol);
+                            }
+                          }}
                           className="text-red-600 dark:text-red-400"
                         >
                           Remove from watchlist
