@@ -1633,28 +1633,33 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
     }
   };
 
-  // Update scroll button states on mount and resize
+  // Update scroll button states on mount, resize, and data changes
   useEffect(() => {
     const updateScrollButtons = () => {
       if (tableScrollRef.current) {
         const { scrollLeft, scrollWidth, clientWidth } = tableScrollRef.current;
-        setCanScrollLeft(scrollLeft > 0);
-        setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+        const canScroll = scrollWidth > clientWidth;
+        setCanScrollLeft(canScroll && scrollLeft > 0);
+        setCanScrollRight(canScroll && scrollLeft < scrollWidth - clientWidth - 10);
       }
     };
-    updateScrollButtons();
-    const handleResize = () => updateScrollButtons();
+    // Initial check with delay to ensure DOM is ready
+    const timeoutId = setTimeout(updateScrollButtons, 100);
+    const handleResize = () => {
+      setTimeout(updateScrollButtons, 100);
+    };
     window.addEventListener('resize', handleResize);
     if (tableScrollRef.current) {
       tableScrollRef.current.addEventListener('scroll', updateScrollButtons);
     }
     return () => {
+      clearTimeout(timeoutId);
       window.removeEventListener('resize', handleResize);
       if (tableScrollRef.current) {
         tableScrollRef.current.removeEventListener('scroll', updateScrollButtons);
       }
     };
-  }, [data]);
+  }, [data, isLoading]);
 
   // Prefetch данных для соседних вкладок, чтобы переключение было мгновенным
   useEffect(() => {
