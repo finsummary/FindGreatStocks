@@ -434,8 +434,11 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
 
   // Watchlist mutations (only fetch if authenticated)
   const { data: watchlistData } = useQuery<Array<{ companySymbol: string; watchlistId?: number }>>({
-    queryKey: ['/api/watchlist'],
-    queryFn: () => authFetch('/api/watchlist'),
+    queryKey: ['/api/watchlist', watchlistId],
+    queryFn: () => {
+      const url = watchlistId ? `/api/watchlist?watchlistId=${watchlistId}` : '/api/watchlist';
+      return authFetch(url);
+    },
     enabled: !!isLoggedIn,
     refetchOnMount: 'always',
     refetchOnWindowFocus: false,
