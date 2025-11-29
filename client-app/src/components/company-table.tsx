@@ -1036,21 +1036,22 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
-                          className="p-1 h-auto min-w-[32px] border-2 border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                          className="p-1 h-auto text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                           onClick={(e) => {
                             e.stopPropagation();
                             console.log('Menu button clicked:', { 
                               symbol: row.symbol, 
                               isWatchlistPage, 
                               isLoggedIn, 
+                              watchlistId,
                               watchlistData: watchlistData?.length,
                               watchlistItem: watchlistData?.find((item: any) => item.companySymbol === row.symbol)
                             });
                           }}
                         >
-                          <MoreVertical className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+                          <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-56">
@@ -2019,16 +2020,19 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
           if (!open) setCompanyToMove(null);
         }}
         onSelectWatchlist={(toId) => {
+          console.log('WatchlistManager onSelectWatchlist called:', { toId, companyToMove });
           if (companyToMove) {
             if (companyToMove.mode === 'copy') {
               handleCopyToWatchlist(toId);
             } else {
               handleMoveToWatchlist(toId);
             }
+          } else {
+            console.error('companyToMove is null when onSelectWatchlist called');
           }
         }}
         companySymbol={companyToMove?.symbol}
-        currentWatchlistId={companyToMove?.watchlistId}
+        currentWatchlistId={companyToMove?.watchlistId || watchlistId}
         mode="select"
       />
 

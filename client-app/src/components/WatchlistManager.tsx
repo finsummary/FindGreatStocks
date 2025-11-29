@@ -210,6 +210,10 @@ export function WatchlistManager({
       } else {
         copyMutation.mutate({ fromId: currentWatchlistId, toId });
       }
+    } else if (companySymbol && onSelectWatchlist) {
+      // If currentWatchlistId is missing but we have companySymbol and onSelectWatchlist,
+      // still try to call it (company-table will handle the logic)
+      onSelectWatchlist(toId);
     }
   };
 
