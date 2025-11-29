@@ -187,13 +187,25 @@ export function WatchlistManager({
 
   const handleMove = (toId: number) => {
     if (currentWatchlistId && companySymbol) {
-      moveMutation.mutate({ fromId: currentWatchlistId, toId });
+      // If onSelectWatchlist is provided, use it (for company-table integration)
+      // Otherwise use built-in mutation
+      if (onSelectWatchlist) {
+        onSelectWatchlist(toId);
+      } else {
+        moveMutation.mutate({ fromId: currentWatchlistId, toId });
+      }
     }
   };
 
   const handleCopy = (toId: number) => {
     if (currentWatchlistId && companySymbol) {
-      copyMutation.mutate({ fromId: currentWatchlistId, toId });
+      // If onSelectWatchlist is provided, use it (for company-table integration)
+      // Otherwise use built-in mutation
+      if (onSelectWatchlist) {
+        onSelectWatchlist(toId);
+      } else {
+        copyMutation.mutate({ fromId: currentWatchlistId, toId });
+      }
     }
   };
 
@@ -315,23 +327,27 @@ export function WatchlistManager({
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => handleMove(watchlist.id)}
-                                  disabled={moveMutation.isPending}
+                                  disabled={moveMutation.isPending || copyMutation.isPending}
                                   title="Move here"
+                                  className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                                 >
-                                  <Move className="h-4 w-4" />
+                                  <Move className="h-4 w-4 mr-1" />
+                                  Move
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => handleCopy(watchlist.id)}
-                                  disabled={copyMutation.isPending}
+                                  disabled={moveMutation.isPending || copyMutation.isPending}
                                   title="Copy here"
+                                  className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                                 >
-                                  <Copy className="h-4 w-4" />
+                                  <Copy className="h-4 w-4 mr-1" />
+                                  Copy
                                 </Button>
                               </>
                             )}
-                            {(!companySymbol || currentWatchlistId !== watchlist.id) && (
+                            {(!companySymbol || !currentWatchlistId || currentWatchlistId === watchlist.id) && (
                               <Button
                                 size="sm"
                                 onClick={() => handleSelect(watchlist.id)}
