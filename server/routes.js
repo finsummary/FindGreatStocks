@@ -734,7 +734,7 @@ export function setupRoutes(app, supabase) {
       const results = [];
 
       // Debug symbols for logging
-      const debugSymbols = ['MCD', 'PM', 'AAPL'];
+      const debugSymbols = ['MCD', 'PM', 'AAPL', 'BA'];
       
       for (const sym of symbols) {
         try {
@@ -860,7 +860,7 @@ export function setupRoutes(app, supabase) {
       const hasMore = offset + limit < total;
 
       // Debug symbols for logging
-      const debugSymbols = ['MCD', 'PM', 'AAPL'];
+      const debugSymbols = ['MCD', 'PM', 'AAPL', 'BA'];
 
       const results = [];
       for (const sym of symbols) {
