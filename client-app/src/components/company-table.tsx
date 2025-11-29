@@ -433,7 +433,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   };
 
   // Watchlist mutations (only fetch if authenticated)
-  const { data: watchlistData } = useQuery<Array<{ companySymbol: string }>>({
+  const { data: watchlistData } = useQuery<Array<{ companySymbol: string; watchlistId?: number }>>({
     queryKey: ['/api/watchlist'],
     queryFn: () => authFetch('/api/watchlist'),
     enabled: !!isLoggedIn,
@@ -522,6 +522,66 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
     if (selectedSymbolForWatchlist) {
       addToWatchlist({ companySymbol: selectedSymbolForWatchlist, watchlistId });
       setSelectedSymbolForWatchlist(null);
+    }
+  };
+
+  const handleMoveCompany = (symbol: string) => {
+    // Get current watchlist ID for this company
+    const watchlistItem = watchlistData?.find((item: any) => item.companySymbol === symbol);
+    setCompanyToMove({ symbol, watchlistId: watchlistItem?.watchlistId });
+    setMoveCompanyDialogOpen(true);
+  };
+
+  const handleMoveToWatchlist = (toWatchlistId: number) => {
+    if (companyToMove && companyToMove.watchlistId) {
+      authFetch('/api/watchlist/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companySymbol: companyToMove.symbol,
+          fromWatchlistId: companyToMove.watchlistId,
+          toWatchlistId,
+        }),
+      }).then(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/watchlists'] });
+        toast({ title: "Success", description: "Company moved" });
+        setMoveCompanyDialogOpen(false);
+        setCompanyToMove(null);
+      }).catch((error: any) => {
+        toast({ 
+          title: "Error", 
+          description: error?.message || "Failed to move company",
+          variant: "destructive" 
+        });
+      });
+    }
+  };
+
+  const handleCopyToWatchlist = (toWatchlistId: number) => {
+    if (companyToMove && companyToMove.watchlistId) {
+      authFetch('/api/watchlist/copy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companySymbol: companyToMove.symbol,
+          fromWatchlistId: companyToMove.watchlistId,
+          toWatchlistId,
+        }),
+      }).then(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
+        toast({ title: "Success", description: "Company copied" });
+        setMoveCompanyDialogOpen(false);
+        setCompanyToMove(null);
+      }).catch((error: any) => {
+        toast({ 
+          title: "Error", 
+          description: error?.message || "Failed to copy company",
+          variant: "destructive" 
+        });
+      });
     }
   };
 
