@@ -65,24 +65,27 @@
   };
   
   console.log('🚀 Начинаем массовый пересчёт Debt-to-Equity и Interest Coverage...');
+  console.log('📊 Это может занять несколько минут. Не закрывайте вкладку.');
   
+  let batchCount = 0;
   while (true) {
     try {
       const result = await processBatch(offset);
       const success = result.results?.filter(r => r.updated).length || 0;
       totalProcessed += success;
+      batchCount++;
       
-      console.log(`✅ Батч ${Math.floor(offset/limit) + 1}: обработано ${success}. Прогресс: ${result.progress}%`);
+      console.log(`✅ Батч ${batchCount}: обработано ${success}/${result.processed} компаний. Прогресс: ${result.progress || 0}% (${offset + result.processed}/${result.total || '?'})`);
       
       if (!result.hasMore) {
-        console.log(`🎉 Завершено! Всего обработано: ${totalProcessed}`);
+        console.log(`🎉 Завершено! Всего обработано: ${totalProcessed} компаний за ${batchCount} батчей`);
         break;
       }
       
-      offset = result.nextOffset;
-      await new Promise(r => setTimeout(r, 1000));
+      offset = result.nextOffset || (offset + limit);
+      await new Promise(r => setTimeout(r, 1000)); // Пауза между батчами
     } catch (e) {
-      console.error(`❌ Ошибка:`, e);
+      console.error(`❌ Ошибка в батче ${batchCount + 1}:`, e);
       offset += limit;
       await new Promise(r => setTimeout(r, 2000));
     }
@@ -107,9 +110,9 @@
 ## Цветовая индикация
 
 ### Debt-to-Equity:
-- 🟢 Зеленый: < 0.5 (низкий долг, хорошо)
+- 🔴 Красный: < 0 (отрицательный equity, плохо) или > 1.0 (высокий долг, плохо)
+- 🟢 Зеленый: 0 - 0.5 (низкий долг, хорошо)
 - 🟡 Желтый: 0.5 - 1.0 (умеренный долг)
-- 🔴 Красный: > 1.0 (высокий долг, плохо)
 
 ### Interest Coverage:
 - 🟢 Зеленый: ≥ 5 (отличное покрытие)
