@@ -194,6 +194,10 @@ export function WatchlistManager({
       } else {
         moveMutation.mutate({ fromId: currentWatchlistId, toId });
       }
+    } else if (companySymbol && onSelectWatchlist) {
+      // If currentWatchlistId is missing but we have companySymbol and onSelectWatchlist,
+      // still try to call it (company-table will handle the logic)
+      onSelectWatchlist(toId);
     }
   };
 
@@ -321,33 +325,44 @@ export function WatchlistManager({
                       <div className="flex gap-2">
                         {mode === 'select' && (
                           <>
-                            {companySymbol && currentWatchlistId && currentWatchlistId !== watchlist.id && (
+                            {companySymbol && (
                               <>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleMove(watchlist.id)}
-                                  disabled={moveMutation.isPending || copyMutation.isPending}
-                                  title="Move here"
-                                  className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                                >
-                                  <Move className="h-4 w-4 mr-1" />
-                                  Move
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleCopy(watchlist.id)}
-                                  disabled={moveMutation.isPending || copyMutation.isPending}
-                                  title="Copy here"
-                                  className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                                >
-                                  <Copy className="h-4 w-4 mr-1" />
-                                  Copy
-                                </Button>
+                                {currentWatchlistId && currentWatchlistId !== watchlist.id ? (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleMove(watchlist.id)}
+                                      disabled={moveMutation.isPending || copyMutation.isPending}
+                                      title="Move here"
+                                      className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                                    >
+                                      <Move className="h-4 w-4 mr-1" />
+                                      Move
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleCopy(watchlist.id)}
+                                      disabled={moveMutation.isPending || copyMutation.isPending}
+                                      title="Copy here"
+                                      className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                                    >
+                                      <Copy className="h-4 w-4 mr-1" />
+                                      Copy
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleSelect(watchlist.id)}
+                                  >
+                                    Select
+                                  </Button>
+                                )}
                               </>
                             )}
-                            {(!companySymbol || !currentWatchlistId || currentWatchlistId === watchlist.id) && (
+                            {!companySymbol && (
                               <Button
                                 size="sm"
                                 onClick={() => handleSelect(watchlist.id)}

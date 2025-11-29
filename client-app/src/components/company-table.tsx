@@ -433,11 +433,12 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   };
 
   // Watchlist mutations (only fetch if authenticated)
+  // Fetch ALL watchlist items for the user (not just current watchlist) to find watchlistId for any company
   const { data: watchlistData } = useQuery<Array<{ companySymbol: string; watchlistId?: number }>>({
-    queryKey: ['/api/watchlist', watchlistId],
+    queryKey: ['/api/watchlist', 'all'],
     queryFn: () => {
-      const url = watchlistId ? `/api/watchlist?watchlistId=${watchlistId}` : '/api/watchlist';
-      return authFetch(url);
+      // Fetch all watchlist items without watchlistId filter to get watchlistId for any company
+      return authFetch('/api/watchlist');
     },
     enabled: !!isLoggedIn,
     refetchOnMount: 'always',
@@ -1015,7 +1016,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="p-1 h-auto text-muted-foreground hover:text-foreground"
+                          className="p-1 h-auto text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <MoreVertical className="h-4 w-4" />
