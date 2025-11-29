@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronUp, ChevronDown, Star, Download, Search, Settings2, X, Lock, Unlock, MoreVertical, Move, Copy } from "lucide-react";
+import { ChevronUp, ChevronDown, Star, Download, Search, Settings2, X, Lock, Unlock, MoreVertical, Move, Copy, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1017,17 +1017,18 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="p-1 h-auto text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                          className="p-1 h-auto text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 border border-gray-300 dark:border-gray-600"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuLabel>Actions for {row.symbol}</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => {
                           const watchlistItem = watchlistData?.find((item: any) => item.companySymbol === row.symbol);
+                          console.log('Move clicked:', { symbol: row.symbol, watchlistItem, watchlistData });
                           setCompanyToMove({ symbol: row.symbol, watchlistId: watchlistItem?.watchlistId, mode: 'move' });
                           setMoveCompanyDialogOpen(true);
                         }}>
@@ -1036,6 +1037,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => {
                           const watchlistItem = watchlistData?.find((item: any) => item.companySymbol === row.symbol);
+                          console.log('Copy clicked:', { symbol: row.symbol, watchlistItem, watchlistData });
                           setCompanyToMove({ symbol: row.symbol, watchlistId: watchlistItem?.watchlistId, mode: 'copy' });
                           setMoveCompanyDialogOpen(true);
                         }}>
@@ -1047,6 +1049,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                           onClick={() => {
                             // Find the watchlist item to get watchlistId for deletion
                             const watchlistItem = watchlistData?.find((item: any) => item.companySymbol === row.symbol);
+                            console.log('Remove clicked:', { symbol: row.symbol, watchlistItem, watchlistData });
                             if (watchlistItem?.watchlistId) {
                               // Delete from specific watchlist
                               authFetch(`/api/watchlist/${row.symbol}?watchlistId=${watchlistItem.watchlistId}`, { 
@@ -1069,6 +1072,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                           }}
                           className="text-red-600 dark:text-red-400"
                         >
+                          <Trash2 className="h-4 w-4 mr-2" />
                           Remove from watchlist
                         </DropdownMenuItem>
                       </DropdownMenuContent>
