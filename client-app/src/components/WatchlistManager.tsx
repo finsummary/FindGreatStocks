@@ -199,19 +199,19 @@ export function WatchlistManager({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-background text-foreground border">
+      <DialogContent className="sm:max-w-[500px] bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 shadow-xl">
         <DialogHeader>
-          <DialogTitle className="text-foreground">
+          <DialogTitle className="text-gray-900 dark:text-gray-100 text-lg font-semibold">
             {mode === 'select' ? 'Select Watchlist' : 'Manage Watchlists'}
           </DialogTitle>
-          <DialogDescription className="text-muted-foreground">
+          <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm">
             {mode === 'select' && companySymbol 
               ? `Choose a watchlist for ${companySymbol}`
               : 'Create, rename, or delete your watchlists'}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 text-foreground">
+        <div className="space-y-4 text-gray-900 dark:text-gray-100">
           {/* Create new watchlist */}
           {showCreate ? (
             <div className="flex gap-2">
@@ -260,14 +260,14 @@ export function WatchlistManager({
           {/* Watchlist list */}
           <div className="space-y-2 max-h-[400px] overflow-y-auto">
             {isLoading ? (
-              <div className="text-center text-muted-foreground py-4">Loading...</div>
+              <div className="text-center text-gray-600 dark:text-gray-400 py-4">Loading...</div>
             ) : watchlists.length === 0 ? (
-              <div className="text-center text-muted-foreground py-4">No watchlists yet</div>
+              <div className="text-center text-gray-600 dark:text-gray-400 py-4">No watchlists yet</div>
             ) : (
               watchlists.map((watchlist) => (
                 <div
                   key={watchlist.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent bg-background text-foreground"
+                  className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                 >
                   {editingId === watchlist.id ? (
                     <div className="flex gap-2 flex-1">
@@ -299,10 +299,10 @@ export function WatchlistManager({
                   ) : (
                     <>
                       <div className="flex-1">
-                        <div className="font-medium text-foreground">
+                        <div className="font-medium text-gray-900 dark:text-gray-100">
                           {watchlist.name}
                           {watchlist.is_default && (
-                            <span className="ml-2 text-xs text-muted-foreground">(Default)</span>
+                            <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">(Default)</span>
                           )}
                         </div>
                       </div>
