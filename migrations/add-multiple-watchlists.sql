@@ -33,9 +33,29 @@ WHERE w.user_id = wl.user_id
   AND wl.is_default = true
   AND w.watchlist_id IS NULL;
 
--- Make watchlist_id NOT NULL after migration
-ALTER TABLE watchlist
-ALTER COLUMN watchlist_id SET NOT NULL;
+-- Make watchlist_id NOT NULL after migration (only if all rows have watchlist_id)
+-- First check if there are any NULL values, if so, set them to default watchlist
+DO $$
+DECLARE
+  default_wl_id INTEGER;
+BEGIN
+  -- Get default watchlist for each user and update NULL watchlist_id
+  FOR default_wl_id IN 
+    SELECT DISTINCT wl.id 
+    FROM watchlists wl 
+    WHERE wl.is_default = true
+  LOOP
+    UPDATE watchlist 
+    SET watchlist_id = default_wl_id 
+    WHERE watchlist_id IS NULL 
+      AND user_id = (SELECT user_id FROM watchlists WHERE id = default_wl_id);
+  END LOOP;
+  
+  -- Now make it NOT NULL if all rows have values
+  IF NOT EXISTS (SELECT 1 FROM watchlist WHERE watchlist_id IS NULL) THEN
+    ALTER TABLE watchlist ALTER COLUMN watchlist_id SET NOT NULL;
+  END IF;
+END $$;
 
 -- Create index for better performance
 CREATE INDEX IF NOT EXISTS idx_watchlist_watchlist_id ON watchlist(watchlist_id);
