@@ -3966,6 +3966,9 @@ export function setupRoutes(app, supabase) {
             applyIfMissing('debt_to_equity');
             applyIfMissing('interest_coverage');
             applyIfMissing('cash_flow_to_debt');
+            applyIfMissing('revenue_growth_3y');
+            applyIfMissing('revenue_growth_5y');
+            applyIfMissing('revenue_growth_10y');
           }
         }
       }
