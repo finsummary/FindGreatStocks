@@ -231,7 +231,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const [watchlistDialogOpen, setWatchlistDialogOpen] = useState(false);
   const [selectedSymbolForWatchlist, setSelectedSymbolForWatchlist] = useState<string | null>(null);
   const [moveCompanyDialogOpen, setMoveCompanyDialogOpen] = useState(false);
-  const [companyToMove, setCompanyToMove] = useState<{ symbol: string; watchlistId?: number } | null>(null);
+  const [companyToMove, setCompanyToMove] = useState<{ symbol: string; watchlistId?: number; mode?: 'move' | 'copy' } | null>(null);
   const { user, session, loading: authLoading } = useAuth();
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 640px)');
@@ -1015,7 +1015,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="p-1 h-auto"
+                          className="p-1 h-auto text-muted-foreground hover:text-foreground"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <MoreVertical className="h-4 w-4" />
@@ -1024,13 +1024,17 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleMoveCompany(row.symbol)}>
+                        <DropdownMenuItem onClick={() => {
+                          const watchlistItem = watchlistData?.find((item: any) => item.companySymbol === row.symbol);
+                          setCompanyToMove({ symbol: row.symbol, watchlistId: watchlistItem?.watchlistId, mode: 'move' });
+                          setMoveCompanyDialogOpen(true);
+                        }}>
                           <Move className="h-4 w-4 mr-2" />
                           Move to another watchlist
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => {
                           const watchlistItem = watchlistData?.find((item: any) => item.companySymbol === row.symbol);
-                          setCompanyToMove({ symbol: row.symbol, watchlistId: watchlistItem?.watchlistId });
+                          setCompanyToMove({ symbol: row.symbol, watchlistId: watchlistItem?.watchlistId, mode: 'copy' });
                           setMoveCompanyDialogOpen(true);
                         }}>
                           <Copy className="h-4 w-4 mr-2" />
@@ -1950,7 +1954,11 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
         }}
         onSelectWatchlist={(toId) => {
           if (companyToMove) {
-            handleMoveToWatchlist(toId);
+            if (companyToMove.mode === 'copy') {
+              handleCopyToWatchlist(toId);
+            } else {
+              handleMoveToWatchlist(toId);
+            }
           }
         }}
         companySymbol={companyToMove?.symbol}
