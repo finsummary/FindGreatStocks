@@ -4288,7 +4288,7 @@ export function setupRoutes(app, supabase) {
         return res.status(403).json({ message: 'Invalid watchlist ownership' });
       }
       
-      // Check if company already exists in target watchlist
+      // Check if company already exists in target watchlist (with watchlist_id)
       const { data: targetExists, error: existsError } = await supabase
         .from('watchlist')
         .select('id')
@@ -4297,10 +4297,27 @@ export function setupRoutes(app, supabase) {
         .eq('watchlist_id', toId)
         .maybeSingle();
       
-      console.log('[COPY] Target exists check:', { targetExists, error: existsError });
+      console.log('[COPY] Target exists check:', { targetExists, error: existsError, userId, companySymbol, toId });
       
       if (targetExists) {
+        console.log('[COPY] Company already exists in target watchlist');
         return res.status(400).json({ message: 'Company already exists in target watchlist' });
+      }
+      
+      // Verify company exists in source watchlist
+      const { data: sourceExists, error: sourceError } = await supabase
+        .from('watchlist')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('company_symbol', companySymbol)
+        .eq('watchlist_id', fromId)
+        .maybeSingle();
+      
+      console.log('[COPY] Source exists check:', { sourceExists, error: sourceError, fromId });
+      
+      if (!sourceExists) {
+        console.log('[COPY] Company does not exist in source watchlist');
+        return res.status(400).json({ message: 'Company does not exist in source watchlist' });
       }
       
       // Insert into target watchlist
@@ -4315,6 +4332,13 @@ export function setupRoutes(app, supabase) {
       if (error) {
         console.error('[COPY] Insert error:', error);
         if (error.code === '23505') {
+          // Check if it's the new constraint (with watchlist_id) or old one (without)
+          if (error.details && error.details.includes('watchlist_user_company_watchlist_unique')) {
+            return res.status(400).json({ message: 'Company already exists in target watchlist' });
+          } else if (error.details && error.details.includes('watchlist_user_company_unique')) {
+            // Old constraint - this shouldn't happen if migration is applied, but handle it
+            return res.status(400).json({ message: 'Company already exists. Please run the database migration to fix this.' });
+          }
           return res.status(400).json({ message: 'Company already exists in target watchlist' });
         }
         return res.status(500).json({ message: 'Failed to copy company', error: error.message });

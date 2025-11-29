@@ -1944,18 +1944,23 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       )}
 
       {/* Table */}
-      <Card className="relative overflow-hidden">
+      <Card className="relative">
         {/* Scroll buttons - always visible */}
         <div className="absolute top-2 right-2 flex gap-1 z-50">
           <Button
             variant="default"
             size="sm"
-            className="h-7 w-7 p-0 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-7 w-7 p-0 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
             onClick={(e) => {
               e.stopPropagation();
+              e.preventDefault();
               if (tableScrollRef.current) {
-                const newScrollLeft = tableScrollRef.current.scrollLeft - 300;
+                const currentScroll = tableScrollRef.current.scrollLeft;
+                const newScrollLeft = currentScroll - 300;
+                console.log('Scroll left:', { currentScroll, newScrollLeft, scrollWidth: tableScrollRef.current.scrollWidth, clientWidth: tableScrollRef.current.clientWidth });
                 tableScrollRef.current.scrollTo({ left: Math.max(0, newScrollLeft), behavior: 'smooth' });
+              } else {
+                console.error('tableScrollRef.current is null');
               }
             }}
             disabled={!canScrollLeft}
@@ -1965,13 +1970,18 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
           <Button
             variant="default"
             size="sm"
-            className="h-7 w-7 p-0 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-7 w-7 p-0 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
             onClick={(e) => {
               e.stopPropagation();
+              e.preventDefault();
               if (tableScrollRef.current) {
+                const currentScroll = tableScrollRef.current.scrollLeft;
                 const maxScroll = tableScrollRef.current.scrollWidth - tableScrollRef.current.clientWidth;
-                const newScrollLeft = tableScrollRef.current.scrollLeft + 300;
+                const newScrollLeft = currentScroll + 300;
+                console.log('Scroll right:', { currentScroll, newScrollLeft, maxScroll, scrollWidth: tableScrollRef.current.scrollWidth, clientWidth: tableScrollRef.current.clientWidth });
                 tableScrollRef.current.scrollTo({ left: Math.min(maxScroll, newScrollLeft), behavior: 'smooth' });
+              } else {
+                console.error('tableScrollRef.current is null');
               }
             }}
             disabled={!canScrollRight}
@@ -1982,12 +1992,14 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
         <div 
           ref={tableScrollRef}
           className="w-full overflow-x-auto -mx-4 px-4"
-          style={{ scrollbarWidth: 'thin' }}
+          style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}
           onScroll={(e) => {
             const target = e.currentTarget;
             const canScroll = target.scrollWidth > target.clientWidth;
-            setCanScrollLeft(canScroll && target.scrollLeft > 0);
-            setCanScrollRight(canScroll && target.scrollLeft < target.scrollWidth - target.clientWidth - 10);
+            const scrollLeft = target.scrollLeft;
+            const maxScroll = target.scrollWidth - target.clientWidth;
+            setCanScrollLeft(canScroll && scrollLeft > 0);
+            setCanScrollRight(canScroll && scrollLeft < maxScroll - 10);
           }}
         >
           <Table className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 sm:[&_td]:p-3`}>
