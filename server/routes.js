@@ -860,7 +860,7 @@ export function setupRoutes(app, supabase) {
       const hasMore = offset + limit < total;
 
       // Debug symbols for logging
-      const debugSymbols = ['MCD', 'PM', 'AAPL', 'BA'];
+      const debugSymbols = ['MCD', 'PM', 'AAPL', 'BA', 'DPZ', 'FICO', 'BKNG', 'ORLY', 'MTD', 'OTIS'];
 
       const results = [];
       for (const sym of symbols) {
