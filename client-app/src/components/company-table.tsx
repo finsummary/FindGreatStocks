@@ -220,8 +220,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const [sortBy, setSortBy] = useState<string>('none'); // Default to 'none' for placeholder
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(0);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(true);
+  const [canScrollRight, setCanScrollRight] = useState(true);
   const tableScrollRef = React.useRef<HTMLDivElement>(null);
   const [limit] = useState(50);
   const [selectedLayout, setSelectedLayout] = useState<string | null>(null);
@@ -1035,7 +1035,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                     </Tooltip>
                   </TooltipProvider>
                   {/* Always show menu on watchlist page */}
-                  {isWatchlistPage && (
+                  {dataset === 'watchlist' && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -1047,6 +1047,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                             console.log('Menu button clicked:', { 
                               symbol: row.symbol, 
                               isWatchlistPage, 
+                              dataset,
                               isLoggedIn, 
                               watchlistId,
                               watchlistData: watchlistData?.length,
@@ -1938,38 +1939,36 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       )}
 
       {/* Table */}
-      <Card className="overflow-hidden relative">
-        {/* Scroll buttons */}
-        {(canScrollLeft || canScrollRight) && (
-          <div className="absolute top-3 right-3 flex gap-2 z-50">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 w-8 p-0 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 shadow-md hover:bg-gray-50 dark:hover:bg-gray-800"
-              onClick={() => {
-                if (tableScrollRef.current) {
-                  tableScrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
-                }
-              }}
-              disabled={!canScrollLeft}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 w-8 p-0 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 shadow-md hover:bg-gray-50 dark:hover:bg-gray-800"
-              onClick={() => {
-                if (tableScrollRef.current) {
-                  tableScrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
-                }
-              }}
-              disabled={!canScrollRight}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
+      <Card className="relative">
+        {/* Scroll buttons - always visible */}
+        <div className="absolute top-3 right-3 flex gap-2 z-50">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 w-8 p-0 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 shadow-md hover:bg-gray-50 dark:hover:bg-gray-800"
+            onClick={() => {
+              if (tableScrollRef.current) {
+                tableScrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+              }
+            }}
+            disabled={!canScrollLeft}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 w-8 p-0 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 shadow-md hover:bg-gray-50 dark:hover:bg-gray-800"
+            onClick={() => {
+              if (tableScrollRef.current) {
+                tableScrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+              }
+            }}
+            disabled={!canScrollRight}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
         <div 
           ref={tableScrollRef}
           className="w-full overflow-x-auto -mx-4 px-4"
