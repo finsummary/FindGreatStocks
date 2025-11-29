@@ -63,10 +63,12 @@ export function WatchlistPage() {
   }, [watchlists, selectedWatchlistId]);
 
   const selectedWatchlist = watchlists.find(w => w.id === selectedWatchlistId);
-  const isPaidUser = user?.subscriptionTier === 'paid' || 
-                     user?.subscriptionTier === 'quarterly' || 
-                     user?.subscriptionTier === 'annual' || 
-                     user?.subscriptionTier === 'lifetime';
+  // For now, allow all authenticated users to use multiple watchlists
+  // TODO: Restrict to premium users later if needed
+  const isPaidUser = true; // user?.subscriptionTier === 'paid' || 
+                     // user?.subscriptionTier === 'quarterly' || 
+                     // user?.subscriptionTier === 'annual' || 
+                     // user?.subscriptionTier === 'lifetime';
 
   return (
     <div className="space-y-6">
