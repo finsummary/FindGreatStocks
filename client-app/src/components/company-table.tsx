@@ -126,7 +126,7 @@ const PRESET_LAYOUTS = {
   // Placeholder: we'll expand with ROIC etc. later; safe existing columns for now
   'compounders': {
     name: 'Compounders (ROIC, FCF)',
-    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'fcfMargin', 'fcfMarginMedian10Y', 'revenueGrowth10Y', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'debtToEquity', 'interestCoverage'],
+    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'fcfMargin', 'fcfMarginMedian10Y', 'revenueGrowth10Y', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'debtToEquity', 'cashFlowToDebt', 'interestCoverage'],
   },
 };
 
