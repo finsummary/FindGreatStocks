@@ -1938,6 +1938,23 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
         mode="select"
       />
 
+      {/* Move/Copy Company Dialog */}
+      <WatchlistManager
+        open={moveCompanyDialogOpen}
+        onOpenChange={(open) => {
+          setMoveCompanyDialogOpen(open);
+          if (!open) setCompanyToMove(null);
+        }}
+        onSelectWatchlist={(toId) => {
+          if (companyToMove) {
+            handleMoveToWatchlist(toId);
+          }
+        }}
+        companySymbol={companyToMove?.symbol}
+        currentWatchlistId={companyToMove?.watchlistId}
+        mode="select"
+      />
+
       {/* Pagination */}
       {data && data.total > limit && (
         <div className="flex items-center justify-between">
