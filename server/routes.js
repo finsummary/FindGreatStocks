@@ -3754,50 +3754,6 @@ export function setupRoutes(app, supabase) {
     }
   });
 
-  // Copy company to another watchlist
-  app.post('/api/watchlist/copy', isAuthenticated, async (req, res) => {
-    try {
-      const userId = req.user?.id;
-      const { companySymbol, watchlistId } = req.body || {};
-      
-      if (!companySymbol || !watchlistId) {
-        return res.status(400).json({ message: 'Company symbol and watchlistId are required' });
-      }
-      
-      // Verify ownership
-      const { data: watchlist } = await supabase
-        .from('watchlists')
-        .select('id')
-        .eq('id', watchlistId)
-        .eq('user_id', userId)
-        .single();
-      
-      if (!watchlist) return res.status(403).json({ message: 'Invalid watchlist ownership' });
-      
-      // Check if already exists
-      const { data: existing } = await supabase
-        .from('watchlist')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('company_symbol', companySymbol)
-        .eq('watchlist_id', watchlistId)
-        .single();
-      
-      if (existing) return res.status(400).json({ message: 'Company already exists in this watchlist' });
-      
-      // Insert new entry
-      const { data, error } = await supabase
-        .from('watchlist')
-        .insert({ user_id: userId, company_symbol: companySymbol, watchlist_id: watchlistId })
-        .select('*')
-        .single();
-      
-      if (error) return res.status(500).json({ message: 'Failed to copy company' });
-      return res.json(data);
-    } catch (e) {
-      return res.status(500).json({ message: 'Failed to copy company' });
-    }
-  });
 
   // Watchlist: return full company objects with enrichment from index tables (fill missing metrics)
   app.get('/api/watchlist/companies', isAuthenticated, async (req, res) => {

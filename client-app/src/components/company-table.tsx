@@ -1035,13 +1035,13 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                     </Tooltip>
                   </TooltipProvider>
                   {/* Always show menu on watchlist page */}
-                  {isWatchlistPage ? (
+                  {isWatchlistPage && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          className="p-1 h-auto min-w-[24px] text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          className="p-1 h-6 w-6 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800"
                           onClick={(e) => {
                             e.stopPropagation();
                             console.log('Menu button clicked:', { 
@@ -1119,7 +1119,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  ) : null}
+                  )}
                 </div>
               );
               break;
@@ -1940,34 +1940,36 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       {/* Table */}
       <Card className="overflow-hidden relative">
         {/* Scroll buttons */}
-        <div className="absolute top-2 right-2 flex gap-2 z-10">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 w-7 p-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm shadow-sm"
-            onClick={() => {
-              if (tableScrollRef.current) {
-                tableScrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
-              }
-            }}
-            disabled={!canScrollLeft}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 w-7 p-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm shadow-sm"
-            onClick={() => {
-              if (tableScrollRef.current) {
-                tableScrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
-              }
-            }}
-            disabled={!canScrollRight}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        {(canScrollLeft || canScrollRight) && (
+          <div className="absolute top-3 right-3 flex gap-2 z-50">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 shadow-md hover:bg-gray-50 dark:hover:bg-gray-800"
+              onClick={() => {
+                if (tableScrollRef.current) {
+                  tableScrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+                }
+              }}
+              disabled={!canScrollLeft}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 shadow-md hover:bg-gray-50 dark:hover:bg-gray-800"
+              onClick={() => {
+                if (tableScrollRef.current) {
+                  tableScrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+                }
+              }}
+              disabled={!canScrollRight}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
         <div 
           ref={tableScrollRef}
           className="w-full overflow-x-auto -mx-4 px-4"
