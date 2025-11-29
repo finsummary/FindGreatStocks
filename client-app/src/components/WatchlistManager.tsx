@@ -199,19 +199,19 @@ export function WatchlistManager({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-background text-foreground border">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="text-foreground">
             {mode === 'select' ? 'Select Watchlist' : 'Manage Watchlists'}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-muted-foreground">
             {mode === 'select' && companySymbol 
               ? `Choose a watchlist for ${companySymbol}`
               : 'Create, rename, or delete your watchlists'}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 text-foreground">
           {/* Create new watchlist */}
           {showCreate ? (
             <div className="flex gap-2">
@@ -267,7 +267,7 @@ export function WatchlistManager({
               watchlists.map((watchlist) => (
                 <div
                   key={watchlist.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent"
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent bg-background text-foreground"
                 >
                   {editingId === watchlist.id ? (
                     <div className="flex gap-2 flex-1">
@@ -299,7 +299,7 @@ export function WatchlistManager({
                   ) : (
                     <>
                       <div className="flex-1">
-                        <div className="font-medium">
+                        <div className="font-medium text-foreground">
                           {watchlist.name}
                           {watchlist.is_default && (
                             <span className="ml-2 text-xs text-muted-foreground">(Default)</span>
