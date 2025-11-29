@@ -976,6 +976,97 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Auto-process all companies in batches (admin only)
+  app.post('/api/metrics/recompute-debt-ratios-all', requireAdmin, async (req, res) => {
+    try {
+      const apiKey = process.env.FMP_API_KEY;
+      if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
+      
+      const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies', 'ftse100_companies'];
+      const fetchJson = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); };
+      const symSet = new Set();
+      for (const t of tables) {
+        try {
+          const { data } = await supabase.from(t).select('symbol');
+          for (const r of (data || [])) if (r?.symbol) symSet.add(String(r.symbol).toUpperCase());
+        } catch {}
+      }
+      const allSymbols = Array.from(symSet).sort();
+      const total = allSymbols.length;
+      
+      console.log(`🚀 Starting mass recompute for ${total} companies...`);
+      
+      // Process in background, return immediately
+      (async () => {
+        const batchSize = 50;
+        let processed = 0;
+        let successCount = 0;
+        
+        for (let i = 0; i < allSymbols.length; i += batchSize) {
+          const batch = allSymbols.slice(i, i + batchSize);
+          
+          for (const sym of batch) {
+            try {
+              const ratiosData = await fetchJson(`https://financialmodelingprep.com/api/v3/ratios/${sym}?period=annual&limit=1&apikey=${apiKey}`);
+              const ratio = Array.isArray(ratiosData) && ratiosData[0] ? ratiosData[0] : null;
+
+              let debtToEquity = null;
+              if (ratio && ratio.debtEquityRatio !== undefined && ratio.debtEquityRatio !== null) {
+                debtToEquity = Number(ratio.debtEquityRatio);
+              }
+
+              let interestCoverage = null;
+              if (ratio && ratio.interestCoverage !== undefined && ratio.interestCoverage !== null) {
+                interestCoverage = Number(ratio.interestCoverage);
+              }
+
+              // Only cap extremely high values
+              if (isFinite(debtToEquity) && debtToEquity > 10000) debtToEquity = 10000;
+              if (isFinite(interestCoverage) && interestCoverage > 100000) interestCoverage = 100000;
+
+              const upd = {
+                debt_to_equity: isFinite(debtToEquity) ? Number(debtToEquity.toFixed(4)) : null,
+                interest_coverage: isFinite(interestCoverage) ? Number(interestCoverage.toFixed(4)) : null,
+              };
+
+              for (const t of tables) {
+                try {
+                  const { data: existing } = await supabase.from(t).select('symbol').eq('symbol', sym).limit(1);
+                  if (existing && existing.length > 0) {
+                    await supabase.from(t).update(upd).eq('symbol', sym);
+                  }
+                } catch {}
+              }
+
+              successCount++;
+              processed++;
+              
+              if (processed % 50 === 0) {
+                console.log(`📊 Progress: ${processed}/${total} (${Math.round(processed/total*100)}%)`);
+              }
+              
+              await new Promise(r => setTimeout(r, 150)); // Rate limiting
+            } catch (e) {
+              processed++;
+              console.error(`[${sym}] Error:`, e.message);
+            }
+          }
+        }
+        
+        console.log(`✅ Mass recompute completed: ${successCount}/${total} companies updated`);
+      })();
+      
+      return res.json({ 
+        status: 'started', 
+        total: allSymbols.length,
+        message: 'Mass recompute started in background. Check server logs for progress.'
+      });
+    } catch (e) {
+      console.error('recompute-debt-ratios-all error:', e);
+      return res.status(500).json({ message: 'Failed to start mass recompute', error: e.message });
+    }
+  });
+
   // Recompute DuPont (Asset Turnover, Financial Leverage, ROE) for given symbols
   app.post('/api/dupont/recompute', requireAdmin, async (req, res) => {
     try {
