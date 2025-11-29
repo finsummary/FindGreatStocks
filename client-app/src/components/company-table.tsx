@@ -1005,8 +1005,14 @@ export function CompanyTable({ searchQuery, dataset, activeTab }: CompanyTablePr
               } else {
                 const value = Number(ratio);
                 let cls = "text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950";
-                if (value < 0.5) cls = "text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950";
-                else if (value <= 1.0) cls = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
+                // Negative values are always red (misleading if shown as green)
+                if (value < 0) {
+                  cls = "text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950";
+                } else if (value < 0.5) {
+                  cls = "text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950";
+                } else if (value <= 1.0) {
+                  cls = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
+                }
                 cellContent = <Badge variant="outline" className={`${cls} font-mono`}>{value.toFixed(2)}</Badge>;
               }
               break;
