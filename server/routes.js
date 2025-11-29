@@ -3833,11 +3833,12 @@ export function setupRoutes(app, supabase) {
       const bySym = new Map((master || []).map(r => [r.symbol, r]));
 
       // Load fallbacks from index tables for ALL symbols (not only missing)
-      const selectCols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth';
-      const [sp500, ndx, dji] = await Promise.all([
+      const selectCols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, total_assets, total_equity, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std, fcf_margin_median_10y, debt_to_equity, interest_coverage, cash_flow_to_debt';
+      const [sp500, ndx, dji, ftse] = await Promise.all([
         supabase.from('sp500_companies').select(selectCols).in('symbol', symbols),
         supabase.from('nasdaq100_companies').select(selectCols).in('symbol', symbols),
         supabase.from('dow_jones_companies').select(selectCols).in('symbol', symbols),
+        supabase.from('ftse100_companies').select(selectCols).in('symbol', symbols),
       ]);
 
       // Build fallback map with first non-null values (preference order: nasdaq100, sp500, dowjones for tech-heavy)
@@ -3848,7 +3849,7 @@ export function setupRoutes(app, supabase) {
             if (!r?.symbol) continue;
             const prev = fallback.get(r.symbol) || {};
             const next = { ...prev };
-            const keys = ['price','market_cap','pe_ratio','price_to_sales_ratio','dividend_yield','revenue','net_income','free_cash_flow','return_3_year','return_5_year','return_10_year','max_drawdown_3_year','max_drawdown_5_year','max_drawdown_10_year','dcf_enterprise_value','margin_of_safety','dcf_implied_growth'];
+            const keys = ['price','market_cap','pe_ratio','price_to_sales_ratio','dividend_yield','revenue','net_income','free_cash_flow','total_assets','total_equity','return_3_year','return_5_year','return_10_year','max_drawdown_3_year','max_drawdown_5_year','max_drawdown_10_year','dcf_enterprise_value','margin_of_safety','dcf_implied_growth','roic','roic_10y_avg','roic_10y_std','fcf_margin_median_10y','debt_to_equity','interest_coverage','cash_flow_to_debt'];
             for (const k of keys) {
               const val = r[k];
               if ((next[k] === undefined || next[k] === null) && (val !== undefined && val !== null)) next[k] = val;
@@ -3857,8 +3858,8 @@ export function setupRoutes(app, supabase) {
           }
         }
       };
-      // Prefer Nasdaq100 values when есть (для BIIB и др.), затем S&P, затем Dow
-      merge(ndx); merge(sp500); merge(dji);
+      // Prefer Nasdaq100 values when есть (для BIIB и др.), затем S&P, затем Dow, затем FTSE
+      merge(ndx); merge(sp500); merge(dji); merge(ftse);
 
       // Build final rows preserving order, overlaying missing fields from fallback
       let rows = [];
@@ -3892,18 +3893,75 @@ export function setupRoutes(app, supabase) {
           applyIfMissing('revenue', 'revenue');
           applyIfMissing('net_income', 'net_income');
           applyIfMissing('free_cash_flow', 'free_cash_flow');
+          applyIfMissing('total_assets', 'total_assets');
+          applyIfMissing('total_equity', 'total_equity');
           applyIfMissing('return_3_year', 'return_3_year');
           applyIfMissing('return_5_year', 'return_5_year');
           applyIfMissing('return_10_year', 'return_10_year');
           applyIfMissing('max_drawdown_3_year', 'max_drawdown_3_year');
           applyIfMissing('max_drawdown_5_year', 'max_drawdown_5_year');
           applyIfMissing('max_drawdown_10_year', 'max_drawdown_10_year');
+          applyIfMissing('roic', 'roic');
+          applyIfMissing('roic_10y_avg', 'roic_10y_avg');
+          applyIfMissing('roic_10y_std', 'roic_10y_std');
+          applyIfMissing('fcf_margin_median_10y', 'fcf_margin_median_10y');
+          applyIfMissing('debt_to_equity', 'debt_to_equity');
+          applyIfMissing('interest_coverage', 'interest_coverage');
+          applyIfMissing('cash_flow_to_debt', 'cash_flow_to_debt');
           // Prefer master DCF when есть, иначе fallback
           if (r.dcf_enterprise_value == null && fb.dcf_enterprise_value != null) r.dcf_enterprise_value = fb.dcf_enterprise_value;
           if (r.margin_of_safety == null && fb.margin_of_safety != null) r.margin_of_safety = fb.margin_of_safety;
           if (r.dcf_implied_growth == null && fb.dcf_implied_growth != null) r.dcf_implied_growth = fb.dcf_implied_growth;
         }
         rows.push(r);
+      }
+
+      // Enrich with master table data (like listFromTable does)
+      if (symbols.length) {
+        const cols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, total_assets, total_equity, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std, fcf_margin_median_10y, debt_to_equity, interest_coverage, cash_flow_to_debt';
+        const { data: masterEnrich } = await supabase.from('companies').select(cols).in('symbol', symbols);
+        if (masterEnrich && Array.isArray(masterEnrich)) {
+          const masterBySym = new Map(masterEnrich.map(m => [m.symbol, m]));
+          for (const r of rows) {
+            const m = masterBySym.get(r.symbol);
+            if (!m) continue;
+            const applyIfMissing = (key) => {
+              if (r[key] === null || r[key] === undefined || (typeof r[key] === 'number' && r[key] === 0)) {
+                if (m[key] !== null && m[key] !== undefined) r[key] = m[key];
+              }
+            };
+            applyIfMissing('price');
+            applyIfMissing('market_cap');
+            applyIfMissing('pe_ratio');
+            if (r.price_to_sales_ratio == null || Number(r.price_to_sales_ratio) === 0) {
+              if (m.price_to_sales_ratio != null && Number(m.price_to_sales_ratio) !== 0) {
+                r.price_to_sales_ratio = m.price_to_sales_ratio;
+              }
+            }
+            applyIfMissing('dividend_yield');
+            applyIfMissing('revenue');
+            applyIfMissing('net_income');
+            applyIfMissing('free_cash_flow');
+            applyIfMissing('total_assets');
+            applyIfMissing('total_equity');
+            applyIfMissing('return_3_year');
+            applyIfMissing('return_5_year');
+            applyIfMissing('return_10_year');
+            applyIfMissing('max_drawdown_3_year');
+            applyIfMissing('max_drawdown_5_year');
+            applyIfMissing('max_drawdown_10_year');
+            if (m.dcf_enterprise_value !== null && m.dcf_enterprise_value !== undefined) r.dcf_enterprise_value = m.dcf_enterprise_value;
+            if (m.margin_of_safety !== null && m.margin_of_safety !== undefined) r.margin_of_safety = m.margin_of_safety;
+            if (m.dcf_implied_growth !== null && m.dcf_implied_growth !== undefined) r.dcf_implied_growth = m.dcf_implied_growth;
+            applyIfMissing('roic');
+            applyIfMissing('roic_10y_avg');
+            applyIfMissing('roic_10y_std');
+            if (m.fcf_margin_median_10y !== null && m.fcf_margin_median_10y !== undefined) r.fcf_margin_median_10y = m.fcf_margin_median_10y;
+            applyIfMissing('debt_to_equity');
+            applyIfMissing('interest_coverage');
+            applyIfMissing('cash_flow_to_debt');
+          }
+        }
       }
 
       // Sorting in-memory using sortMap

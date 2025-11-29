@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronUp, ChevronDown, Star, Download, Search, Settings2, X, Lock, Unlock } from "lucide-react";
+import { ChevronUp, ChevronDown, Star, Download, Search, Settings2, X, Lock, Unlock, MoreVertical, Move, Copy } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -230,6 +230,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const [didLoadPrefs, setDidLoadPrefs] = useState(false);
   const [watchlistDialogOpen, setWatchlistDialogOpen] = useState(false);
   const [selectedSymbolForWatchlist, setSelectedSymbolForWatchlist] = useState<string | null>(null);
+  const [moveCompanyDialogOpen, setMoveCompanyDialogOpen] = useState(false);
+  const [companyToMove, setCompanyToMove] = useState<{ symbol: string; watchlistId?: number } | null>(null);
   const { user, session, loading: authLoading } = useAuth();
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 640px)');
@@ -538,6 +540,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       removeFromWatchlist(symbol);
     } else {
       // For premium users, show watchlist selection dialog
+      // For now, allow all authenticated users to use multiple watchlists
+      // TODO: Restrict to premium users later if needed
       if (isPaidUser) {
         setSelectedSymbolForWatchlist(symbol);
         setWatchlistDialogOpen(true);
@@ -899,45 +903,87 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
           switch (colConfig.id) {
             case 'watchlist':
               const isWatched = row.isWatched || false;
+              const isWatchlistPage = dataset === 'watchlist';
               cellContent = (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={`p-1 h-auto transition-colors ${
-                          isWatched
-                            ? 'text-yellow-500 hover:text-yellow-600'
-                            : isLoggedIn
-                              ? 'text-muted-foreground hover:text-yellow-500'
-                              : 'text-muted-foreground opacity-60 cursor-not-allowed'
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (isLoggedIn) {
-                            handleWatchlistToggle(row.symbol, isWatched);
+                <div className="flex items-center gap-1">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={`p-1 h-auto transition-colors ${
+                            isWatched
+                              ? 'text-yellow-500 hover:text-yellow-600'
+                              : isLoggedIn
+                                ? 'text-muted-foreground hover:text-yellow-500'
+                                : 'text-muted-foreground opacity-60 cursor-not-allowed'
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isLoggedIn && !isWatchlistPage) {
+                              handleWatchlistToggle(row.symbol, isWatched);
+                            }
+                          }}
+                          disabled={!!watchlistPending[row.symbol] || isWatchlistPage}
+                        >
+                          {isLoggedIn ? (
+                            <Star className={`h-4 w-4 ${isWatched ? 'fill-current' : ''}`} />
+                          ) : (
+                            <Lock className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          {isWatchlistPage 
+                            ? 'Use menu to move or copy'
+                            : isLoggedIn 
+                              ? (isWatched ? 'Remove from watchlist' : 'Add to watchlist')
+                              : 'Sign in to add to watchlist'
                           }
-                        }}
-                        disabled={!!watchlistPending[row.symbol]}
-                      >
-                        {isLoggedIn ? (
-                          <Star className={`h-4 w-4 ${isWatched ? 'fill-current' : ''}`} />
-                        ) : (
-                          <Lock className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        {isLoggedIn 
-                          ? (isWatched ? 'Remove from watchlist' : 'Add to watchlist')
-                          : 'Sign in to add to watchlist'
-                        }
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  {isWatchlistPage && isWatched && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="p-1 h-auto"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleMoveCompany(row.symbol)}>
+                          <Move className="h-4 w-4 mr-2" />
+                          Move to another watchlist
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          const watchlistItem = watchlistData?.find((item: any) => item.companySymbol === row.symbol);
+                          setCompanyToMove({ symbol: row.symbol, watchlistId: watchlistItem?.watchlistId });
+                          setMoveCompanyDialogOpen(true);
+                        }}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy to another watchlist
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => removeFromWatchlist(row.symbol)}
+                          className="text-red-600 dark:text-red-400"
+                        >
+                          Remove from watchlist
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
               );
               break;
             case 'rank':
