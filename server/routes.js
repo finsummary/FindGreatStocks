@@ -755,124 +755,24 @@ export function setupRoutes(app, supabase) {
             });
           }
 
-          // Extract Debt-to-Equity and Interest Coverage
-          // Try multiple possible field names
+          // Extract Debt-to-Equity and Interest Coverage directly from FMP API
+          // Take values as-is from the API without modifications (negative values are OK, 0 is OK)
           let debtToEquity = null;
-          if (ratio) {
-            debtToEquity = ratio.debtEquityRatio !== undefined && ratio.debtEquityRatio !== null 
-              ? Number(ratio.debtEquityRatio) 
-              : (ratio.debtToEquity !== undefined && ratio.debtToEquity !== null 
-                ? Number(ratio.debtToEquity) 
-                : null);
+          if (ratio && ratio.debtEquityRatio !== undefined && ratio.debtEquityRatio !== null) {
+            debtToEquity = Number(ratio.debtEquityRatio);
           }
 
           let interestCoverage = null;
-          if (ratio) {
-            interestCoverage = ratio.interestCoverage !== undefined && ratio.interestCoverage !== null 
-              ? Number(ratio.interestCoverage) 
-              : (ratio.interestCoverageRatio !== undefined && ratio.interestCoverageRatio !== null 
-                ? Number(ratio.interestCoverageRatio) 
-                : (ratio.timesInterestEarned !== undefined && ratio.timesInterestEarned !== null 
-                  ? Number(ratio.timesInterestEarned) 
-                  : null));
+          if (ratio && ratio.interestCoverage !== undefined && ratio.interestCoverage !== null) {
+            interestCoverage = Number(ratio.interestCoverage);
           }
 
-          // If ratios endpoint doesn't have the data, try to calculate from balance sheet and income statement
-          if ((debtToEquity === null || interestCoverage === null) && apiKey) {
-            try {
-              const [balanceSheetData, incomeStatementData] = await Promise.all([
-                fetchJson(`https://financialmodelingprep.com/api/v3/balance-sheet-statement/${sym}?period=annual&limit=1&apikey=${apiKey}`).catch(() => null),
-                fetchJson(`https://financialmodelingprep.com/api/v3/income-statement/${sym}?period=annual&limit=1&apikey=${apiKey}`).catch(() => null)
-              ]);
-
-              const balanceSheet = Array.isArray(balanceSheetData) && balanceSheetData[0] ? balanceSheetData[0] : null;
-              const incomeStatement = Array.isArray(incomeStatementData) && incomeStatementData[0] ? incomeStatementData[0] : null;
-
-              // Calculate Debt-to-Equity manually if not available
-              if (debtToEquity === null && balanceSheet) {
-                const totalDebt = balanceSheet.totalDebt || balanceSheet.totalLiabilities || null;
-                const totalEquity = balanceSheet.totalStockholdersEquity || balanceSheet.totalEquity || balanceSheet.stockholdersEquity || null;
-                if (totalDebt !== null && totalEquity !== null && Number(totalEquity) !== 0) {
-                  debtToEquity = Number(totalDebt) / Number(totalEquity);
-                  if (debugSymbols.includes(sym)) {
-                    console.log(`[${sym}] ✅ Calculated Debt-to-Equity manually: ${debtToEquity.toFixed(4)} (debt: ${totalDebt}, equity: ${totalEquity})`);
-                  }
-                }
-              }
-
-              // Calculate Interest Coverage manually if not available
-              if (interestCoverage === null && incomeStatement) {
-                const ebit = incomeStatement.ebit || incomeStatement.operatingIncome || null;
-                const interestExpense = incomeStatement.interestExpense || incomeStatement.interestAndDebtExpense || null;
-                if (ebit !== null && interestExpense !== null && Number(interestExpense) !== 0) {
-                  interestCoverage = Number(ebit) / Number(interestExpense);
-                  if (debugSymbols.includes(sym)) {
-                    console.log(`[${sym}] ✅ Calculated Interest Coverage manually: ${interestCoverage.toFixed(4)} (EBIT: ${ebit}, Interest: ${interestExpense})`);
-                  }
-                } else if (ebit !== null && (interestExpense === null || Number(interestExpense) === 0)) {
-                  // If no interest expense, set to null (company has no debt or receives interest income)
-                  interestCoverage = null;
-                  if (debugSymbols.includes(sym)) {
-                    console.log(`[${sym}] ⚠️ No interest expense found, setting Interest Coverage to null`);
-                  }
-                }
-              }
-            } catch (calcError) {
-              if (debugSymbols.includes(sym)) {
-                console.log(`[${sym}] ❌ Error calculating ratios manually:`, calcError.message);
-              }
-            }
+          // Only cap extremely high values that are likely errors (keep negative values and 0 as-is)
+          if (isFinite(debtToEquity) && debtToEquity > 10000) {
+            debtToEquity = 10000; // Cap extremely high values only
           }
-
-          // Debug logging for AAPL
-          if (sym === 'AAPL') {
-            console.log(`[${sym}] FMP API interestCoverage raw:`, ratio?.interestCoverage);
-            console.log(`[${sym}] interestCoverage after Number():`, interestCoverage);
-          }
-
-          // Clamp extreme values
-          // Debug logging for MCD and PM
-          if (debugSymbols.includes(sym)) {
-            console.log(`[${sym}] Before validation - debtToEquity: ${debtToEquity}, interestCoverage: ${interestCoverage}`);
-          }
-
-          if (isFinite(debtToEquity)) {
-            if (debtToEquity < 0) {
-              if (debugSymbols.includes(sym)) {
-                console.log(`[${sym}] ⚠️ Debt-to-Equity is negative (${debtToEquity}), setting to null`);
-              }
-              debtToEquity = null;
-            }
-            if (debtToEquity > 100) {
-              if (debugSymbols.includes(sym)) {
-                console.log(`[${sym}] ⚠️ Debt-to-Equity is too high (${debtToEquity}), capping at 100`);
-              }
-              debtToEquity = 100; // Cap at 100
-            }
-          }
-          if (isFinite(interestCoverage)) {
-            // If interestCoverage is 0, it likely means no interest expense (or negative, meaning interest income)
-            // In this case, the ratio doesn't make sense, so set to null
-            if (interestCoverage <= 0) {
-              if (debugSymbols.includes(sym)) {
-                console.log(`[${sym}] ⚠️ Setting interestCoverage to null because value is <= 0 (${interestCoverage})`);
-              }
-              interestCoverage = null;
-            }
-            if (interestCoverage > 1000) {
-              if (debugSymbols.includes(sym)) {
-                console.log(`[${sym}] ⚠️ Interest Coverage is too high (${interestCoverage}), capping at 1000`);
-              }
-              interestCoverage = 1000; // Cap at 1000
-            }
-          }
-
-          if (debugSymbols.includes(sym)) {
-            console.log(`[${sym}] After validation - debtToEquity: ${debtToEquity}, interestCoverage: ${interestCoverage}`);
-          }
-
-          if (sym === 'AAPL') {
-            console.log(`[${sym}] Final interestCoverage value:`, interestCoverage);
+          if (isFinite(interestCoverage) && interestCoverage > 100000) {
+            interestCoverage = 100000; // Cap extremely high values only
           }
 
           const upd = {
@@ -981,116 +881,24 @@ export function setupRoutes(app, supabase) {
             });
           }
 
-          // Extract Debt-to-Equity and Interest Coverage
-          // Try multiple possible field names
+          // Extract Debt-to-Equity and Interest Coverage directly from FMP API
+          // Take values as-is from the API without modifications (negative values are OK, 0 is OK)
           let debtToEquity = null;
-          if (ratio) {
-            debtToEquity = ratio.debtEquityRatio !== undefined && ratio.debtEquityRatio !== null 
-              ? Number(ratio.debtEquityRatio) 
-              : (ratio.debtToEquity !== undefined && ratio.debtToEquity !== null 
-                ? Number(ratio.debtToEquity) 
-                : null);
+          if (ratio && ratio.debtEquityRatio !== undefined && ratio.debtEquityRatio !== null) {
+            debtToEquity = Number(ratio.debtEquityRatio);
           }
 
           let interestCoverage = null;
-          if (ratio) {
-            interestCoverage = ratio.interestCoverage !== undefined && ratio.interestCoverage !== null 
-              ? Number(ratio.interestCoverage) 
-              : (ratio.interestCoverageRatio !== undefined && ratio.interestCoverageRatio !== null 
-                ? Number(ratio.interestCoverageRatio) 
-                : (ratio.timesInterestEarned !== undefined && ratio.timesInterestEarned !== null 
-                  ? Number(ratio.timesInterestEarned) 
-                  : null));
+          if (ratio && ratio.interestCoverage !== undefined && ratio.interestCoverage !== null) {
+            interestCoverage = Number(ratio.interestCoverage);
           }
 
-          // If ratios endpoint doesn't have the data, try to calculate from balance sheet and income statement
-          if ((debtToEquity === null || interestCoverage === null) && apiKey) {
-            try {
-              // Try to get balance sheet and income statement to calculate manually
-              const [balanceSheetData, incomeStatementData] = await Promise.all([
-                fetchJson(`https://financialmodelingprep.com/api/v3/balance-sheet-statement/${sym}?period=annual&limit=1&apikey=${apiKey}`).catch(() => null),
-                fetchJson(`https://financialmodelingprep.com/api/v3/income-statement/${sym}?period=annual&limit=1&apikey=${apiKey}`).catch(() => null)
-              ]);
-
-              const balanceSheet = Array.isArray(balanceSheetData) && balanceSheetData[0] ? balanceSheetData[0] : null;
-              const incomeStatement = Array.isArray(incomeStatementData) && incomeStatementData[0] ? incomeStatementData[0] : null;
-
-              // Calculate Debt-to-Equity manually if not available
-              if (debtToEquity === null && balanceSheet) {
-                const totalDebt = balanceSheet.totalDebt || balanceSheet.totalLiabilities || null;
-                const totalEquity = balanceSheet.totalStockholdersEquity || balanceSheet.totalEquity || balanceSheet.stockholdersEquity || null;
-                if (totalDebt !== null && totalEquity !== null && Number(totalEquity) !== 0) {
-                  debtToEquity = Number(totalDebt) / Number(totalEquity);
-                  if (debugSymbols.includes(sym)) {
-                    console.log(`[${sym}] Calculated Debt-to-Equity manually: ${debtToEquity} (debt: ${totalDebt}, equity: ${totalEquity})`);
-                  }
-                }
-              }
-
-              // Calculate Interest Coverage manually if not available
-              if (interestCoverage === null && incomeStatement) {
-                const ebit = incomeStatement.ebit || incomeStatement.operatingIncome || null;
-                const interestExpense = incomeStatement.interestExpense || incomeStatement.interestAndDebtExpense || null;
-                if (ebit !== null && interestExpense !== null && Number(interestExpense) !== 0) {
-                  interestCoverage = Number(ebit) / Number(interestExpense);
-                  if (debugSymbols.includes(sym)) {
-                    console.log(`[${sym}] Calculated Interest Coverage manually: ${interestCoverage} (EBIT: ${ebit}, Interest: ${interestExpense})`);
-                  }
-                } else if (ebit !== null && (interestExpense === null || Number(interestExpense) === 0)) {
-                  // If no interest expense, set to null (company has no debt or receives interest income)
-                  interestCoverage = null;
-                  if (debugSymbols.includes(sym)) {
-                    console.log(`[${sym}] No interest expense found, setting Interest Coverage to null`);
-                  }
-                }
-              }
-            } catch (calcError) {
-              if (debugSymbols.includes(sym)) {
-                console.log(`[${sym}] Error calculating ratios manually:`, calcError.message);
-              }
-            }
+          // Only cap extremely high values that are likely errors (keep negative values and 0 as-is)
+          if (isFinite(debtToEquity) && debtToEquity > 10000) {
+            debtToEquity = 10000; // Cap extremely high values only
           }
-
-          // Debug logging for AAPL
-          if (sym === 'AAPL') {
-            console.log(`[${sym}] FMP API interestCoverage raw:`, ratio?.interestCoverage);
-            console.log(`[${sym}] interestCoverage after Number():`, interestCoverage);
-          }
-
-          // Debug logging for MCD and PM
-          if (debugSymbols.includes(sym)) {
-            console.log(`[${sym}] Before validation (batch) - debtToEquity: ${debtToEquity}, interestCoverage: ${interestCoverage}`);
-          }
-
-          if (isFinite(debtToEquity)) {
-            if (debtToEquity < 0) {
-              if (debugSymbols.includes(sym)) {
-                console.log(`[${sym}] ⚠️ Debt-to-Equity is negative (${debtToEquity}), setting to null`);
-              }
-              debtToEquity = null;
-            }
-            if (debtToEquity > 100) {
-              if (debugSymbols.includes(sym)) {
-                console.log(`[${sym}] ⚠️ Debt-to-Equity is too high (${debtToEquity}), capping at 100`);
-              }
-              debtToEquity = 100;
-            }
-          }
-          if (isFinite(interestCoverage)) {
-            // If interestCoverage is 0, it likely means no interest expense (or negative, meaning interest income)
-            // In this case, the ratio doesn't make sense, so set to null
-            if (interestCoverage <= 0) {
-              if (debugSymbols.includes(sym)) {
-                console.log(`[${sym}] ⚠️ Setting interestCoverage to null because value is <= 0 (${interestCoverage})`);
-              }
-              interestCoverage = null;
-            }
-            if (interestCoverage > 1000) {
-              if (debugSymbols.includes(sym)) {
-                console.log(`[${sym}] ⚠️ Interest Coverage is too high (${interestCoverage}), capping at 1000`);
-              }
-              interestCoverage = 1000;
-            }
+          if (isFinite(interestCoverage) && interestCoverage > 100000) {
+            interestCoverage = 100000; // Cap extremely high values only
           }
 
           if (debugSymbols.includes(sym)) {
