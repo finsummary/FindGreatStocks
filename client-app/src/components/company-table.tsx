@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronUp, ChevronDown, Star, Download, Search, Settings2, X, Lock, Unlock, MoreVertical, Move, Copy, Trash2 } from "lucide-react";
+import { ChevronUp, ChevronDown, Star, Download, Search, Settings2, X, Lock, Unlock, MoreVertical, Move, Copy, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -220,6 +220,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const [sortBy, setSortBy] = useState<string>('none'); // Default to 'none' for placeholder
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(0);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const tableScrollRef = React.useRef<HTMLDivElement>(null);
   const [limit] = useState(50);
   const [selectedLayout, setSelectedLayout] = useState<string | null>(null);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -1031,14 +1034,14 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  {/* Always show menu on watchlist page - no login check needed */}
-                  {isWatchlistPage && (
+                  {/* Always show menu on watchlist page */}
+                  {isWatchlistPage ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="p-1 h-auto text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                          className="p-1 h-auto min-w-[24px] text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
                           onClick={(e) => {
                             e.stopPropagation();
                             console.log('Menu button clicked:', { 
@@ -1116,7 +1119,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  )}
+                  ) : null}
                 </div>
               );
               break;
@@ -1629,6 +1632,29 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
     }
   };
 
+  // Update scroll button states on mount and resize
+  useEffect(() => {
+    const updateScrollButtons = () => {
+      if (tableScrollRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = tableScrollRef.current;
+        setCanScrollLeft(scrollLeft > 0);
+        setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+      }
+    };
+    updateScrollButtons();
+    const handleResize = () => updateScrollButtons();
+    window.addEventListener('resize', handleResize);
+    if (tableScrollRef.current) {
+      tableScrollRef.current.addEventListener('scroll', updateScrollButtons);
+    }
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (tableScrollRef.current) {
+        tableScrollRef.current.removeEventListener('scroll', updateScrollButtons);
+      }
+    };
+  }, [data]);
+
   // Prefetch данных для соседних вкладок, чтобы переключение было мгновенным
   useEffect(() => {
     // Для watchlist пропускаем префетч (требуется авторизация и иной источник данных)
@@ -1912,8 +1938,45 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       )}
 
       {/* Table */}
-      <Card className="overflow-hidden">
-        <div className="w-full overflow-x-auto -mx-4 px-4">
+      <Card className="overflow-hidden relative">
+        {/* Scroll buttons */}
+        <div className="absolute top-2 right-2 flex gap-2 z-10">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 w-7 p-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm shadow-sm"
+            onClick={() => {
+              if (tableScrollRef.current) {
+                tableScrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+              }
+            }}
+            disabled={!canScrollLeft}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 w-7 p-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm shadow-sm"
+            onClick={() => {
+              if (tableScrollRef.current) {
+                tableScrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+              }
+            }}
+            disabled={!canScrollRight}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+        <div 
+          ref={tableScrollRef}
+          className="w-full overflow-x-auto -mx-4 px-4"
+          onScroll={(e) => {
+            const target = e.currentTarget;
+            setCanScrollLeft(target.scrollLeft > 0);
+            setCanScrollRight(target.scrollLeft < target.scrollWidth - target.clientWidth - 10);
+          }}
+        >
           <Table className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 sm:[&_td]:p-3`}>
             <TableHeader>
               {table.getHeaderGroups().map(headerGroup => (
