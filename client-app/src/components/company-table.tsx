@@ -1120,9 +1120,17 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                               method: 'DELETE' 
                             }).then((response) => {
                               console.log('Delete success:', response);
+                              // Invalidate queries to refresh data
+                              // Important: invalidate all watchlist queries to ensure consistency
                               queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
-                              queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
                               queryClient.invalidateQueries({ queryKey: ['/api/watchlist', 'all'] });
+                              // Invalidate the specific watchlist companies query
+                              if (currentWatchlistId) {
+                                queryClient.invalidateQueries({ 
+                                  queryKey: ['/api/watchlist/companies', currentWatchlistId] 
+                                });
+                              }
+                              queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
                               toast({ title: "Success", description: `${row.symbol} removed from watchlist.` });
                             }).catch((error: any) => {
                               console.error('Delete error:', error);
