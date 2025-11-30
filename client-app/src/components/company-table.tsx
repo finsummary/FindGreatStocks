@@ -1051,9 +1051,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0 flex items-center justify-center border border-gray-400 dark:border-gray-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-500 dark:hover:border-gray-400 shadow-sm"
+                          className="h-7 w-7 p-0 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
                             console.log('Menu button clicked:', { 
