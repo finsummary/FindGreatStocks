@@ -216,6 +216,13 @@ interface CompanyTableProps {
 }
 
 export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: CompanyTableProps) {
+  // Log watchlistId changes for debugging
+  useEffect(() => {
+    if (dataset === 'watchlist') {
+      console.log('[CompanyTable] watchlistId prop changed:', { watchlistId, dataset, activeTab });
+    }
+  }, [watchlistId, dataset, activeTab]);
+  
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<string>('none'); // Default to 'none' for placeholder
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
