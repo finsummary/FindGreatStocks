@@ -1053,7 +1053,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                         <Button
                           variant="outline"
                           size="sm"
-                          className="p-1 h-6 w-6 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800"
+                          className="h-7 w-7 p-0 flex items-center justify-center border border-gray-400 dark:border-gray-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-500 dark:hover:border-gray-400 shadow-sm"
                           onClick={(e) => {
                             e.stopPropagation();
                             console.log('Menu button clicked:', { 
@@ -1067,7 +1067,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                             });
                           }}
                         >
-                          <MoreVertical className="h-4 w-4" />
+                          <MoreVertical className="h-4 w-4 flex-shrink-0" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-56">
