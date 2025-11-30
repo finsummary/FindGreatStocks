@@ -4060,25 +4060,52 @@ export function setupRoutes(app, supabase) {
     try {
       const userId = req.user?.id;
       const symbol = req.params.symbol;
-      const { watchlistId } = req.query || {};
+      const watchlistIdParam = req.query.watchlistId;
       
-      // If watchlistId provided, delete only from that watchlist, otherwise from all
-      if (watchlistId) {
-        const { error } = await supabase
+      console.log('[DELETE] Request:', { userId, symbol, watchlistIdParam, query: req.query });
+      
+      // Convert watchlistId to number if provided
+      const watchlistId = watchlistIdParam ? (typeof watchlistIdParam === 'string' ? parseInt(watchlistIdParam, 10) : watchlistIdParam) : null;
+      
+      // If watchlistId provided, delete only from that watchlist
+      // IMPORTANT: Never delete from all watchlists - always require watchlistId
+      if (watchlistId && !isNaN(watchlistId)) {
+        // Verify the watchlist belongs to the user
+        const { data: watchlist } = await supabase
+          .from('watchlists')
+          .select('id')
+          .eq('id', watchlistId)
+          .eq('user_id', userId)
+          .single();
+        
+        if (!watchlist) {
+          console.log('[DELETE] Watchlist not found or not owned by user:', { watchlistId, userId });
+          return res.status(403).json({ message: 'Invalid watchlist ownership' });
+        }
+        
+        const { data: deleted, error } = await supabase
           .from('watchlist')
           .delete()
-          .match({ user_id: userId, company_symbol: symbol, watchlist_id: watchlistId });
-        if (error) return res.status(500).json({ message: 'Failed to remove from watchlist' });
+          .eq('user_id', userId)
+          .eq('company_symbol', symbol)
+          .eq('watchlist_id', watchlistId)
+          .select('id');
+        
+        console.log('[DELETE] Delete result:', { deleted, error, deletedCount: deleted?.length });
+        
+        if (error) {
+          console.error('[DELETE] Delete error:', error);
+          return res.status(500).json({ message: 'Failed to remove from watchlist', error: error.message });
+        }
+        
+        return res.json({ message: 'Removed from watchlist', deleted: deleted?.length || 0 });
       } else {
-        const { error } = await supabase
-          .from('watchlist')
-          .delete()
-          .match({ user_id: userId, company_symbol: symbol });
-        if (error) return res.status(500).json({ message: 'Failed to remove from watchlist' });
+        console.log('[DELETE] No watchlistId provided - refusing to delete from all watchlists');
+        return res.status(400).json({ message: 'watchlistId is required to remove from a specific watchlist' });
       }
-      return res.json({ message: 'Removed from watchlist' });
     } catch (e) {
-      return res.status(500).json({ message: 'Failed to remove from watchlist' });
+      console.error('[DELETE] Exception:', e);
+      return res.status(500).json({ message: 'Failed to remove from watchlist', error: e.message });
     }
   });
 
