@@ -1096,29 +1096,24 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             // On watchlist page, we're viewing a specific watchlist
-                            // Use the watchlistId from props (current page's watchlist)
-                            // IMPORTANT: This should match the watchlistId from the page's selectedWatchlistId
+                            // CRITICAL: Use watchlistId from props directly - it should be the current page's watchlist
+                            // Get the latest value from props to avoid closure issues
                             const currentWatchlistId = watchlistId;
                             
-                            // Find which watchlist this company is actually in (from the current page's data)
-                            const companyInCurrentWatchlist = watchlistData?.find((item: any) => 
-                              item.companySymbol === row.symbol && item.watchlistId === currentWatchlistId
-                            );
-                            
-                            console.log('Remove clicked:', { 
+                            console.log('Remove clicked - current state:', { 
                               symbol: row.symbol, 
-                              watchlistId: currentWatchlistId, // Current page's watchlist ID from props
+                              watchlistIdFromProps: watchlistId, // Current page's watchlist ID from props
+                              currentWatchlistId,
                               dataset,
-                              propsWatchlistId: watchlistId,
-                              companyInCurrentWatchlist,
-                              allItemsForSymbol: watchlistData?.filter((item: any) => item.companySymbol === row.symbol),
-                              currentPageWatchlistId: currentWatchlistId
+                              rowData: { symbol: row.symbol, watchlistId: (row as any).watchlistId },
+                              allItemsForSymbol: watchlistData?.filter((item: any) => item.companySymbol === row.symbol)
                             });
                             
                             if (!currentWatchlistId || currentWatchlistId === null || currentWatchlistId === undefined) {
-                              console.error('Cannot delete: no watchlistId in props', { watchlistId: currentWatchlistId, dataset });
+                              console.error('Cannot delete: no watchlistId in props', { watchlistId: currentWatchlistId, dataset, propsWatchlistId: watchlistId });
                               toast({ 
                                 title: "Error", 
                                 description: "Cannot determine watchlist to remove from. Please refresh the page.",
@@ -1127,16 +1122,28 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                               return;
                             }
                             
+                            // Find which watchlist this company is actually in (from the current page's data)
+                            const companyInCurrentWatchlist = watchlistData?.find((item: any) => 
+                              item.companySymbol === row.symbol && item.watchlistId === currentWatchlistId
+                            );
+                            
+                            console.log('Company in current watchlist check:', {
+                              companyInCurrentWatchlist,
+                              currentWatchlistId,
+                              allItems: watchlistData?.filter((item: any) => item.companySymbol === row.symbol)
+                            });
+                            
                             // Verify the company is actually in the current watchlist
                             if (!companyInCurrentWatchlist) {
                               console.warn('Company not found in current watchlist:', {
                                 symbol: row.symbol,
                                 currentWatchlistId,
-                                allItems: watchlistData?.filter((item: any) => item.companySymbol === row.symbol)
+                                allItems: watchlistData?.filter((item: any) => item.companySymbol === row.symbol),
+                                watchlistDataLength: watchlistData?.length
                               });
                               toast({ 
                                 title: "Warning", 
-                                description: `${row.symbol} is not in the current watchlist. Cannot remove.`,
+                                description: `${row.symbol} is not in the current watchlist (ID: ${currentWatchlistId}). Cannot remove.`,
                                 variant: "destructive" 
                               });
                               return;
@@ -1144,7 +1151,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                             
                             // Delete from the CURRENT watchlist (the one we're viewing)
                             const deleteUrl = `/api/watchlist/${encodeURIComponent(row.symbol)}?watchlistId=${currentWatchlistId}`;
-                            console.log('Deleting from URL:', deleteUrl, 'Current watchlist ID:', currentWatchlistId);
+                            console.log('Deleting from URL:', deleteUrl, 'Current watchlist ID from props:', currentWatchlistId, 'Props watchlistId:', watchlistId);
                             
                             authFetch(deleteUrl, { 
                               method: 'DELETE' 
