@@ -4067,9 +4067,11 @@ export function setupRoutes(app, supabase) {
       // Convert watchlistId to number if provided
       const watchlistId = watchlistIdParam ? (typeof watchlistIdParam === 'string' ? parseInt(watchlistIdParam, 10) : watchlistIdParam) : null;
       
+      console.log('[DELETE] Parsed watchlistId:', { watchlistIdParam, watchlistId, isNaN: isNaN(watchlistId), type: typeof watchlistId });
+      
       // If watchlistId provided, delete only from that watchlist
       // IMPORTANT: Never delete from all watchlists - always require watchlistId
-      if (watchlistId && !isNaN(watchlistId)) {
+      if (watchlistId !== null && watchlistId !== undefined && !isNaN(watchlistId) && watchlistId > 0) {
         // Verify the watchlist belongs to the user
         const { data: watchlist } = await supabase
           .from('watchlists')
