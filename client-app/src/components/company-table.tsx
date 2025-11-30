@@ -1092,14 +1092,22 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                           onClick={() => {
                             // On watchlist page, we're viewing a specific watchlist
                             // Use the watchlistId from props (current page's watchlist)
+                            // IMPORTANT: This should match the watchlistId from the page's selectedWatchlistId
                             const currentWatchlistId = watchlistId;
+                            
+                            // Find which watchlist this company is actually in (from the current page's data)
+                            const companyInCurrentWatchlist = watchlistData?.find((item: any) => 
+                              item.companySymbol === row.symbol && item.watchlistId === currentWatchlistId
+                            );
                             
                             console.log('Remove clicked:', { 
                               symbol: row.symbol, 
-                              watchlistId: currentWatchlistId, // Current page's watchlist ID
+                              watchlistId: currentWatchlistId, // Current page's watchlist ID from props
                               dataset,
                               propsWatchlistId: watchlistId,
-                              watchlistData: watchlistData?.filter((item: any) => item.companySymbol === row.symbol)
+                              companyInCurrentWatchlist,
+                              allItemsForSymbol: watchlistData?.filter((item: any) => item.companySymbol === row.symbol),
+                              currentPageWatchlistId: currentWatchlistId
                             });
                             
                             if (!currentWatchlistId || currentWatchlistId === null || currentWatchlistId === undefined) {
@@ -1112,9 +1120,24 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                               return;
                             }
                             
+                            // Verify the company is actually in the current watchlist
+                            if (!companyInCurrentWatchlist) {
+                              console.warn('Company not found in current watchlist:', {
+                                symbol: row.symbol,
+                                currentWatchlistId,
+                                allItems: watchlistData?.filter((item: any) => item.companySymbol === row.symbol)
+                              });
+                              toast({ 
+                                title: "Warning", 
+                                description: `${row.symbol} is not in the current watchlist. Cannot remove.`,
+                                variant: "destructive" 
+                              });
+                              return;
+                            }
+                            
                             // Delete from the CURRENT watchlist (the one we're viewing)
                             const deleteUrl = `/api/watchlist/${encodeURIComponent(row.symbol)}?watchlistId=${currentWatchlistId}`;
-                            console.log('Deleting from URL:', deleteUrl);
+                            console.log('Deleting from URL:', deleteUrl, 'Current watchlist ID:', currentWatchlistId);
                             
                             authFetch(deleteUrl, { 
                               method: 'DELETE' 
