@@ -230,6 +230,11 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const [canScrollLeft, setCanScrollLeft] = useState(true);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const tableScrollRef = React.useRef<HTMLDivElement>(null);
+  // Store current watchlistId in ref to avoid closure issues
+  const watchlistIdRef = React.useRef<number | undefined>(watchlistId);
+  useEffect(() => {
+    watchlistIdRef.current = watchlistId;
+  }, [watchlistId]);
   const [limit] = useState(50);
   const [selectedLayout, setSelectedLayout] = useState<string | null>(null);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -1098,10 +1103,11 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                         <DropdownMenuItem 
                           onClick={(e) => {
                             e.stopPropagation();
+                            e.preventDefault();
                             // On watchlist page, we're viewing a specific watchlist
-                            // CRITICAL: Use watchlistId from props directly - it should be the current page's watchlist
-                            // Get the latest value from props to avoid closure issues
-                            const currentWatchlistId = watchlistId;
+                            // CRITICAL: Use watchlistId from ref to get the latest value and avoid closure issues
+                            // The ref is updated whenever watchlistId prop changes
+                            const currentWatchlistId = watchlistIdRef.current;
                             
                             console.log('Remove clicked - current state:', { 
                               symbol: row.symbol, 
