@@ -1090,60 +1090,40 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
                           onClick={() => {
-                            // Find the watchlist item for the CURRENT watchlist (not just any watchlist)
-                            const watchlistItem = watchlistData?.find((item: any) => 
-                              item.companySymbol === row.symbol && item.watchlistId === watchlistId
-                            );
-                            console.log('Remove clicked:', { 
-                              symbol: row.symbol, 
-                              watchlistId, 
-                              watchlistItem, 
-                              watchlistData,
-                              allItemsForSymbol: watchlistData?.filter((item: any) => item.companySymbol === row.symbol)
-                            });
-                            if (watchlistItem?.watchlistId) {
-                              // Delete from specific watchlist
-                              const deleteWatchlistId = watchlistItem.watchlistId;
-                              console.log('Deleting from watchlist:', deleteWatchlistId);
-                              authFetch(`/api/watchlist/${row.symbol}?watchlistId=${deleteWatchlistId}`, { 
-                                method: 'DELETE' 
-                              }).then(() => {
-                                queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
-                                queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
-                                toast({ title: "Success", description: `${row.symbol} removed from watchlist.` });
-                              }).catch((error: any) => {
-                                console.error('Delete error:', error);
-                                toast({ 
-                                  title: "Error", 
-                                  description: error?.message || "Failed to remove company",
-                                  variant: "destructive" 
-                                });
-                              });
-                            } else if (watchlistId) {
-                              // If we have watchlistId from props but item not found, still try to delete
-                              console.log('Watchlist item not found, using watchlistId from props:', watchlistId);
-                              authFetch(`/api/watchlist/${row.symbol}?watchlistId=${watchlistId}`, { 
-                                method: 'DELETE' 
-                              }).then(() => {
-                                queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
-                                queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
-                                toast({ title: "Success", description: `${row.symbol} removed from watchlist.` });
-                              }).catch((error: any) => {
-                                console.error('Delete error:', error);
-                                toast({ 
-                                  title: "Error", 
-                                  description: error?.message || "Failed to remove company",
-                                  variant: "destructive" 
-                                });
-                              });
-                            } else {
-                              console.error('Cannot delete: no watchlistId found');
+                            // On watchlist page, we're viewing a specific watchlist
+                            // Use the watchlistId from props (current page's watchlist)
+                            if (!watchlistId) {
+                              console.error('Cannot delete: no watchlistId in props');
                               toast({ 
                                 title: "Error", 
                                 description: "Cannot determine watchlist to remove from",
                                 variant: "destructive" 
                               });
+                              return;
                             }
+                            
+                            console.log('Remove clicked:', { 
+                              symbol: row.symbol, 
+                              watchlistId, // Current page's watchlist ID
+                              dataset,
+                              watchlistData: watchlistData?.filter((item: any) => item.companySymbol === row.symbol)
+                            });
+                            
+                            // Delete from the CURRENT watchlist (the one we're viewing)
+                            authFetch(`/api/watchlist/${row.symbol}?watchlistId=${watchlistId}`, { 
+                              method: 'DELETE' 
+                            }).then(() => {
+                              queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
+                              queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
+                              toast({ title: "Success", description: `${row.symbol} removed from watchlist.` });
+                            }).catch((error: any) => {
+                              console.error('Delete error:', error);
+                              toast({ 
+                                title: "Error", 
+                                description: error?.message || "Failed to remove company",
+                                variant: "destructive" 
+                              });
+                            });
                           }}
                           className="text-red-600 dark:text-red-400"
                         >
