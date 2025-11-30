@@ -1119,18 +1119,21 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                             authFetch(deleteUrl, { 
                               method: 'DELETE' 
                             }).then((response) => {
-                              console.log('Delete success:', response);
-                              // Invalidate queries to refresh data
-                              // Important: invalidate all watchlist queries to ensure consistency
+                              console.log('Delete success:', response, 'from watchlist:', currentWatchlistId);
+                              // Invalidate all watchlist-related queries to ensure data consistency
+                              // This ensures that the company is removed from the current watchlist
+                              // but remains in other watchlists if it exists there
                               queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
                               queryClient.invalidateQueries({ queryKey: ['/api/watchlist', 'all'] });
-                              // Invalidate the specific watchlist companies query
-                              if (currentWatchlistId) {
-                                queryClient.invalidateQueries({ 
-                                  queryKey: ['/api/watchlist/companies', currentWatchlistId] 
-                                });
-                              }
-                              queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
+                              // Invalidate the specific watchlist companies query with all possible parameters
+                              queryClient.invalidateQueries({ 
+                                predicate: (query) => {
+                                  const key = query.queryKey;
+                                  return Array.isArray(key) && 
+                                    (key[0] === '/api/watchlist/companies' || 
+                                     (typeof key[0] === 'string' && key[0].includes('watchlist')));
+                                }
+                              });
                               toast({ title: "Success", description: `${row.symbol} removed from watchlist.` });
                             }).catch((error: any) => {
                               console.error('Delete error:', error);
