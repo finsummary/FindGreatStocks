@@ -242,9 +242,12 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
+  const [headerWidth, setHeaderWidth] = useState(0);
+  const [headerLeft, setHeaderLeft] = useState(0);
   const tableScrollRef = React.useRef<HTMLDivElement>(null);
   const tableRef = React.useRef<HTMLTableElement>(null);
   const tableContainerRef = React.useRef<HTMLDivElement>(null);
+  const headerRef = React.useRef<HTMLTableRowElement>(null);
   // Store current watchlistId in ref to avoid closure issues
   const watchlistIdRef = React.useRef<number | undefined>(watchlistId);
   useEffect(() => {
@@ -1816,27 +1819,34 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
     };
   }, [data, isLoading]);
 
-  // Handle sticky header on scroll using IntersectionObserver
+  // Handle sticky header on scroll using position: fixed
   useEffect(() => {
-    if (!tableContainerRef.current) return;
+    const handleScroll = () => {
+      if (!tableContainerRef.current || !headerRef.current) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          // When the table container is not fully visible (scrolled past top), make header sticky
-          setIsHeaderSticky(!entry.isIntersecting && entry.boundingClientRect.top < 0);
-        });
-      },
-      {
-        threshold: 0,
-        rootMargin: '-1px 0px 0px 0px', // Trigger when 1px from top
+      const containerRect = tableContainerRef.current.getBoundingClientRect();
+      const shouldBeSticky = containerRect.top <= 0;
+
+      if (shouldBeSticky) {
+        // Calculate header position and width
+        const scrollContainer = tableScrollRef.current;
+        if (scrollContainer) {
+          const scrollRect = scrollContainer.getBoundingClientRect();
+          setHeaderLeft(scrollRect.left);
+          setHeaderWidth(scrollRect.width);
+        }
       }
-    );
 
-    observer.observe(tableContainerRef.current);
+      setIsHeaderSticky(shouldBeSticky);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll, { passive: true });
+    handleScroll(); // Initial check
 
     return () => {
-      observer.disconnect();
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
     };
   }, []);
 
@@ -2262,7 +2272,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                     return (
                     <TableHead
                       key={header.id}
-                        className={`${hid === 'rank' || hid === 'watchlist' || hid === 'dcfVerdict' || hid === 'roicStability' || hid === 'roicStabilityScore' ? 'text-center' : hid === 'name' ? '' : 'text-right'} cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(hid) } ${ getStickyHeaderClass(hid) } ${isHeaderSticky ? 'bg-white dark:bg-zinc-900' : ''} ${
+                        className={`${hid === 'rank' || hid === 'watchlist' || hid === 'dcfVerdict' || hid === 'roicStability' || hid === 'roicStabilityScore' ? 'text-center' : hid === 'name' ? '' : 'text-right'} cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(hid) } ${ getStickyHeaderClass(hid) } ${isHeaderSticky ? 'bg-white dark:bg-zinc-900' : 'bg-muted/50'} ${
                         sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
                       }`}
                       onClick={header.column.getToggleSortingHandler()}
