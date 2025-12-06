@@ -2146,8 +2146,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
 
       {/* Table */}
       <div className="relative">
-        {/* Scroll buttons - positioned above the table */}
-        <div className="flex justify-end gap-1 mb-2 z-10 relative">
+        {/* Scroll buttons - positioned above the table, always visible */}
+        <div className={`flex justify-end gap-1 mb-2 z-10 relative ${isHeaderSticky ? 'fixed top-12 right-4 z-[101] mb-0' : ''}`}>
           <Button
             variant="outline"
             size="sm"
