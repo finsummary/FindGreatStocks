@@ -2265,6 +2265,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               style={{
                 left: `${headerLeft}px`,
                 width: `${headerWidth}px`,
+                maxWidth: '100vw',
               }}
             >
               <div 
