@@ -127,7 +127,11 @@ const PRESET_LAYOUTS = {
   // Placeholder: we'll expand with ROIC etc. later; safe existing columns for now
   'compounders': {
     name: 'Compounders (ROIC, FCF)',
-    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'fcfMargin', 'fcfMarginMedian10Y', 'revenueGrowth10Y', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'debtToEquity', 'cashFlowToDebt', 'interestCoverage'],
+    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'revenueGrowth10Y', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore'],
+  },
+  'cashflowLeverage': {
+    name: 'Cashflow & Leverage',
+    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'fcfMargin', 'fcfMarginMedian10Y', 'debtToEquity', 'interestCoverage', 'cashFlowToDebt'],
   },
 };
 
@@ -151,6 +155,11 @@ const LAYOUT_DESCRIPTIONS: Record<string, { title: string; description: string; 
       title: "DuPont ROE Decomposition",
       description: "This layout breaks down Return on Equity (ROE) into its key components: Net Profit Margin (profitability), Asset Turnover (efficiency), and Financial Leverage (debt). It helps to understand the drivers behind a company's ROE.",
       link: "https://blog.findgreatstocks.com/dupont-roe-analysis-breaking-down-what-drives-profitability"
+  },
+  'cashflowLeverage': {
+    title: "Cashflow & Leverage Analysis",
+    description: "This layout focuses on a company's cash generation and debt management. It shows Free Cash Flow metrics (current and 10-year median margins) along with leverage ratios (Debt-to-Equity, Interest Coverage, Cash Flow to Debt) to assess financial health and sustainability.",
+    link: "https://blog.findgreatstocks.com"
   }
 };
 
@@ -271,6 +280,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
     returnOnRisk: useFlag('layout:return_on_risk'),
     reverseDcf: useFlag('layout:reverse_dcf'),
     compounders: useFlag('layout:compounders'),
+    cashflowLeverage: useFlag('layout:cashflow_leverage'),
   };
   const compoundersOn = layoutAccess.compounders;
 
@@ -1961,7 +1971,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 <DropdownMenuLabel>Table Layouts</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {Object.entries(PRESET_LAYOUTS).filter(([key]) => key !== 'compounders').map(([key, layout]) => {
-                  const isPaidLayout = ['dcfValuation', 'dupontRoe', 'returnOnRisk', 'reverseDcf'].includes(key);
+                  const isPaidLayout = ['dcfValuation', 'dupontRoe', 'returnOnRisk', 'reverseDcf', 'cashflowLeverage'].includes(key);
                   const isLocked = !isPaidUser && dataset !== 'dowjones' && isPaidLayout && !layoutAccess[key];
                   return (
                     <DropdownMenuItem
