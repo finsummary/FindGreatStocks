@@ -56,7 +56,7 @@ import {
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 interface ColumnConfig {
-  id: keyof Company | 'rank' | 'name' | 'watchlist' | 'none' | 'dcfVerdict'; // 'none' for the placeholder
+  id: keyof Company | 'rank' | 'name' | 'watchlist' | 'none' | 'dcfVerdict' | 'roicHistory'; // 'none' for the placeholder
   label: string;
   width: string;
   defaultVisible: boolean;
@@ -1549,7 +1549,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 break;
             }
             case 'roicHistory': {
-                const roicHistory = [
+                const roicHistory: (number | string | null | undefined)[] = [
                   row.roicY1,
                   row.roicY2,
                   row.roicY3,

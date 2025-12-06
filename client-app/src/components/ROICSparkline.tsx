@@ -5,7 +5,7 @@ import { BarChart, Bar, XAxis, ResponsiveContainer } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 
 interface ROICSparklineProps {
-  roicData: (number | string | null)[] // [roicY1, roicY2, ..., roicY10] от новых к старым
+  roicData: (number | string | null | undefined)[] // [roicY1, roicY2, ..., roicY10] от новых к старым
 }
 
 export function ROICSparkline({ roicData }: ROICSparklineProps) {
@@ -15,10 +15,19 @@ export function ROICSparkline({ roicData }: ROICSparklineProps) {
     .map((value, index) => {
       const yearIndex = 10 - index; // Y10, Y9, ..., Y1
       const numValue = value !== null && value !== undefined ? Number(value) : null;
+      const roicPercent = numValue !== null ? numValue * 100 : null;
+      // Определяем цвет на основе значения
+      let fillColor = "hsl(0, 72%, 51%)"; // red-600 по умолчанию
+      if (roicPercent !== null) {
+        if (roicPercent > 15) fillColor = "hsl(142, 76%, 36%)"; // green-600
+        else if (roicPercent > 5) fillColor = "hsl(38, 92%, 50%)"; // yellow-500
+        else if (roicPercent > 0) fillColor = "hsl(0, 84%, 60%)"; // red-500
+      }
       return {
         year: `Y${yearIndex}`,
         yearLabel: `${new Date().getFullYear() - yearIndex + 1}`, // Примерно год
-        roic: numValue !== null ? numValue * 100 : null, // Конвертируем в проценты
+        roic: roicPercent,
+        fill: fillColor,
       };
     })
     .filter(item => item.roic !== null)
@@ -81,15 +90,10 @@ export function ROICSparkline({ roicData }: ROICSparklineProps) {
           <Bar
             dataKey="roic"
             radius={[2, 2, 0, 0]}
-            style={{
-              fill: (entry: any) => {
-                const value = entry.roic;
-                // Цветовая схема: зеленый для отличного, желтый для хорошего, красный для слабого
-                if (value > 15) return "hsl(142, 76%, 36%)"; // green-600
-                if (value > 5) return "hsl(38, 92%, 50%)"; // yellow-500
-                if (value > 0) return "hsl(0, 84%, 60%)"; // red-500
-                return "hsl(0, 72%, 51%)"; // red-600 для отрицательных
-              },
+            fill="#8884d8"
+            shape={(props: any) => {
+              const { payload, ...rest } = props;
+              return <rect {...rest} fill={payload.fill} />;
             }}
           />
         </BarChart>

@@ -61,6 +61,7 @@ export interface Company {
   debtToEquity?: number | string | null;
   interestCoverage?: number | string | null;
   cashFlowToDebt?: number | string | null;
+  roicHistory?: (number | string | null)[]; // For sparkline visualization
   isWatched?: boolean;
 }
 
