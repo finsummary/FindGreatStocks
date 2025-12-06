@@ -227,8 +227,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const [sortBy, setSortBy] = useState<string>('none'); // Default to 'none' for placeholder
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(0);
-  const [canScrollLeft, setCanScrollLeft] = useState(true);
-  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
   const tableScrollRef = React.useRef<HTMLDivElement>(null);
   // Store current watchlistId in ref to avoid closure issues
   const watchlistIdRef = React.useRef<number | undefined>(watchlistId);
@@ -1714,13 +1714,21 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
         const { scrollLeft, scrollWidth, clientWidth } = tableScrollRef.current;
         const canScroll = scrollWidth > clientWidth;
         const maxScroll = scrollWidth - clientWidth;
-        setCanScrollLeft(canScroll && scrollLeft > 5);
-        setCanScrollRight(canScroll && scrollLeft < maxScroll - 5);
+        const newCanScrollLeft = canScroll && scrollLeft > 5;
+        const newCanScrollRight = canScroll && scrollLeft < maxScroll - 5;
+        console.log('Updating scroll buttons', { scrollLeft, scrollWidth, clientWidth, canScroll, maxScroll, newCanScrollLeft, newCanScrollRight });
+        setCanScrollLeft(newCanScrollLeft);
+        setCanScrollRight(newCanScrollRight);
+      } else {
+        console.log('tableScrollRef.current is null in updateScrollButtons');
       }
     };
     
-    // Initial check with delay to ensure DOM is ready
-    const timeoutId = setTimeout(updateScrollButtons, 200);
+    // Initial check with multiple delays to ensure DOM is ready
+    const timeoutId1 = setTimeout(updateScrollButtons, 100);
+    const timeoutId2 = setTimeout(updateScrollButtons, 500);
+    const timeoutId3 = setTimeout(updateScrollButtons, 1000);
+    
     const handleResize = () => {
       setTimeout(updateScrollButtons, 100);
     };
@@ -1728,17 +1736,27 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
     window.addEventListener('resize', handleResize);
     
     // Use MutationObserver to detect when table content changes
-    const observer = new MutationObserver(updateScrollButtons);
-    if (tableScrollRef.current) {
-      observer.observe(tableScrollRef.current, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-      });
-    }
+    const observer = new MutationObserver(() => {
+      setTimeout(updateScrollButtons, 100);
+    });
+    
+    // Try to observe when ref becomes available
+    const checkRef = setInterval(() => {
+      if (tableScrollRef.current) {
+        observer.observe(tableScrollRef.current, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+        });
+        clearInterval(checkRef);
+      }
+    }, 100);
     
     return () => {
-      clearTimeout(timeoutId);
+      clearTimeout(timeoutId1);
+      clearTimeout(timeoutId2);
+      clearTimeout(timeoutId3);
+      clearInterval(checkRef);
       window.removeEventListener('resize', handleResize);
       observer.disconnect();
     };
@@ -2029,13 +2047,21 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       {/* Table */}
       <div className="relative">
         {/* Scroll buttons - positioned above the table */}
-        <div className="flex justify-end gap-1 mb-2">
+        <div className="flex justify-end gap-1 mb-2 z-10 relative">
           <Button
             variant="outline"
             size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => {
-              console.log('Scroll left clicked', { ref: tableScrollRef.current });
+            className={`h-8 w-8 p-0 ${!canScrollLeft ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Scroll left clicked', { 
+                ref: tableScrollRef.current, 
+                canScrollLeft,
+                scrollLeft: tableScrollRef.current?.scrollLeft,
+                scrollWidth: tableScrollRef.current?.scrollWidth,
+                clientWidth: tableScrollRef.current?.clientWidth
+              });
               if (tableScrollRef.current) {
                 const scrollAmount = tableScrollRef.current.clientWidth * 0.8;
                 const currentScroll = tableScrollRef.current.scrollLeft;
@@ -2049,7 +2075,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 console.error('tableScrollRef.current is null');
               }
             }}
-            disabled={!canScrollLeft}
+            disabled={false}
             aria-label="Scroll left"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -2057,9 +2083,17 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
           <Button
             variant="outline"
             size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => {
-              console.log('Scroll right clicked', { ref: tableScrollRef.current });
+            className={`h-8 w-8 p-0 ${!canScrollRight ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Scroll right clicked', { 
+                ref: tableScrollRef.current,
+                canScrollRight,
+                scrollLeft: tableScrollRef.current?.scrollLeft,
+                scrollWidth: tableScrollRef.current?.scrollWidth,
+                clientWidth: tableScrollRef.current?.clientWidth
+              });
               if (tableScrollRef.current) {
                 const scrollAmount = tableScrollRef.current.clientWidth * 0.8;
                 const currentScroll = tableScrollRef.current.scrollLeft;
@@ -2074,7 +2108,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 console.error('tableScrollRef.current is null');
               }
             }}
-            disabled={!canScrollRight}
+            disabled={false}
             aria-label="Scroll right"
           >
             <ChevronRight className="h-4 w-4" />
