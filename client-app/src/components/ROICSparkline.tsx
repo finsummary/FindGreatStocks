@@ -67,18 +67,18 @@ export function ROICSparkline({ roicData }: ROICSparklineProps) {
               if (!active || !payload?.[0]) return null;
               const data = payload[0].payload;
               const roicValue = data.roic;
-              let colorClass = "text-red-600";
+              let colorClass = "text-red-600 dark:text-red-400";
               if (roicValue > 15) {
-                colorClass = "text-green-600";
+                colorClass = "text-green-600 dark:text-green-400";
               } else if (roicValue > 5) {
-                colorClass = "text-yellow-600";
+                colorClass = "text-yellow-600 dark:text-yellow-400";
               }
               return (
-                <div className="rounded-lg border bg-background p-2 shadow-sm">
+                <div className="rounded-lg border border-border bg-background/95 backdrop-blur-sm p-2.5 shadow-lg">
                   <div className="grid gap-1.5">
                     <div className="flex items-center justify-between gap-4">
-                      <span className="text-xs text-muted-foreground">{data.year} ({data.yearLabel})</span>
-                      <span className={`font-mono text-xs font-medium ${colorClass}`}>
+                      <span className="text-xs font-medium text-foreground">{data.year} ({data.yearLabel})</span>
+                      <span className={`font-mono text-xs font-semibold ${colorClass}`}>
                         {roicValue?.toFixed(1)}%
                       </span>
                     </div>
