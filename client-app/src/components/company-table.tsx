@@ -2230,7 +2230,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               ref={tableRef}
               className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 sm:[&_td]:p-3`}
             >
-            <TableHeader>
+            <TableHeader className={isHeaderSticky ? 'sticky top-0 z-50 bg-white dark:bg-zinc-900 shadow-md' : ''}>
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow key={headerGroup.id} className="bg-muted/50">
                   {headerGroup.headers.map(header => {
