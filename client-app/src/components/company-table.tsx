@@ -2263,11 +2263,13 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
           {/* Fixed header overlay when sticky */}
           {isHeaderSticky && (
             <div 
-              className="fixed top-0 z-[100] bg-white dark:bg-zinc-900 shadow-md pointer-events-none overflow-hidden"
+              className="fixed top-0 z-[100] bg-white dark:bg-zinc-900 shadow-md pointer-events-none"
               style={{
-                left: `${headerLeft}px`,
-                width: `${headerWidth}px`,
-                maxWidth: '100vw',
+                left: `${Math.max(0, headerLeft)}px`,
+                width: `${Math.min(headerWidth, window.innerWidth - Math.max(0, headerLeft))}px`,
+                maxWidth: `${window.innerWidth}px`,
+                right: 0,
+                overflow: 'hidden',
               }}
             >
               <div 
