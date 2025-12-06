@@ -2316,6 +2316,14 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               // Use a small threshold (1px) instead of 5px to avoid false negatives
               setCanScrollLeft(canScroll && scrollLeft > 1);
               setCanScrollRight(canScroll && scrollLeft < maxScroll - 1);
+              
+              // Sync scroll position with fixed header
+              if (isHeaderSticky) {
+                const fixedHeader = document.querySelector('.fixed.top-0.z-\\[100\\] div.overflow-x-auto') as HTMLElement;
+                if (fixedHeader) {
+                  fixedHeader.scrollLeft = scrollLeft;
+                }
+              }
             }}
           >
           <div className="w-full overflow-visible">
