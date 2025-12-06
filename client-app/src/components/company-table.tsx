@@ -1816,24 +1816,27 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
     };
   }, [data, isLoading]);
 
-  // Handle sticky header on scroll
+  // Handle sticky header on scroll using IntersectionObserver
   useEffect(() => {
-    const handleScroll = () => {
-      if (tableRef.current) {
-        // Get the actual table element
-        const table = tableRef.current;
-        const rect = table.getBoundingClientRect();
-        // When table header reaches top of viewport, make it sticky
-        // Add a small offset to trigger before it reaches exactly 0
-        setIsHeaderSticky(rect.top <= 100);
-      }
-    };
+    if (!tableContainerRef.current) return;
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll(); // Initial check
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          // When the table container is not fully visible (scrolled past top), make header sticky
+          setIsHeaderSticky(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+        });
+      },
+      {
+        threshold: 0,
+        rootMargin: '-1px 0px 0px 0px', // Trigger when 1px from top
+      }
+    );
+
+    observer.observe(tableContainerRef.current);
 
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      observer.disconnect();
     };
   }, []);
 
@@ -2120,7 +2123,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       )}
 
       {/* Table */}
-      <div className="relative" ref={tableContainerRef}>
+      <div className="relative">
         {/* Scroll buttons - positioned above the table */}
         <div className="flex justify-end gap-1 mb-2 z-10 relative">
           <Button
