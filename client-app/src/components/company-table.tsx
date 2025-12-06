@@ -2266,7 +2266,19 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             >
             <TableHeader>
               {table.getHeaderGroups().map(headerGroup => (
-                <TableRow key={headerGroup.id} className={`bg-muted/50 ${isHeaderSticky ? 'sticky top-0 z-50 shadow-md' : ''}`}>
+                <TableRow 
+                  key={headerGroup.id} 
+                  ref={headerRef}
+                  className="bg-muted/50"
+                  style={isHeaderSticky ? {
+                    position: 'fixed',
+                    top: 0,
+                    left: `${headerLeft}px`,
+                    width: `${headerWidth}px`,
+                    zIndex: 100,
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+                  } : undefined}
+                >
                   {headerGroup.headers.map(header => {
                     const hid = ((header.column.columnDef.meta as any)?.columnConfig.id) as string;
                     return (
