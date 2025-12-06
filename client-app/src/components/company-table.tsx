@@ -1713,25 +1713,34 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       if (tableScrollRef.current) {
         const { scrollLeft, scrollWidth, clientWidth } = tableScrollRef.current;
         const canScroll = scrollWidth > clientWidth;
-        setCanScrollLeft(canScroll && scrollLeft > 0);
-        setCanScrollRight(canScroll && scrollLeft < scrollWidth - clientWidth - 10);
+        const maxScroll = scrollWidth - clientWidth;
+        setCanScrollLeft(canScroll && scrollLeft > 5);
+        setCanScrollRight(canScroll && scrollLeft < maxScroll - 5);
       }
     };
+    
     // Initial check with delay to ensure DOM is ready
-    const timeoutId = setTimeout(updateScrollButtons, 100);
+    const timeoutId = setTimeout(updateScrollButtons, 200);
     const handleResize = () => {
       setTimeout(updateScrollButtons, 100);
     };
+    
     window.addEventListener('resize', handleResize);
+    
+    // Use MutationObserver to detect when table content changes
+    const observer = new MutationObserver(updateScrollButtons);
     if (tableScrollRef.current) {
-      tableScrollRef.current.addEventListener('scroll', updateScrollButtons);
+      observer.observe(tableScrollRef.current, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+      });
     }
+    
     return () => {
       clearTimeout(timeoutId);
       window.removeEventListener('resize', handleResize);
-      if (tableScrollRef.current) {
-        tableScrollRef.current.removeEventListener('scroll', updateScrollButtons);
-      }
+      observer.disconnect();
     };
   }, [data, isLoading]);
 
@@ -2018,47 +2027,51 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       )}
 
       {/* Table */}
-      <Card className="relative">
-        {/* Scroll buttons - always visible */}
-        <div className="absolute top-2 right-2 flex gap-1 z-50">
+      <Card className="relative overflow-visible">
+        {/* Scroll buttons - positioned above the table */}
+        <div className="absolute top-2 right-2 flex gap-1 z-[100] pointer-events-auto">
           <Button
             variant="default"
             size="sm"
-            className="h-7 w-7 p-0 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-8 w-8 p-0 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
               if (tableScrollRef.current) {
+                const scrollAmount = tableScrollRef.current.clientWidth * 0.8;
                 const currentScroll = tableScrollRef.current.scrollLeft;
-                const newScrollLeft = currentScroll - 300;
-                console.log('Scroll left:', { currentScroll, newScrollLeft, scrollWidth: tableScrollRef.current.scrollWidth, clientWidth: tableScrollRef.current.clientWidth });
-                tableScrollRef.current.scrollTo({ left: Math.max(0, newScrollLeft), behavior: 'smooth' });
-              } else {
-                console.error('tableScrollRef.current is null');
+                const newScrollLeft = Math.max(0, currentScroll - scrollAmount);
+                tableScrollRef.current.scrollTo({ 
+                  left: newScrollLeft, 
+                  behavior: 'smooth' 
+                });
               }
             }}
             disabled={!canScrollLeft}
+            aria-label="Scroll left"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
             variant="default"
             size="sm"
-            className="h-7 w-7 p-0 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-8 w-8 p-0 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
               if (tableScrollRef.current) {
+                const scrollAmount = tableScrollRef.current.clientWidth * 0.8;
                 const currentScroll = tableScrollRef.current.scrollLeft;
                 const maxScroll = tableScrollRef.current.scrollWidth - tableScrollRef.current.clientWidth;
-                const newScrollLeft = currentScroll + 300;
-                console.log('Scroll right:', { currentScroll, newScrollLeft, maxScroll, scrollWidth: tableScrollRef.current.scrollWidth, clientWidth: tableScrollRef.current.clientWidth });
-                tableScrollRef.current.scrollTo({ left: Math.min(maxScroll, newScrollLeft), behavior: 'smooth' });
-              } else {
-                console.error('tableScrollRef.current is null');
+                const newScrollLeft = Math.min(maxScroll, currentScroll + scrollAmount);
+                tableScrollRef.current.scrollTo({ 
+                  left: newScrollLeft, 
+                  behavior: 'smooth' 
+                });
               }
             }}
             disabled={!canScrollRight}
+            aria-label="Scroll right"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -2072,8 +2085,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             const canScroll = target.scrollWidth > target.clientWidth;
             const scrollLeft = target.scrollLeft;
             const maxScroll = target.scrollWidth - target.clientWidth;
-            setCanScrollLeft(canScroll && scrollLeft > 0);
-            setCanScrollRight(canScroll && scrollLeft < maxScroll - 10);
+            setCanScrollLeft(canScroll && scrollLeft > 5);
+            setCanScrollRight(canScroll && scrollLeft < maxScroll - 5);
           }}
         >
           <Table className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 sm:[&_td]:p-3`}>
