@@ -11,9 +11,11 @@ interface ROICSparklineProps {
 export function ROICSparkline({ roicData }: ROICSparklineProps) {
   // Преобразуем данные: roicData идет от Y1 (новый) к Y10 (старый)
   // Но для графика нужно от старых к новым (Y10 → Y1)
+  // roicData идет от Y1 (новый) к Y10 (старый)
+  // Нужно отобразить Y10 (старый) слева, Y1 (новый) справа
   const chartData = roicData
     .map((value, index) => {
-      const yearIndex = 10 - index; // Y10, Y9, ..., Y1
+      const yearIndex = 10 - index; // Y10, Y9, ..., Y1 (от старых к новым)
       const numValue = value !== null && value !== undefined ? Number(value) : null;
       const roicPercent = numValue !== null ? numValue * 100 : null;
       // Определяем цвет на основе значения
@@ -23,15 +25,16 @@ export function ROICSparkline({ roicData }: ROICSparklineProps) {
         else if (roicPercent > 5) fillColor = "hsl(38, 92%, 50%)"; // yellow-500
         else if (roicPercent > 0) fillColor = "hsl(0, 84%, 60%)"; // red-500
       }
+      const currentYear = new Date().getFullYear();
       return {
         year: `Y${yearIndex}`,
-        yearLabel: `${new Date().getFullYear() - yearIndex + 1}`, // Примерно год
+        yearLabel: `${currentYear - yearIndex + 1}`, // Год: для Y10 это 10 лет назад, для Y1 это текущий год
         roic: roicPercent,
         fill: fillColor,
       };
     })
     .filter(item => item.roic !== null)
-    .reverse(); // Переворачиваем для отображения Y10 → Y1 слева направо
+    .reverse(); // Переворачиваем: теперь Y10 (старый) будет слева, Y1 (новый) справа
 
   if (chartData.length === 0) {
     return (
