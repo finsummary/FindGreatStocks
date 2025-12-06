@@ -2274,6 +2274,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 className="w-full -mx-4 px-4 pointer-events-auto"
                 style={{ 
                   transform: `translateX(-${headerScrollLeft}px)`,
+                  willChange: 'transform',
                 }}
               >
                 <table className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 [&_td]:p-3`}>
