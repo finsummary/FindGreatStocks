@@ -1835,8 +1835,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
         const scrollContainer = tableScrollRef.current;
         if (scrollContainer && headerRef.current) {
           const scrollRect = scrollContainer.getBoundingClientRect();
-          setHeaderLeft(scrollRect.left);
-          setHeaderWidth(scrollRect.width);
+          const viewportWidth = window.innerWidth;
+          // Ensure header doesn't exceed viewport width to prevent horizontal scroll
+          setHeaderLeft(Math.max(0, scrollRect.left));
+          setHeaderWidth(Math.min(scrollRect.width, viewportWidth - Math.max(0, scrollRect.left)));
           setHeaderHeight(headerRef.current.offsetHeight);
         }
       } else {
