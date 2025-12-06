@@ -2309,7 +2309,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
           <div 
             ref={tableScrollRef}
             className="w-full overflow-x-auto -mx-4 px-4"
-            style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}
+            style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch', maxWidth: '100vw' }}
             onScroll={(e) => {
               const target = e.currentTarget;
               // Table component creates a div with "relative w-full overflow-auto" - find it
