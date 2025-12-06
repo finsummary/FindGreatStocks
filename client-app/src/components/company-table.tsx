@@ -245,6 +245,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const [headerWidth, setHeaderWidth] = useState(0);
   const [headerLeft, setHeaderLeft] = useState(0);
   const [headerHeight, setHeaderHeight] = useState(0);
+  const [headerScrollLeft, setHeaderScrollLeft] = useState(0);
   const tableScrollRef = React.useRef<HTMLDivElement>(null);
   const tableRef = React.useRef<HTMLTableElement>(null);
   const tableContainerRef = React.useRef<HTMLDivElement>(null);
