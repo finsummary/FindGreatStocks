@@ -2082,19 +2082,29 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 // Table component creates a div with "relative w-full overflow-auto" - find it
                 const tableWrapper = container.querySelector('div.relative.w-full.overflow-auto') as HTMLElement;
                 const scrollableElement = tableWrapper || container;
-                const scrollAmount = scrollableElement.clientWidth * 0.8;
+                const table = tableRef.current || container.querySelector('table');
+                
+                // Calculate scroll amount as one column width
+                let scrollAmount = scrollableElement.clientWidth * 0.3; // Default fallback
+                if (table) {
+                  const firstHeader = table.querySelector('th') as HTMLElement;
+                  if (firstHeader) {
+                    scrollAmount = firstHeader.offsetWidth;
+                  } else {
+                    // Try to get average column width from visible cells
+                    const firstRow = table.querySelector('tr');
+                    if (firstRow) {
+                      const cells = firstRow.querySelectorAll('td, th');
+                      if (cells.length > 0) {
+                        const totalWidth = Array.from(cells).reduce((sum, cell) => sum + (cell as HTMLElement).offsetWidth, 0);
+                        scrollAmount = totalWidth / cells.length;
+                      }
+                    }
+                  }
+                }
+                
                 const currentScroll = scrollableElement.scrollLeft;
                 const newScrollLeft = Math.max(0, currentScroll - scrollAmount);
-                console.log('Scroll left clicked', { 
-                  currentScroll,
-                  newScrollLeft,
-                  scrollAmount,
-                  scrollWidth: scrollableElement.scrollWidth,
-                  clientWidth: scrollableElement.clientWidth,
-                  usingWrapper: !!tableWrapper,
-                  containerScrollWidth: container.scrollWidth,
-                  containerClientWidth: container.clientWidth
-                });
                 scrollableElement.scrollTo({ 
                   left: newScrollLeft, 
                   behavior: 'smooth' 
@@ -2122,23 +2132,29 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 const scrollableElement = tableWrapper || container;
                 const table = tableRef.current || container.querySelector('table');
                 const tableWidth = table ? (table as HTMLElement).offsetWidth : scrollableElement.scrollWidth;
-                const scrollAmount = scrollableElement.clientWidth * 0.8;
+                
+                // Calculate scroll amount as one column width
+                let scrollAmount = scrollableElement.clientWidth * 0.3; // Default fallback
+                if (table) {
+                  const firstHeader = table.querySelector('th') as HTMLElement;
+                  if (firstHeader) {
+                    scrollAmount = firstHeader.offsetWidth;
+                  } else {
+                    // Try to get average column width from visible cells
+                    const firstRow = table.querySelector('tr');
+                    if (firstRow) {
+                      const cells = firstRow.querySelectorAll('td, th');
+                      if (cells.length > 0) {
+                        const totalWidth = Array.from(cells).reduce((sum, cell) => sum + (cell as HTMLElement).offsetWidth, 0);
+                        scrollAmount = totalWidth / cells.length;
+                      }
+                    }
+                  }
+                }
+                
                 const currentScroll = scrollableElement.scrollLeft;
                 const maxScroll = Math.max(tableWidth, scrollableElement.scrollWidth) - scrollableElement.clientWidth;
                 const newScrollLeft = Math.min(maxScroll, currentScroll + scrollAmount);
-                console.log('Scroll right clicked', { 
-                  currentScroll,
-                  newScrollLeft,
-                  maxScroll,
-                  scrollAmount,
-                  tableWidth,
-                  tableOffsetWidth: table ? (table as HTMLElement).offsetWidth : null,
-                  scrollWidth: scrollableElement.scrollWidth,
-                  clientWidth: scrollableElement.clientWidth,
-                  usingWrapper: !!tableWrapper,
-                  containerScrollWidth: container.scrollWidth,
-                  containerClientWidth: container.clientWidth
-                });
                 scrollableElement.scrollTo({ 
                   left: newScrollLeft, 
                   behavior: 'smooth' 
