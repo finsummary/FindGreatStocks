@@ -83,7 +83,7 @@ export function ROICSparkline({ roicData }: ROICSparklineProps) {
                 <div className="rounded-lg border border-border bg-amber-50 dark:bg-amber-950 p-2.5 shadow-lg">
                   <div className="grid gap-1.5">
                     <div className="flex items-center justify-between gap-4">
-                      <span className="text-xs font-medium text-foreground">{data.year} ({data.yearLabel})</span>
+                      <span className="text-xs font-medium text-foreground">{data.yearLabel}</span>
                       <span className={`font-mono text-xs font-semibold ${colorClass}`}>
                         {roicValue?.toFixed(1)}%
                       </span>
