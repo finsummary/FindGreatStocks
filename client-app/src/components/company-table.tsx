@@ -1819,10 +1819,13 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   // Handle sticky header on scroll
   useEffect(() => {
     const handleScroll = () => {
-      if (tableContainerRef.current) {
-        const rect = tableContainerRef.current.getBoundingClientRect();
+      if (tableRef.current) {
+        // Get the actual table element
+        const table = tableRef.current;
+        const rect = table.getBoundingClientRect();
         // When table header reaches top of viewport, make it sticky
-        setIsHeaderSticky(rect.top <= 0);
+        // Add a small offset to trigger before it reaches exactly 0
+        setIsHeaderSticky(rect.top <= 100);
       }
     };
 
@@ -2248,9 +2251,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               ref={tableRef}
               className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 sm:[&_td]:p-3`}
             >
-            <TableHeader className={isHeaderSticky ? 'sticky top-0 z-50 bg-white dark:bg-zinc-900 shadow-md' : ''}>
+            <TableHeader>
               {table.getHeaderGroups().map(headerGroup => (
-                <TableRow key={headerGroup.id} className="bg-muted/50">
+                <TableRow key={headerGroup.id} className={`bg-muted/50 ${isHeaderSticky ? 'sticky top-0 z-50 shadow-md' : ''}`}>
                   {headerGroup.headers.map(header => {
                     const hid = ((header.column.columnDef.meta as any)?.columnConfig.id) as string;
                     return (
