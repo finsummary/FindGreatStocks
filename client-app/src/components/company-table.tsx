@@ -2261,47 +2261,45 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
           {/* Fixed header overlay when sticky */}
           {isHeaderSticky && (
             <div 
-              className="fixed top-0 z-[100] bg-white dark:bg-zinc-900 shadow-md pointer-events-none"
+              className="fixed top-0 z-[100] bg-white dark:bg-zinc-900 shadow-md pointer-events-none overflow-hidden"
               style={{
                 left: `${headerLeft}px`,
                 width: `${headerWidth}px`,
               }}
             >
               <div 
-                className="w-full -mx-4 px-4 pointer-events-auto overflow-hidden"
+                className="w-full -mx-4 px-4 pointer-events-auto"
                 style={{ 
                   transform: `translateX(-${headerScrollLeft}px)`,
                 }}
               >
-                <div className="w-full overflow-visible">
-                  <Table className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 [&_td]:p-3`}>
-                    <TableHeader>
-                      {table.getHeaderGroups().map(headerGroup => (
-                        <TableRow key={headerGroup.id} className="bg-muted/50">
-                          {headerGroup.headers.map(header => {
-                            const hid = ((header.column.columnDef.meta as any)?.columnConfig.id) as string;
-                            return (
-                              <TableHead
-                                key={header.id}
-                                className={`${hid === 'rank' || hid === 'watchlist' || hid === 'dcfVerdict' || hid === 'roicStability' || hid === 'roicStabilityScore' ? 'text-center' : hid === 'name' ? '' : 'text-right'} cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(hid) } ${ getStickyHeaderClass(hid) } bg-white dark:bg-zinc-900 ${
-                                  sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
-                                }`}
-                                onClick={header.column.getToggleSortingHandler()}
-                              >
-                                {header.isPlaceholder
-                                  ? null
-                                  : flexRender(
-                                      header.column.columnDef.header,
-                                      header.getContext()
-                                    )}
-                              </TableHead>
-                            );
-                          })}
-                        </TableRow>
-                      ))}
-                    </TableHeader>
-                  </Table>
-                </div>
+                <table className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 [&_td]:p-3`}>
+                  <thead>
+                    {table.getHeaderGroups().map(headerGroup => (
+                      <tr key={headerGroup.id} className="bg-muted/50">
+                        {headerGroup.headers.map(header => {
+                          const hid = ((header.column.columnDef.meta as any)?.columnConfig.id) as string;
+                          return (
+                            <th
+                              key={header.id}
+                              className={`${hid === 'rank' || hid === 'watchlist' || hid === 'dcfVerdict' || hid === 'roicStability' || hid === 'roicStabilityScore' ? 'text-center' : hid === 'name' ? '' : 'text-right'} cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(hid) } ${ getStickyHeaderClass(hid) } bg-white dark:bg-zinc-900 h-12 px-4 text-left align-middle font-semibold text-zinc-700 ${
+                                sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
+                              }`}
+                              onClick={header.column.getToggleSortingHandler()}
+                            >
+                              {header.isPlaceholder
+                                ? null
+                                : flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext()
+                                  )}
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </thead>
+                </table>
               </div>
             </div>
           )}
