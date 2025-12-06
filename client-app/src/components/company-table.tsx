@@ -230,6 +230,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const tableScrollRef = React.useRef<HTMLDivElement>(null);
+  const tableRef = React.useRef<HTMLTableElement>(null);
   // Store current watchlistId in ref to avoid closure issues
   const watchlistIdRef = React.useRef<number | undefined>(watchlistId);
   useEffect(() => {
@@ -1711,12 +1712,27 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   useEffect(() => {
     const updateScrollButtons = () => {
       if (tableScrollRef.current) {
-        const { scrollLeft, scrollWidth, clientWidth } = tableScrollRef.current;
-        const canScroll = scrollWidth > clientWidth;
-        const maxScroll = scrollWidth - clientWidth;
+        const container = tableScrollRef.current;
+        const table = tableRef.current || container.querySelector('table');
+        const { scrollLeft, scrollWidth, clientWidth } = container;
+        // Use offsetWidth to get the actual rendered width of the table
+        const tableWidth = table ? (table as HTMLElement).offsetWidth : scrollWidth;
+        const canScroll = tableWidth > clientWidth || scrollWidth > clientWidth;
+        const maxScroll = Math.max(tableWidth, scrollWidth) - clientWidth;
         const newCanScrollLeft = canScroll && scrollLeft > 5;
         const newCanScrollRight = canScroll && scrollLeft < maxScroll - 5;
-        console.log('Updating scroll buttons', { scrollLeft, scrollWidth, clientWidth, canScroll, maxScroll, newCanScrollLeft, newCanScrollRight });
+        console.log('Updating scroll buttons', { 
+          scrollLeft, 
+          scrollWidth, 
+          clientWidth, 
+          tableWidth,
+          tableScrollWidth: table?.scrollWidth,
+          tableOffsetWidth: table ? (table as HTMLElement).offsetWidth : null,
+          canScroll, 
+          maxScroll, 
+          newCanScrollLeft, 
+          newCanScrollRight 
+        });
         setCanScrollLeft(newCanScrollLeft);
         setCanScrollRight(newCanScrollRight);
       } else {
@@ -2055,19 +2071,19 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              console.log('Scroll left clicked', { 
-                ref: tableScrollRef.current, 
-                canScrollLeft,
-                scrollLeft: tableScrollRef.current?.scrollLeft,
-                scrollWidth: tableScrollRef.current?.scrollWidth,
-                clientWidth: tableScrollRef.current?.clientWidth
-              });
               if (tableScrollRef.current) {
-                const scrollAmount = tableScrollRef.current.clientWidth * 0.8;
-                const currentScroll = tableScrollRef.current.scrollLeft;
+                const container = tableScrollRef.current;
+                const scrollAmount = container.clientWidth * 0.8;
+                const currentScroll = container.scrollLeft;
                 const newScrollLeft = Math.max(0, currentScroll - scrollAmount);
-                console.log('Scrolling left', { currentScroll, newScrollLeft, scrollAmount });
-                tableScrollRef.current.scrollTo({ 
+                console.log('Scroll left clicked', { 
+                  currentScroll,
+                  newScrollLeft,
+                  scrollAmount,
+                  scrollWidth: container.scrollWidth,
+                  clientWidth: container.clientWidth
+                });
+                container.scrollTo({ 
                   left: newScrollLeft, 
                   behavior: 'smooth' 
                 });
@@ -2087,20 +2103,25 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              console.log('Scroll right clicked', { 
-                ref: tableScrollRef.current,
-                canScrollRight,
-                scrollLeft: tableScrollRef.current?.scrollLeft,
-                scrollWidth: tableScrollRef.current?.scrollWidth,
-                clientWidth: tableScrollRef.current?.clientWidth
-              });
               if (tableScrollRef.current) {
-                const scrollAmount = tableScrollRef.current.clientWidth * 0.8;
-                const currentScroll = tableScrollRef.current.scrollLeft;
-                const maxScroll = tableScrollRef.current.scrollWidth - tableScrollRef.current.clientWidth;
+                const container = tableScrollRef.current;
+                const table = tableRef.current || container.querySelector('table');
+                const tableWidth = table ? (table as HTMLElement).offsetWidth : container.scrollWidth;
+                const scrollAmount = container.clientWidth * 0.8;
+                const currentScroll = container.scrollLeft;
+                const maxScroll = Math.max(tableWidth, container.scrollWidth) - container.clientWidth;
                 const newScrollLeft = Math.min(maxScroll, currentScroll + scrollAmount);
-                console.log('Scrolling right', { currentScroll, newScrollLeft, maxScroll, scrollAmount });
-                tableScrollRef.current.scrollTo({ 
+                console.log('Scroll right clicked', { 
+                  currentScroll,
+                  newScrollLeft,
+                  maxScroll,
+                  scrollAmount,
+                  tableWidth,
+                  tableOffsetWidth: table ? (table as HTMLElement).offsetWidth : null,
+                  scrollWidth: container.scrollWidth,
+                  clientWidth: container.clientWidth
+                });
+                container.scrollTo({ 
                   left: newScrollLeft, 
                   behavior: 'smooth' 
                 });
@@ -2121,14 +2142,19 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}
             onScroll={(e) => {
               const target = e.currentTarget;
-              const canScroll = target.scrollWidth > target.clientWidth;
+              const table = tableRef.current || target.querySelector('table');
+              const tableWidth = table ? (table as HTMLElement).offsetWidth : target.scrollWidth;
+              const canScroll = tableWidth > target.clientWidth || target.scrollWidth > target.clientWidth;
               const scrollLeft = target.scrollLeft;
-              const maxScroll = target.scrollWidth - target.clientWidth;
+              const maxScroll = Math.max(tableWidth, target.scrollWidth) - target.clientWidth;
               setCanScrollLeft(canScroll && scrollLeft > 5);
               setCanScrollRight(canScroll && scrollLeft < maxScroll - 5);
             }}
           >
-          <Table className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 sm:[&_td]:p-3`}>
+          <Table 
+            ref={tableRef}
+            className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 sm:[&_td]:p-3`}
+          >
             <TableHeader>
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow key={headerGroup.id} className="bg-muted/50">
