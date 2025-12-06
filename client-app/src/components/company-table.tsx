@@ -2085,13 +2085,15 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 const table = tableRef.current || container.querySelector('table');
                 
                 // Calculate scroll amount as one column width
-                let scrollAmount = scrollableElement.clientWidth * 0.3; // Default fallback
+                let scrollAmount = scrollableElement.clientWidth * 0.5; // Default fallback
                 if (table) {
-                  const firstHeader = table.querySelector('th') as HTMLElement;
-                  if (firstHeader) {
-                    scrollAmount = firstHeader.offsetWidth;
+                  // Get all header cells to calculate average column width
+                  const headers = table.querySelectorAll('th');
+                  if (headers.length > 0) {
+                    const totalWidth = Array.from(headers).reduce((sum, header) => sum + (header as HTMLElement).offsetWidth, 0);
+                    scrollAmount = totalWidth / headers.length;
                   } else {
-                    // Try to get average column width from visible cells
+                    // Fallback: try to get average column width from visible cells
                     const firstRow = table.querySelector('tr');
                     if (firstRow) {
                       const cells = firstRow.querySelectorAll('td, th');
@@ -2134,13 +2136,15 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 const tableWidth = table ? (table as HTMLElement).offsetWidth : scrollableElement.scrollWidth;
                 
                 // Calculate scroll amount as one column width
-                let scrollAmount = scrollableElement.clientWidth * 0.3; // Default fallback
+                let scrollAmount = scrollableElement.clientWidth * 0.5; // Default fallback
                 if (table) {
-                  const firstHeader = table.querySelector('th') as HTMLElement;
-                  if (firstHeader) {
-                    scrollAmount = firstHeader.offsetWidth;
+                  // Get all header cells to calculate average column width
+                  const headers = table.querySelectorAll('th');
+                  if (headers.length > 0) {
+                    const totalWidth = Array.from(headers).reduce((sum, header) => sum + (header as HTMLElement).offsetWidth, 0);
+                    scrollAmount = totalWidth / headers.length;
                   } else {
-                    // Try to get average column width from visible cells
+                    // Fallback: try to get average column width from visible cells
                     const firstRow = table.querySelector('tr');
                     if (firstRow) {
                       const cells = firstRow.querySelectorAll('td, th');
