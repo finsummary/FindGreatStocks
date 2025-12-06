@@ -2250,21 +2250,16 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
           {/* Fixed header overlay when sticky */}
           {isHeaderSticky && (
             <div 
-              className="fixed top-0 z-[100] bg-white dark:bg-zinc-900 shadow-md"
+              className="fixed top-0 z-[100] bg-white dark:bg-zinc-900 shadow-md overflow-hidden"
               style={{
                 left: `${headerLeft}px`,
                 width: `${headerWidth}px`,
               }}
             >
               <div 
-                className="w-full overflow-x-auto -mx-4 px-4" 
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
-                onScroll={(e) => {
-                  // Sync scroll with main table
-                  if (tableScrollRef.current) {
-                    const scrollableElement = tableScrollRef.current.querySelector('div.relative.w-full.overflow-auto') as HTMLElement || tableScrollRef.current;
-                    scrollableElement.scrollLeft = e.currentTarget.scrollLeft;
-                  }
+                className="w-full -mx-4 px-4"
+                style={{ 
+                  transform: `translateX(-${headerScrollLeft}px)`,
                 }}
               >
                 <div className="w-full overflow-visible">
@@ -2317,12 +2312,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               setCanScrollLeft(canScroll && scrollLeft > 1);
               setCanScrollRight(canScroll && scrollLeft < maxScroll - 1);
               
-              // Sync scroll position with fixed header
+              // Update scroll position for fixed header
               if (isHeaderSticky) {
-                const fixedHeader = document.querySelector('.fixed.top-0.z-\\[100\\] div.overflow-x-auto') as HTMLElement;
-                if (fixedHeader) {
-                  fixedHeader.scrollLeft = scrollLeft;
-                }
+                setHeaderScrollLeft(scrollLeft);
               }
             }}
           >
