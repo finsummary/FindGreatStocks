@@ -2268,18 +2268,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               }}
             >
               <div 
-                ref={fixedHeaderScrollRef}
-                className="w-full overflow-x-auto -mx-4 px-4 pointer-events-auto"
+                className="w-full -mx-4 px-4 pointer-events-auto overflow-hidden"
                 style={{ 
-                  scrollbarWidth: 'none', 
-                  msOverflowStyle: 'none',
-                }}
-                onScroll={(e) => {
-                  // Sync scroll with main table when user scrolls fixed header
-                  if (tableScrollRef.current) {
-                    const scrollableElement = tableScrollRef.current.querySelector('div.relative.w-full.overflow-auto') as HTMLElement || tableScrollRef.current;
-                    scrollableElement.scrollLeft = e.currentTarget.scrollLeft;
-                  }
+                  transform: `translateX(-${headerScrollLeft}px)`,
                 }}
               >
                 <div className="w-full overflow-visible">
