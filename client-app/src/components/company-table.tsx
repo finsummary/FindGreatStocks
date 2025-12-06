@@ -1941,7 +1941,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const showSkeletons = ((!data && isLoading) || authLoading);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Controls - hide when header is sticky */}
       <div className={`flex flex-col gap-3 sm:gap-4 transition-opacity duration-200 ${isHeaderSticky ? 'opacity-0 pointer-events-none h-0 overflow-hidden' : 'opacity-100'}`}>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-stretch sm:items-center">
