@@ -241,8 +241,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const [page, setPage] = useState(0);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [isHeaderSticky, setIsHeaderSticky] = useState(false);
   const tableScrollRef = React.useRef<HTMLDivElement>(null);
   const tableRef = React.useRef<HTMLTableElement>(null);
+  const tableContainerRef = React.useRef<HTMLDivElement>(null);
   // Store current watchlistId in ref to avoid closure issues
   const watchlistIdRef = React.useRef<number | undefined>(watchlistId);
   useEffect(() => {
@@ -1894,8 +1896,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
 
   return (
     <div className="space-y-6">
-      {/* Controls */}
-      <div className="flex flex-col gap-3 sm:gap-4">
+      {/* Controls - hide when header is sticky */}
+      <div className={`flex flex-col gap-3 sm:gap-4 transition-opacity duration-200 ${isHeaderSticky ? 'opacity-0 pointer-events-none h-0 overflow-hidden' : 'opacity-100'}`}>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-stretch sm:items-center">
           <Select value={sortBy} onValueChange={(value) => {
             if (value === 'none') return;
@@ -2057,9 +2059,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
         </div>
       </div>
 
-      {/* Watchlist requires auth */}
+      {/* Watchlist requires auth - hide when header is sticky */}
       {dataset === 'watchlist' && !isLoggedIn && (
-        <Card className="p-4 bg-amber-50 border-amber-200 text-amber-900">
+        <Card className={`p-4 bg-amber-50 border-amber-200 text-amber-900 transition-opacity duration-200 ${isHeaderSticky ? 'opacity-0 pointer-events-none h-0 overflow-hidden' : 'opacity-100'}`}>
           <div className="flex items-center justify-between gap-3">
             <div className="text-sm">Sign in to view and manage your Watchlist.</div>
             <Button asChild size="sm" variant="outline">
@@ -2069,9 +2071,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
         </Card>
       )}
 
-      {/* Layout Description Box */}
+      {/* Layout Description Box - hide when header is sticky */}
       {selectedLayout && LAYOUT_DESCRIPTIONS[selectedLayout] && (
-        <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 transition-all">
+        <Card className={`p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 transition-all ${isHeaderSticky ? 'opacity-0 pointer-events-none h-0 overflow-hidden' : 'opacity-100'}`}>
            <div className="flex justify-between items-start gap-4">
             <div>
               <h4 className="font-semibold text-blue-800 dark:text-blue-200">{LAYOUT_DESCRIPTIONS[selectedLayout].title}</h4>
@@ -2097,7 +2099,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       )}
 
       {/* Table */}
-      <div className="relative">
+      <div className="relative" ref={tableContainerRef}>
         {/* Scroll buttons - positioned above the table */}
         <div className="flex justify-end gap-1 mb-2 z-10 relative">
           <Button
