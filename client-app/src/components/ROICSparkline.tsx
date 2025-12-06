@@ -11,14 +11,13 @@ interface ROICSparklineProps {
 export function ROICSparkline({ roicData }: ROICSparklineProps) {
   // Преобразуем данные: roicData идет от Y1 (новый) к Y10 (старый)
   // Но для графика нужно от старых к новым (Y10 → Y1)
-  // roicData идет от Y1 (новый) к Y10 (старый): [roicY1, roicY2, ..., roicY10]
-  // Нужно отобразить Y10 (старый, 10 лет назад) слева, Y1 (новый, текущий год) справа
+  // roicData идет от Y1 (новый, 2025) к Y10 (старый, 2016): [roicY1, roicY2, ..., roicY10]
+  // Нужно отобразить Y10 (старый, 2016) слева, Y1 (новый, 2025) справа
   const chartData = roicData
     .map((value, index) => {
-      // index 0 -> roicY1 (новый) -> yearIndex = 10 - 0 = 10 -> Y10
-      // index 9 -> roicY10 (старый) -> yearIndex = 10 - 9 = 1 -> Y1
-      // После map получаем: [Y10, Y9, ..., Y1] - от старых к новым
-      const yearIndex = 10 - index; // Y10, Y9, ..., Y1
+      // index 0 -> roicY1 (новый, 2025) -> yearIndex должен быть 1 (Y1)
+      // index 9 -> roicY10 (старый, 2016) -> yearIndex должен быть 10 (Y10)
+      const yearIndex = index + 1; // Y1, Y2, ..., Y10 (соответствует roicY1, roicY2, ..., roicY10)
       const numValue = value !== null && value !== undefined ? Number(value) : null;
       const roicPercent = numValue !== null ? numValue * 100 : null;
       // Определяем цвет на основе значения
@@ -29,15 +28,16 @@ export function ROICSparkline({ roicData }: ROICSparklineProps) {
         else if (roicPercent > 0) fillColor = "hsl(0, 84%, 60%)"; // red-500
       }
       const currentYear = new Date().getFullYear();
+      // yearLabel: для Y1 (index 0) это текущий год, для Y10 (index 9) это 10 лет назад
       return {
         year: `Y${yearIndex}`,
-        yearLabel: `${currentYear - yearIndex + 1}`, // Год: для Y10 это 10 лет назад, для Y1 это текущий год
+        yearLabel: `${currentYear - yearIndex + 1}`, // Y1 = текущий год, Y10 = 10 лет назад
         roic: roicPercent,
         fill: fillColor,
       };
     })
-    .filter(item => item.roic !== null);
-  // НЕ делаем reverse - оставляем порядок Y10 (старый) слева → Y1 (новый) справа
+    .filter(item => item.roic !== null)
+    .reverse(); // Переворачиваем: Y10 (старый, 2016) слева → Y1 (новый, 2025) справа
 
   if (chartData.length === 0) {
     return (
