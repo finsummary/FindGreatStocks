@@ -71,11 +71,17 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
-    overflow-x: hidden;
+    overflow-x: hidden !important;
+    max-width: 100vw;
   }
 
   html {
-    overflow-x: hidden;
+    overflow-x: hidden !important;
+    max-width: 100vw;
+  }
+
+  * {
+    max-width: 100vw;
   }
 
   /* Custom scrollbar */
