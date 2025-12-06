@@ -250,6 +250,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const tableRef = React.useRef<HTMLTableElement>(null);
   const tableContainerRef = React.useRef<HTMLDivElement>(null);
   const headerRef = React.useRef<HTMLTableRowElement>(null);
+  const fixedHeaderScrollRef = React.useRef<HTMLDivElement>(null);
   // Store current watchlistId in ref to avoid closure issues
   const watchlistIdRef = React.useRef<number | undefined>(watchlistId);
   useEffect(() => {
@@ -2266,17 +2267,11 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               }}
             >
               <div 
+                ref={fixedHeaderScrollRef}
                 className="w-full overflow-x-auto -mx-4 px-4 pointer-events-auto"
                 style={{ 
                   scrollbarWidth: 'none', 
                   msOverflowStyle: 'none',
-                }}
-                ref={(el) => {
-                  if (el && tableScrollRef.current && isHeaderSticky) {
-                    // Sync scroll position on mount
-                    const mainScrollable = tableScrollRef.current.querySelector('div.relative.w-full.overflow-auto') as HTMLElement || tableScrollRef.current;
-                    el.scrollLeft = mainScrollable.scrollLeft;
-                  }
                 }}
                 onScroll={(e) => {
                   // Sync scroll with main table when user scrolls fixed header
