@@ -2185,6 +2185,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                   left: newScrollLeft, 
                   behavior: 'smooth' 
                 });
+                // Update header scroll position immediately
+                if (isHeaderSticky) {
+                  setHeaderScrollLeft(newScrollLeft);
+                }
               } else {
                 console.error('tableScrollRef.current is null');
               }
@@ -2237,6 +2241,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                   left: newScrollLeft, 
                   behavior: 'smooth' 
                 });
+                // Update header scroll position immediately
+                if (isHeaderSticky) {
+                  setHeaderScrollLeft(newScrollLeft);
+                }
               } else {
                 console.error('tableScrollRef.current is null');
               }
