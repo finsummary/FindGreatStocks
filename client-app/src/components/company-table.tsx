@@ -1713,8 +1713,11 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
     const updateScrollButtons = () => {
       if (tableScrollRef.current) {
         const container = tableScrollRef.current;
+        // Table component creates a div with "relative w-full overflow-auto" - find it
+        const tableWrapper = container.querySelector('div.relative.w-full.overflow-auto') as HTMLElement;
+        const scrollableElement = tableWrapper || container;
         const table = tableRef.current || container.querySelector('table');
-        const { scrollLeft, scrollWidth, clientWidth } = container;
+        const { scrollLeft, scrollWidth, clientWidth } = scrollableElement;
         // Use offsetWidth to get the actual rendered width of the table
         const tableWidth = table ? (table as HTMLElement).offsetWidth : scrollWidth;
         const canScroll = tableWidth > clientWidth || scrollWidth > clientWidth;
@@ -1731,7 +1734,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
           canScroll, 
           maxScroll, 
           newCanScrollLeft, 
-          newCanScrollRight 
+          newCanScrollRight,
+          usingWrapper: !!tableWrapper,
+          containerScrollWidth: container.scrollWidth,
+          containerClientWidth: container.clientWidth
         });
         setCanScrollLeft(newCanScrollLeft);
         setCanScrollRight(newCanScrollRight);
@@ -2073,8 +2079,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               e.stopPropagation();
               if (tableScrollRef.current) {
                 const container = tableScrollRef.current;
-                // Find the actual scrollable element - Table component wraps table in a div with overflow-auto
-                const tableWrapper = container.querySelector('div[class*="overflow"]') as HTMLElement;
+                // Table component creates a div with "relative w-full overflow-auto" - find it
+                const tableWrapper = container.querySelector('div.relative.w-full.overflow-auto') as HTMLElement;
                 const scrollableElement = tableWrapper || container;
                 const scrollAmount = scrollableElement.clientWidth * 0.8;
                 const currentScroll = scrollableElement.scrollLeft;
@@ -2085,7 +2091,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                   scrollAmount,
                   scrollWidth: scrollableElement.scrollWidth,
                   clientWidth: scrollableElement.clientWidth,
-                  usingWrapper: !!tableWrapper
+                  usingWrapper: !!tableWrapper,
+                  containerScrollWidth: container.scrollWidth,
+                  containerClientWidth: container.clientWidth
                 });
                 scrollableElement.scrollTo({ 
                   left: newScrollLeft, 
@@ -2109,8 +2117,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               e.stopPropagation();
               if (tableScrollRef.current) {
                 const container = tableScrollRef.current;
-                // Find the actual scrollable element - Table component wraps table in a div with overflow-auto
-                const tableWrapper = container.querySelector('div[class*="overflow"]') as HTMLElement;
+                // Table component creates a div with "relative w-full overflow-auto" - find it
+                const tableWrapper = container.querySelector('div.relative.w-full.overflow-auto') as HTMLElement;
                 const scrollableElement = tableWrapper || container;
                 const table = tableRef.current || container.querySelector('table');
                 const tableWidth = table ? (table as HTMLElement).offsetWidth : scrollableElement.scrollWidth;
@@ -2127,7 +2135,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                   tableOffsetWidth: table ? (table as HTMLElement).offsetWidth : null,
                   scrollWidth: scrollableElement.scrollWidth,
                   clientWidth: scrollableElement.clientWidth,
-                  usingWrapper: !!tableWrapper
+                  usingWrapper: !!tableWrapper,
+                  containerScrollWidth: container.scrollWidth,
+                  containerClientWidth: container.clientWidth
                 });
                 scrollableElement.scrollTo({ 
                   left: newScrollLeft, 
@@ -2150,10 +2160,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}
             onScroll={(e) => {
               const target = e.currentTarget;
-              // Find the actual scrollable element - it might be inside Table component
-              const table = tableRef.current || target.querySelector('table');
-              const tableWrapper = target.querySelector('div[class*="overflow"]') as HTMLElement;
+              // Table component creates a div with "relative w-full overflow-auto" - find it
+              const tableWrapper = target.querySelector('div.relative.w-full.overflow-auto') as HTMLElement;
               const scrollableElement = tableWrapper || target;
+              const table = tableRef.current || target.querySelector('table');
               const tableWidth = table ? (table as HTMLElement).offsetWidth : scrollableElement.scrollWidth;
               const canScroll = tableWidth > scrollableElement.clientWidth || scrollableElement.scrollWidth > scrollableElement.clientWidth;
               const scrollLeft = scrollableElement.scrollLeft;
