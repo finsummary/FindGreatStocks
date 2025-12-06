@@ -2332,21 +2332,11 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 sm:[&_td]:p-3`}
             >
             <TableHeader>
-              {/* Placeholder row to prevent layout shift when header becomes fixed */}
-              {isHeaderSticky && <TableRow style={{ height: `${headerHeight}px`, visibility: 'hidden' }}><TableCell colSpan={table.getVisibleFlatColumns().length} /></TableRow>}
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow 
                   key={headerGroup.id} 
                   ref={headerRef}
                   className="bg-muted/50"
-                  style={isHeaderSticky ? {
-                    position: 'fixed',
-                    top: 0,
-                    left: `${headerLeft}px`,
-                    width: `${headerWidth}px`,
-                    zIndex: 100,
-                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-                  } : undefined}
                 >
                   {headerGroup.headers.map(header => {
                     const hid = ((header.column.columnDef.meta as any)?.columnConfig.id) as string;
