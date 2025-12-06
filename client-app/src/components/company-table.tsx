@@ -2236,7 +2236,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                     return (
                     <TableHead
                       key={header.id}
-                        className={`text-right cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(hid) } ${ getStickyHeaderClass(hid) } ${
+                        className={`${hid === 'rank' || hid === 'watchlist' || hid === 'dcfVerdict' || hid === 'roicStability' || hid === 'roicStabilityScore' ? 'text-center' : hid === 'name' ? '' : 'text-right'} cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(hid) } ${ getStickyHeaderClass(hid) } ${
                         sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
                       }`}
                       onClick={header.column.getToggleSortingHandler()}
@@ -2294,7 +2294,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                       {row.getVisibleCells().map(cell => {
                         const cid = (cell.column.columnDef.meta as any)?.columnConfig.id as string;
                         const alignClass =
-                          cid === 'rank' || cid === 'watchlist' || cid === 'dcfVerdict'
+                          cid === 'rank' || cid === 'watchlist' || cid === 'dcfVerdict' || cid === 'roicStability' || cid === 'roicStabilityScore'
                             ? 'text-center'
                             : cid === 'name'
                             ? ''

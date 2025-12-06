@@ -80,7 +80,7 @@ export function ROICSparkline({ roicData }: ROICSparklineProps) {
                 colorClass = "text-yellow-600 dark:text-yellow-400";
               }
               return (
-                <div className="rounded-lg border border-border bg-background/95 backdrop-blur-sm p-2.5 shadow-lg">
+                <div className="rounded-lg border border-border bg-amber-50 dark:bg-amber-950 p-2.5 shadow-lg">
                   <div className="grid gap-1.5">
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-xs font-medium text-foreground">{data.year} ({data.yearLabel})</span>
