@@ -1831,10 +1831,16 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       if (shouldBeSticky) {
         // Calculate header position and width
         const scrollContainer = tableScrollRef.current;
-        if (scrollContainer) {
+        if (scrollContainer && headerRef.current) {
           const scrollRect = scrollContainer.getBoundingClientRect();
           setHeaderLeft(scrollRect.left);
           setHeaderWidth(scrollRect.width);
+          setHeaderHeight(headerRef.current.offsetHeight);
+        }
+      } else {
+        // Reset height when not sticky
+        if (headerRef.current) {
+          setHeaderHeight(headerRef.current.offsetHeight);
         }
       }
 
