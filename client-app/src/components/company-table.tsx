@@ -244,6 +244,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
   const [headerWidth, setHeaderWidth] = useState(0);
   const [headerLeft, setHeaderLeft] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState(0);
   const tableScrollRef = React.useRef<HTMLDivElement>(null);
   const tableRef = React.useRef<HTMLTableElement>(null);
   const tableContainerRef = React.useRef<HTMLDivElement>(null);
@@ -2265,6 +2266,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 sm:[&_td]:p-3`}
             >
             <TableHeader>
+              {/* Placeholder row to prevent layout shift when header becomes fixed */}
+              {isHeaderSticky && <TableRow style={{ height: `${headerHeight}px`, visibility: 'hidden' }}><TableCell colSpan={table.getVisibleFlatColumns().length} /></TableRow>}
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow 
                   key={headerGroup.id} 
