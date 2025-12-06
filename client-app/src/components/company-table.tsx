@@ -2260,6 +2260,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               </TableBody>
             </Table>
           </div>
+          </div>
         </Card>
       </div>
 
