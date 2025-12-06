@@ -141,7 +141,7 @@ function App() {
           )}
         </nav>
       </header>
-      <main className="flex-1 p-4">
+      <main className="flex-1 p-4 overflow-x-hidden">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginPage />} />
