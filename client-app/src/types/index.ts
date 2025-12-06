@@ -44,6 +44,16 @@ export interface Company {
   roic?: number | string | null;
   roic10YAvg?: number | string | null;
   roic10YStd?: number | string | null;
+  roicY1?: number | string | null;
+  roicY2?: number | string | null;
+  roicY3?: number | string | null;
+  roicY4?: number | string | null;
+  roicY5?: number | string | null;
+  roicY6?: number | string | null;
+  roicY7?: number | string | null;
+  roicY8?: number | string | null;
+  roicY9?: number | string | null;
+  roicY10?: number | string | null;
   roicStability?: number | string | null;
   roicStabilityScore?: number | string | null;
   fcfMargin?: number | string | null;

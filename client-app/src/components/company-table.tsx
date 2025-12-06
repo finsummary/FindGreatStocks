@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { UpgradeModal } from './UpgradeModal';
 import { WatchlistManager } from './WatchlistManager';
+import { ROICSparkline } from './ROICSparkline';
 import {
   Tooltip,
   TooltipContent,
@@ -105,6 +106,7 @@ export const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'roic10YStd', label: 'ROIC Volatility %', width: 'w-[130px] sm:w-[150px]', defaultVisible: false },
   { id: 'roicStability', label: 'ROIC Stability Ratio', width: 'w-[120px] sm:w-[140px]', defaultVisible: false },
   { id: 'roicStabilityScore', label: 'ROIC Stability Score', width: 'w-[130px] sm:w-[150px]', defaultVisible: false },
+  { id: 'roicHistory', label: 'ROIC History (10Y)', width: 'w-[150px] sm:w-[180px]', defaultVisible: false },
 ];
 
 const PRESET_LAYOUTS = {
@@ -127,7 +129,7 @@ const PRESET_LAYOUTS = {
   // Placeholder: we'll expand with ROIC etc. later; safe existing columns for now
   'compounders': {
     name: 'Compounders (ROIC, FCF)',
-    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'revenueGrowth10Y', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore'],
+    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'revenueGrowth10Y', 'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'roicHistory'],
   },
   'cashflowLeverage': {
     name: 'Cashflow & Leverage',
@@ -205,6 +207,7 @@ const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlis
   roic10YStd: 'ROIC Volatility % = Standard deviation of annual ROIC over the last 10 years. Lower values mean more stable returns.',
   roicStability: 'ROIC Stability Ratio = ROIC 10Y Average ÷ ROIC Volatility. Higher indicates strong returns with low variability.',
   roicStabilityScore: 'ROIC Stability Score = min(100, ROIC Stability Ratio × 30). Green ≥70, Yellow 30-69, Red <30.',
+  roicHistory: 'ROIC History (10Y) = Bar chart showing annual ROIC values for the last 10 fiscal years. Each bar represents one year. Green bars (≥15%) indicate excellent ROIC, yellow (5-15%) good, red (<5%) weak.',
   debtToEquity: 'Debt-to-Equity Ratio = Total Debt ÷ Total Equity. Measures a company\'s financial leverage. Lower is generally better (green <0.5, yellow 0.5-1.0, red >1.0).',
   interestCoverage: 'Interest Coverage Ratio = EBIT ÷ Interest Expense. Measures a company\'s ability to pay interest on its debt. Higher is better (green ≥5, yellow 2-5, red <2).',
   cashFlowToDebt: 'Cash Flow to Debt Ratio = Operating Cash Flow ÷ Total Debt. Measures a company\'s ability to pay off its debt with operating cash flow. Higher is better (green ≥0.5, yellow 0.2-0.5, red <0.2).',
@@ -1543,6 +1546,22 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                   else if (score >= 30) cls = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
                   cellContent = <Badge variant="outline" className={`${cls} font-mono`}>{formatNumber(score, 0)}</Badge>;
                 }
+                break;
+            }
+            case 'roicHistory': {
+                const roicHistory = [
+                  row.roicY1,
+                  row.roicY2,
+                  row.roicY3,
+                  row.roicY4,
+                  row.roicY5,
+                  row.roicY6,
+                  row.roicY7,
+                  row.roicY8,
+                  row.roicY9,
+                  row.roicY10,
+                ];
+                cellContent = <ROICSparkline roicData={roicHistory} />;
                 break;
             }
             default:
