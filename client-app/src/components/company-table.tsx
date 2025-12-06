@@ -1859,36 +1859,6 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
     };
   }, []);
 
-  // Sync fixed header scroll with main table scroll
-  useEffect(() => {
-    if (!isHeaderSticky || !tableScrollRef.current || !fixedHeaderScrollRef.current) return;
-
-    const syncScroll = () => {
-      const mainScrollable = tableScrollRef.current?.querySelector('div.relative.w-full.overflow-auto') as HTMLElement || tableScrollRef.current;
-      if (!mainScrollable || !fixedHeaderScrollRef.current) return;
-
-      const mainScrollLeft = mainScrollable.scrollLeft;
-      if (fixedHeaderScrollRef.current.scrollLeft !== mainScrollLeft) {
-        fixedHeaderScrollRef.current.scrollLeft = mainScrollLeft;
-      }
-    };
-
-    const mainScrollable = tableScrollRef.current.querySelector('div.relative.w-full.overflow-auto') as HTMLElement || tableScrollRef.current;
-    if (!mainScrollable) return;
-
-    mainScrollable.addEventListener('scroll', syncScroll, { passive: true });
-    
-    // Initial sync
-    syncScroll();
-
-    // Also sync periodically to catch any missed updates
-    const interval = setInterval(syncScroll, 100);
-
-    return () => {
-      mainScrollable.removeEventListener('scroll', syncScroll);
-      clearInterval(interval);
-    };
-  }, [isHeaderSticky, headerScrollLeft]);
 
   // Prefetch данных для соседних вкладок, чтобы переключение было мгновенным
   useEffect(() => {
