@@ -2027,24 +2027,26 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       )}
 
       {/* Table */}
-      <Card className="relative overflow-visible">
+      <div className="relative">
         {/* Scroll buttons - positioned above the table */}
-        <div className="absolute top-2 right-2 flex gap-1 z-[100] pointer-events-auto">
+        <div className="flex justify-end gap-1 mb-2">
           <Button
-            variant="default"
+            variant="outline"
             size="sm"
-            className="h-8 w-8 p-0 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
+            className="h-8 w-8 p-0"
+            onClick={() => {
+              console.log('Scroll left clicked', { ref: tableScrollRef.current });
               if (tableScrollRef.current) {
                 const scrollAmount = tableScrollRef.current.clientWidth * 0.8;
                 const currentScroll = tableScrollRef.current.scrollLeft;
                 const newScrollLeft = Math.max(0, currentScroll - scrollAmount);
+                console.log('Scrolling left', { currentScroll, newScrollLeft, scrollAmount });
                 tableScrollRef.current.scrollTo({ 
                   left: newScrollLeft, 
                   behavior: 'smooth' 
                 });
+              } else {
+                console.error('tableScrollRef.current is null');
               }
             }}
             disabled={!canScrollLeft}
@@ -2053,21 +2055,23 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
-            variant="default"
+            variant="outline"
             size="sm"
-            className="h-8 w-8 p-0 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
+            className="h-8 w-8 p-0"
+            onClick={() => {
+              console.log('Scroll right clicked', { ref: tableScrollRef.current });
               if (tableScrollRef.current) {
                 const scrollAmount = tableScrollRef.current.clientWidth * 0.8;
                 const currentScroll = tableScrollRef.current.scrollLeft;
                 const maxScroll = tableScrollRef.current.scrollWidth - tableScrollRef.current.clientWidth;
                 const newScrollLeft = Math.min(maxScroll, currentScroll + scrollAmount);
+                console.log('Scrolling right', { currentScroll, newScrollLeft, maxScroll, scrollAmount });
                 tableScrollRef.current.scrollTo({ 
                   left: newScrollLeft, 
                   behavior: 'smooth' 
                 });
+              } else {
+                console.error('tableScrollRef.current is null');
               }
             }}
             disabled={!canScrollRight}
@@ -2076,19 +2080,20 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <div 
-          ref={tableScrollRef}
-          className="w-full overflow-x-auto -mx-4 px-4"
-          style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}
-          onScroll={(e) => {
-            const target = e.currentTarget;
-            const canScroll = target.scrollWidth > target.clientWidth;
-            const scrollLeft = target.scrollLeft;
-            const maxScroll = target.scrollWidth - target.clientWidth;
-            setCanScrollLeft(canScroll && scrollLeft > 5);
-            setCanScrollRight(canScroll && scrollLeft < maxScroll - 5);
-          }}
-        >
+        <Card>
+          <div 
+            ref={tableScrollRef}
+            className="w-full overflow-x-auto -mx-4 px-4"
+            style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}
+            onScroll={(e) => {
+              const target = e.currentTarget;
+              const canScroll = target.scrollWidth > target.clientWidth;
+              const scrollLeft = target.scrollLeft;
+              const maxScroll = target.scrollWidth - target.clientWidth;
+              setCanScrollLeft(canScroll && scrollLeft > 5);
+              setCanScrollRight(canScroll && scrollLeft < maxScroll - 5);
+            }}
+          >
           <Table className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 sm:[&_td]:p-3`}>
             <TableHeader>
               {table.getHeaderGroups().map(headerGroup => (
@@ -2174,6 +2179,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             </Table>
           </div>
         </Card>
+      </div>
 
       {/* Mobile scroll-hint */}
       <div className="sm:hidden text-xs text-muted-foreground mt-2">Swipe horizontally to see more →</div>
