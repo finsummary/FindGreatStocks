@@ -2073,17 +2073,21 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               e.stopPropagation();
               if (tableScrollRef.current) {
                 const container = tableScrollRef.current;
-                const scrollAmount = container.clientWidth * 0.8;
-                const currentScroll = container.scrollLeft;
+                // Find the actual scrollable element - Table component wraps table in a div with overflow-auto
+                const tableWrapper = container.querySelector('div[class*="overflow"]') as HTMLElement;
+                const scrollableElement = tableWrapper || container;
+                const scrollAmount = scrollableElement.clientWidth * 0.8;
+                const currentScroll = scrollableElement.scrollLeft;
                 const newScrollLeft = Math.max(0, currentScroll - scrollAmount);
                 console.log('Scroll left clicked', { 
                   currentScroll,
                   newScrollLeft,
                   scrollAmount,
-                  scrollWidth: container.scrollWidth,
-                  clientWidth: container.clientWidth
+                  scrollWidth: scrollableElement.scrollWidth,
+                  clientWidth: scrollableElement.clientWidth,
+                  usingWrapper: !!tableWrapper
                 });
-                container.scrollTo({ 
+                scrollableElement.scrollTo({ 
                   left: newScrollLeft, 
                   behavior: 'smooth' 
                 });
@@ -2105,11 +2109,14 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               e.stopPropagation();
               if (tableScrollRef.current) {
                 const container = tableScrollRef.current;
+                // Find the actual scrollable element - Table component wraps table in a div with overflow-auto
+                const tableWrapper = container.querySelector('div[class*="overflow"]') as HTMLElement;
+                const scrollableElement = tableWrapper || container;
                 const table = tableRef.current || container.querySelector('table');
-                const tableWidth = table ? (table as HTMLElement).offsetWidth : container.scrollWidth;
-                const scrollAmount = container.clientWidth * 0.8;
-                const currentScroll = container.scrollLeft;
-                const maxScroll = Math.max(tableWidth, container.scrollWidth) - container.clientWidth;
+                const tableWidth = table ? (table as HTMLElement).offsetWidth : scrollableElement.scrollWidth;
+                const scrollAmount = scrollableElement.clientWidth * 0.8;
+                const currentScroll = scrollableElement.scrollLeft;
+                const maxScroll = Math.max(tableWidth, scrollableElement.scrollWidth) - scrollableElement.clientWidth;
                 const newScrollLeft = Math.min(maxScroll, currentScroll + scrollAmount);
                 console.log('Scroll right clicked', { 
                   currentScroll,
@@ -2118,10 +2125,11 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                   scrollAmount,
                   tableWidth,
                   tableOffsetWidth: table ? (table as HTMLElement).offsetWidth : null,
-                  scrollWidth: container.scrollWidth,
-                  clientWidth: container.clientWidth
+                  scrollWidth: scrollableElement.scrollWidth,
+                  clientWidth: scrollableElement.clientWidth,
+                  usingWrapper: !!tableWrapper
                 });
-                container.scrollTo({ 
+                scrollableElement.scrollTo({ 
                   left: newScrollLeft, 
                   behavior: 'smooth' 
                 });
@@ -2142,19 +2150,23 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}
             onScroll={(e) => {
               const target = e.currentTarget;
+              // Find the actual scrollable element - it might be inside Table component
               const table = tableRef.current || target.querySelector('table');
-              const tableWidth = table ? (table as HTMLElement).offsetWidth : target.scrollWidth;
-              const canScroll = tableWidth > target.clientWidth || target.scrollWidth > target.clientWidth;
-              const scrollLeft = target.scrollLeft;
-              const maxScroll = Math.max(tableWidth, target.scrollWidth) - target.clientWidth;
+              const tableWrapper = target.querySelector('div[class*="overflow"]') as HTMLElement;
+              const scrollableElement = tableWrapper || target;
+              const tableWidth = table ? (table as HTMLElement).offsetWidth : scrollableElement.scrollWidth;
+              const canScroll = tableWidth > scrollableElement.clientWidth || scrollableElement.scrollWidth > scrollableElement.clientWidth;
+              const scrollLeft = scrollableElement.scrollLeft;
+              const maxScroll = Math.max(tableWidth, scrollableElement.scrollWidth) - scrollableElement.clientWidth;
               setCanScrollLeft(canScroll && scrollLeft > 5);
               setCanScrollRight(canScroll && scrollLeft < maxScroll - 5);
             }}
           >
-          <Table 
-            ref={tableRef}
-            className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 sm:[&_td]:p-3`}
-          >
+          <div className="w-full overflow-visible">
+            <Table 
+              ref={tableRef}
+              className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 sm:[&_td]:p-3`}
+            >
             <TableHeader>
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow key={headerGroup.id} className="bg-muted/50">
