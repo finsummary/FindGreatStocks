@@ -1816,6 +1816,24 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
     };
   }, [data, isLoading]);
 
+  // Handle sticky header on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (tableContainerRef.current) {
+        const rect = tableContainerRef.current.getBoundingClientRect();
+        // When table header reaches top of viewport, make it sticky
+        setIsHeaderSticky(rect.top <= 0);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Initial check
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
   // Prefetch данных для соседних вкладок, чтобы переключение было мгновенным
   useEffect(() => {
     // Для watchlist пропускаем префетч (требуется авторизация и иной источник данных)
