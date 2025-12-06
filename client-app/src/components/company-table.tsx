@@ -2272,13 +2272,14 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                   msOverflowStyle: 'none',
                 }}
                 ref={(el) => {
-                  if (el && tableScrollRef.current) {
+                  if (el && tableScrollRef.current && isHeaderSticky) {
+                    // Sync scroll position on mount
                     const mainScrollable = tableScrollRef.current.querySelector('div.relative.w-full.overflow-auto') as HTMLElement || tableScrollRef.current;
                     el.scrollLeft = mainScrollable.scrollLeft;
                   }
                 }}
                 onScroll={(e) => {
-                  // Sync scroll with main table
+                  // Sync scroll with main table when user scrolls fixed header
                   if (tableScrollRef.current) {
                     const scrollableElement = tableScrollRef.current.querySelector('div.relative.w-full.overflow-auto') as HTMLElement || tableScrollRef.current;
                     scrollableElement.scrollLeft = e.currentTarget.scrollLeft;
