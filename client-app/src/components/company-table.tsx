@@ -1722,8 +1722,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
         const tableWidth = table ? (table as HTMLElement).offsetWidth : scrollWidth;
         const canScroll = tableWidth > clientWidth || scrollWidth > clientWidth;
         const maxScroll = Math.max(tableWidth, scrollWidth) - clientWidth;
-        const newCanScrollLeft = canScroll && scrollLeft > 5;
-        const newCanScrollRight = canScroll && scrollLeft < maxScroll - 5;
+        // Use a small threshold (1px) instead of 5px to avoid false negatives
+        const newCanScrollLeft = canScroll && scrollLeft > 1;
+        const newCanScrollRight = canScroll && scrollLeft < maxScroll - 1;
         console.log('Updating scroll buttons', { 
           scrollLeft, 
           scrollWidth, 
@@ -2188,8 +2189,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               const canScroll = tableWidth > scrollableElement.clientWidth || scrollableElement.scrollWidth > scrollableElement.clientWidth;
               const scrollLeft = scrollableElement.scrollLeft;
               const maxScroll = Math.max(tableWidth, scrollableElement.scrollWidth) - scrollableElement.clientWidth;
-              setCanScrollLeft(canScroll && scrollLeft > 5);
-              setCanScrollRight(canScroll && scrollLeft < maxScroll - 5);
+              // Use a small threshold (1px) instead of 5px to avoid false negatives
+              setCanScrollLeft(canScroll && scrollLeft > 1);
+              setCanScrollRight(canScroll && scrollLeft < maxScroll - 1);
             }}
           >
           <div className="w-full overflow-visible">
