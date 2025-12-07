@@ -2290,7 +2290,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                           return (
                             <th
                               key={header.id}
-                              className={`${hid === 'rank' || hid === 'watchlist' || hid === 'dcfVerdict' || hid === 'roicStability' || hid === 'roicStabilityScore' ? 'text-center' : hid === 'name' ? '' : 'text-right'} cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(hid) } ${ getStickyHeaderClass(hid) } h-12 px-4 text-left align-middle font-semibold text-zinc-700 ${
+                              className={`${hid === 'rank' || hid === 'watchlist' || hid === 'dcfVerdict' || hid === 'roicStability' || hid === 'roicStabilityScore' ? 'text-center' : hid === 'name' ? '' : 'text-right'} cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(hid) } ${ getStickyHeaderClass(hid) } ${!getStickyHeaderClass(hid) ? 'bg-white dark:bg-zinc-900' : ''} h-12 px-4 text-left align-middle font-semibold text-zinc-700 ${
                                 sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
                               }`}
                               onClick={header.column.getToggleSortingHandler()}
