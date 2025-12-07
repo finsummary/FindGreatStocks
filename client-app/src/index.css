@@ -147,6 +147,17 @@
     background-color: rgb(24, 24, 27) !important;
     opacity: 1 !important;
   }
+
+  /* Force white background for first 3 sticky columns in fixed header */
+  .fixed-header-opaque th[class*="sticky"],
+  .fixed-header-opaque th:first-child,
+  .fixed-header-opaque th:nth-child(2),
+  .fixed-header-opaque th:nth-child(3) {
+    background-color: white !important;
+    background: white !important;
+    opacity: 1 !important;
+    z-index: 50 !important;
+  }
 }
 
 @layer components {
