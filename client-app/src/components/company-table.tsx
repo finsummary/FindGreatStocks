@@ -2147,11 +2147,12 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       {/* Table */}
       <div className="relative">
         {/* Scroll buttons - positioned above the table, always visible */}
-        <div className={`flex justify-end gap-1 mb-2 z-10 relative ${isHeaderSticky ? 'fixed top-12 right-4 z-[101] mb-0' : ''}`}>
+        <div className={`flex justify-end gap-1 mb-2 z-10 relative ${isHeaderSticky ? 'fixed top-12 right-4 z-[101] mb-0' : ''}`} style={{ display: 'flex' }}>
           <Button
             variant="outline"
             size="sm"
             className={`h-8 w-8 p-0 ${!canScrollLeft ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -2206,6 +2207,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             variant="outline"
             size="sm"
             className={`h-8 w-8 p-0 ${!canScrollRight ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -2312,7 +2314,13 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
           <div 
             ref={tableScrollRef}
             className="w-full overflow-x-auto -mx-4 px-4 scrollbar-hide"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', maxWidth: '100vw' }}
+            style={{ 
+              scrollbarWidth: 'none', 
+              msOverflowStyle: 'none', 
+              WebkitOverflowScrolling: 'touch', 
+              maxWidth: '100vw',
+              overflowY: 'visible'
+            }}
             onScroll={(e) => {
               const target = e.currentTarget;
               // Table component creates a div with "relative w-full overflow-auto" - find it
