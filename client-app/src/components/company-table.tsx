@@ -2295,9 +2295,16 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                           return (
                             <th
                               key={header.id}
-                              className={`${hid === 'rank' || hid === 'watchlist' || hid === 'dcfVerdict' || hid === 'roicStability' || hid === 'roicStabilityScore' ? 'text-center' : hid === 'name' ? '' : 'text-right'} cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(hid) } ${ getStickyHeaderClass(hid) } bg-white dark:bg-zinc-900 h-12 px-4 text-left align-middle font-semibold text-zinc-700 ${
+                              className={`${hid === 'rank' || hid === 'watchlist' || hid === 'dcfVerdict' || hid === 'roicStability' || hid === 'roicStabilityScore' ? 'text-center' : hid === 'name' ? '' : 'text-right'} cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(hid) } h-12 px-4 text-left align-middle font-semibold text-zinc-700 ${
                                 sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
                               }`}
+                              style={{
+                                position: (hid === 'watchlist' || hid === 'rank' || hid === 'name') ? 'sticky' : 'relative',
+                                left: hid === 'watchlist' ? '0' : hid === 'rank' ? '50px' : hid === 'name' ? '80px' : 'auto',
+                                zIndex: hid === 'watchlist' ? 50 : hid === 'rank' ? 50 : hid === 'name' ? 40 : 1,
+                                backgroundColor: sortBy === header.id ? '#e0f2fe' : 'white',
+                                background: sortBy === header.id ? '#e0f2fe' : 'white',
+                              } as React.CSSProperties}
                               onClick={header.column.getToggleSortingHandler()}
                             >
                               {header.isPlaceholder
