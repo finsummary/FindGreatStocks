@@ -2265,28 +2265,26 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
           {/* Fixed header overlay when sticky */}
           {isHeaderSticky && (
             <div 
-              className="fixed top-0 z-[100] shadow-md pointer-events-none"
+              className="fixed top-0 z-[100] shadow-md pointer-events-none bg-white dark:bg-zinc-900"
               style={{
                 left: `${Math.max(0, headerLeft)}px`,
                 width: `${Math.min(headerWidth, window.innerWidth - Math.max(0, headerLeft))}px`,
                 maxWidth: `${window.innerWidth}px`,
                 right: 0,
                 overflow: 'hidden',
-                backgroundColor: 'rgb(255, 255, 255)',
               }}
             >
               <div 
-                className="w-full -mx-4 px-4 pointer-events-auto"
+                className="w-full -mx-4 px-4 pointer-events-auto bg-white dark:bg-zinc-900"
                 style={{ 
                   transform: `translateX(-${headerScrollLeft}px)`,
                   willChange: 'transform',
-                  backgroundColor: 'rgb(255, 255, 255)',
                 }}
               >
                 <table className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 [&_td]:p-3`}>
                   <thead>
                     {table.getHeaderGroups().map(headerGroup => (
-                      <tr key={headerGroup.id} className="bg-white dark:bg-zinc-900" style={{ backgroundColor: 'rgb(255, 255, 255)' }}>
+                      <tr key={headerGroup.id} className="bg-white dark:bg-zinc-900">
                         {headerGroup.headers.map(header => {
                           const hid = ((header.column.columnDef.meta as any)?.columnConfig.id) as string;
                           return (
