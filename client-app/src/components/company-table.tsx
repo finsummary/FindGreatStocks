@@ -2281,17 +2281,19 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                   transform: `translateX(-${headerScrollLeft}px)`,
                   willChange: 'transform',
                   background: 'white',
+                  isolation: 'isolate',
                 } as React.CSSProperties}
               >
                 <table 
                   className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 [&_td]:p-3`}
-                  style={{ background: 'white' } as React.CSSProperties}
+                  style={{ background: 'white', isolation: 'isolate' } as React.CSSProperties}
                 >
-                  <thead style={{ background: 'white' } as React.CSSProperties}>
+                  <thead style={{ background: 'white', isolation: 'isolate' } as React.CSSProperties}>
                     {table.getHeaderGroups().map(headerGroup => (
-                      <tr key={headerGroup.id} style={{ background: 'white' } as React.CSSProperties}>
+                      <tr key={headerGroup.id} style={{ background: 'white', isolation: 'isolate' } as React.CSSProperties}>
                         {headerGroup.headers.map(header => {
                           const hid = ((header.column.columnDef.meta as any)?.columnConfig.id) as string;
+                          const isSticky = hid === 'watchlist' || hid === 'rank' || hid === 'name';
                           return (
                             <th
                               key={header.id}
@@ -2299,11 +2301,14 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                                 sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
                               }`}
                               style={{
-                                position: (hid === 'watchlist' || hid === 'rank' || hid === 'name') ? 'sticky' : 'relative',
+                                position: isSticky ? 'sticky' : 'relative',
                                 left: hid === 'watchlist' ? '0' : hid === 'rank' ? '50px' : hid === 'name' ? '80px' : 'auto',
                                 zIndex: hid === 'watchlist' ? 50 : hid === 'rank' ? 50 : hid === 'name' ? 40 : 1,
                                 backgroundColor: sortBy === header.id ? '#e0f2fe' : 'white',
                                 background: sortBy === header.id ? '#e0f2fe' : 'white',
+                                isolation: isSticky ? 'isolate' : 'auto',
+                                backfaceVisibility: 'hidden',
+                                WebkitBackfaceVisibility: 'hidden',
                               } as React.CSSProperties}
                               onClick={header.column.getToggleSortingHandler()}
                             >
