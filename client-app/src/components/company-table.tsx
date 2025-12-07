@@ -2275,24 +2275,30 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               }}
             >
               <div 
-                className="w-full -mx-4 px-4 pointer-events-auto bg-white dark:bg-zinc-900"
+                className="w-full -mx-4 px-4 pointer-events-auto"
                 style={{ 
                   transform: `translateX(-${headerScrollLeft}px)`,
                   willChange: 'transform',
+                  backgroundColor: '#ffffff',
+                  opacity: 1,
                 }}
               >
                 <table className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 [&_td]:p-3`}>
                   <thead>
                     {table.getHeaderGroups().map(headerGroup => (
-                      <tr key={headerGroup.id} className="bg-white dark:bg-zinc-900">
+                      <tr key={headerGroup.id} style={{ backgroundColor: '#ffffff', opacity: 1 }}>
                         {headerGroup.headers.map(header => {
                           const hid = ((header.column.columnDef.meta as any)?.columnConfig.id) as string;
                           return (
                             <th
                               key={header.id}
-                              className={`${hid === 'rank' || hid === 'watchlist' || hid === 'dcfVerdict' || hid === 'roicStability' || hid === 'roicStabilityScore' ? 'text-center' : hid === 'name' ? '' : 'text-right'} cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(hid) } ${ getStickyHeaderClass(hid) } ${!getStickyHeaderClass(hid) ? 'bg-white dark:bg-zinc-900' : ''} h-12 px-4 text-left align-middle font-semibold text-zinc-700 ${
+                              className={`${hid === 'rank' || hid === 'watchlist' || hid === 'dcfVerdict' || hid === 'roicStability' || hid === 'roicStabilityScore' ? 'text-center' : hid === 'name' ? '' : 'text-right'} cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(hid) } ${ getStickyHeaderClass(hid) } h-12 px-4 text-left align-middle font-semibold text-zinc-700 ${
                                 sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
                               }`}
+                              style={{
+                                backgroundColor: sortBy === header.id ? '#e0f2fe' : '#ffffff',
+                                opacity: 1,
+                              }}
                               onClick={header.column.getToggleSortingHandler()}
                             >
                               {header.isPlaceholder
@@ -2346,12 +2352,12 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               ref={tableRef}
               className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 sm:[&_td]:p-3`}
             >
-            <TableHeader>
+            <TableHeader className={isHeaderSticky ? 'opacity-0 pointer-events-none' : ''}>
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow 
                   key={headerGroup.id} 
                   ref={headerRef}
-                  className="bg-muted/50"
+                  className={isHeaderSticky ? 'opacity-0' : 'bg-muted/50'}
                 >
                   {headerGroup.headers.map(header => {
                     const hid = ((header.column.columnDef.meta as any)?.columnConfig.id) as string;
