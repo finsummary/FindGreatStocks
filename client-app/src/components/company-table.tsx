@@ -2355,12 +2355,13 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               ref={tableRef}
               className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 sm:[&_td]:p-3`}
             >
-            <TableHeader className={isHeaderSticky ? 'opacity-0 pointer-events-none' : ''}>
+            <TableHeader className={isHeaderSticky ? 'opacity-0 pointer-events-none invisible' : ''} style={isHeaderSticky ? { visibility: 'hidden', height: 0, overflow: 'hidden' } as React.CSSProperties : undefined}>
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow 
                   key={headerGroup.id} 
                   ref={headerRef}
-                  className={isHeaderSticky ? 'opacity-0' : 'bg-muted/50'}
+                  className={isHeaderSticky ? 'opacity-0 invisible' : 'bg-muted/50'}
+                  style={isHeaderSticky ? { visibility: 'hidden', height: 0 } as React.CSSProperties : undefined}
                 >
                   {headerGroup.headers.map(header => {
                     const hid = ((header.column.columnDef.meta as any)?.columnConfig.id) as string;
