@@ -2272,7 +2272,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 maxWidth: `${window.innerWidth}px`,
                 right: 0,
                 overflow: 'hidden',
-                background: 'white',
+                backgroundColor: '#ffffff',
+                background: '#ffffff',
               } as React.CSSProperties}
             >
               <div 
@@ -2280,20 +2281,19 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 style={{ 
                   transform: `translateX(-${headerScrollLeft}px)`,
                   willChange: 'transform',
-                  background: 'white',
-                  isolation: 'isolate',
+                  backgroundColor: '#ffffff',
+                  background: '#ffffff',
                 } as React.CSSProperties}
               >
                 <table 
                   className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 [&_td]:p-3`}
-                  style={{ background: 'white', isolation: 'isolate' } as React.CSSProperties}
+                  style={{ backgroundColor: '#ffffff', background: '#ffffff' } as React.CSSProperties}
                 >
-                  <thead style={{ background: 'white', isolation: 'isolate' } as React.CSSProperties}>
+                  <thead style={{ backgroundColor: '#ffffff', background: '#ffffff' } as React.CSSProperties}>
                     {table.getHeaderGroups().map(headerGroup => (
-                      <tr key={headerGroup.id} style={{ background: 'white', isolation: 'isolate' } as React.CSSProperties}>
+                      <tr key={headerGroup.id} style={{ backgroundColor: '#ffffff', background: '#ffffff' } as React.CSSProperties}>
                         {headerGroup.headers.map(header => {
                           const hid = ((header.column.columnDef.meta as any)?.columnConfig.id) as string;
-                          const isSticky = hid === 'watchlist' || hid === 'rank' || hid === 'name';
                           return (
                             <th
                               key={header.id}
@@ -2301,13 +2301,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                                 sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
                               }`}
                               style={{
-                                position: isSticky ? 'relative' : 'relative',
-                                left: 'auto',
-                                zIndex: isSticky ? (hid === 'watchlist' ? 50 : hid === 'rank' ? 50 : 40) : 1,
-                                backgroundColor: sortBy === header.id ? '#e0f2fe' : 'white',
-                                background: sortBy === header.id ? '#e0f2fe' : 'white',
-                                minWidth: isSticky ? (hid === 'watchlist' ? '50px' : hid === 'rank' ? '50px' : '200px') : 'auto',
-                                width: isSticky ? (hid === 'watchlist' ? '50px' : hid === 'rank' ? '50px' : '200px') : 'auto',
+                                backgroundColor: sortBy === header.id ? '#e0f2fe' : '#ffffff',
+                                background: sortBy === header.id ? '#e0f2fe' : '#ffffff',
                               } as React.CSSProperties}
                               onClick={header.column.getToggleSortingHandler()}
                             >
