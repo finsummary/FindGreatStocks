@@ -2301,14 +2301,13 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                                 sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
                               }`}
                               style={{
-                                position: isSticky ? 'sticky' : 'relative',
-                                left: hid === 'watchlist' ? '0' : hid === 'rank' ? '50px' : hid === 'name' ? '80px' : 'auto',
-                                zIndex: hid === 'watchlist' ? 50 : hid === 'rank' ? 50 : hid === 'name' ? 40 : 1,
+                                position: isSticky ? 'relative' : 'relative',
+                                left: 'auto',
+                                zIndex: isSticky ? (hid === 'watchlist' ? 50 : hid === 'rank' ? 50 : 40) : 1,
                                 backgroundColor: sortBy === header.id ? '#e0f2fe' : 'white',
                                 background: sortBy === header.id ? '#e0f2fe' : 'white',
-                                isolation: isSticky ? 'isolate' : 'auto',
-                                backfaceVisibility: 'hidden',
-                                WebkitBackfaceVisibility: 'hidden',
+                                minWidth: isSticky ? (hid === 'watchlist' ? '50px' : hid === 'rank' ? '50px' : '200px') : 'auto',
+                                width: isSticky ? (hid === 'watchlist' ? '50px' : hid === 'rank' ? '50px' : '200px') : 'auto',
                               } as React.CSSProperties}
                               onClick={header.column.getToggleSortingHandler()}
                             >
