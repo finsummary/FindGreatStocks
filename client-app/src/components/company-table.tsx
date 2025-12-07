@@ -2294,7 +2294,6 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                                 sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
                               }`}
                               style={{ 
-                                backgroundColor: sortBy === header.id ? 'rgb(224, 242, 254)' : 'rgb(255, 255, 255)',
                                 opacity: 1,
                               }}
                               onClick={header.column.getToggleSortingHandler()}
