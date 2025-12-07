@@ -102,24 +102,31 @@
     @apply bg-muted-foreground;
   }
 
-  /* Hide horizontal scrollbar */
-  .scrollbar-hide {
+  /* Hide horizontal scrollbar - more aggressive rules */
+  .scrollbar-hide,
+  .scrollbar-hide * {
     -ms-overflow-style: none !important;  /* IE and Edge */
     scrollbar-width: none !important;  /* Firefox */
   }
 
-  .scrollbar-hide::-webkit-scrollbar {
+  .scrollbar-hide::-webkit-scrollbar,
+  .scrollbar-hide *::-webkit-scrollbar {
     display: none !important;  /* Chrome, Safari and Opera */
     width: 0 !important;
     height: 0 !important;
+    background: transparent !important;
   }
 
-  .scrollbar-hide::-webkit-scrollbar-track {
+  .scrollbar-hide::-webkit-scrollbar-track,
+  .scrollbar-hide *::-webkit-scrollbar-track {
     display: none !important;
+    background: transparent !important;
   }
 
-  .scrollbar-hide::-webkit-scrollbar-thumb {
+  .scrollbar-hide::-webkit-scrollbar-thumb,
+  .scrollbar-hide *::-webkit-scrollbar-thumb {
     display: none !important;
+    background: transparent !important;
   }
 }
 
