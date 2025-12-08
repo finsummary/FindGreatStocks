@@ -2276,25 +2276,15 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 backgroundColor: 'white',
               } as React.CSSProperties}
             >
-              <div 
-                className="w-full -mx-4 px-4"
-                style={{
-                  marginLeft: `-${headerScrollLeft}px`,
-                }}
-              >
+              <div className="relative w-full overflow-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', marginLeft: `-${headerScrollLeft}px` }}>
                 <table 
-                  className={`w-full bg-white fixed-header ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 [&_td]:p-3`}
-                  style={{
-                    borderCollapse: 'separate',
-                    borderSpacing: 0,
-                  }}
+                  className={`w-full bg-white ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 [&_td]:p-3`}
                 >
                   <thead className="bg-white">
                     {table.getHeaderGroups().map(headerGroup => (
                       <tr key={headerGroup.id} className="bg-white">
                         {headerGroup.headers.map(header => {
                           const hid = ((header.column.columnDef.meta as any)?.columnConfig.id) as string;
-                          const isSticky = hid === 'watchlist' || hid === 'rank' || hid === 'name';
                           return (
                             <th
                               key={header.id}
@@ -2304,8 +2294,6 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                               onClick={header.column.getToggleSortingHandler()}
                               style={{
                                 backgroundColor: 'white !important',
-                                position: isSticky ? 'sticky' : 'relative',
-                                zIndex: isSticky ? 201 : 200,
                               } as React.CSSProperties}
                             >
                               {header.isPlaceholder
