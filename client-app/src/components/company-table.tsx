@@ -312,9 +312,18 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       return acc;
     }, {} as VisibilityState);
 
-    // Ensure core fundamentals are visible by default
-    for (const id of ['marketCap','price','revenue','netIncome','dividendYield','freeCashFlow'] as const) {
-      (defaultVisibility as any)[id] = true;
+    // Ensure only selected columns are visible by default (when no layout is selected)
+    if (!selectedLayout) {
+      // Reset all to false first
+      for (const col of ALL_COLUMNS) {
+        if (!['watchlist', 'rank', 'name'].includes(col.id)) {
+          (defaultVisibility as any)[col.id] = false;
+        }
+      }
+      // Then set only the required columns to true
+      for (const id of ['marketCap', 'price', 'revenue', 'netIncome', 'peRatio', 'dividendYield'] as const) {
+        (defaultVisibility as any)[id] = true;
+      }
     }
 
     setColumnVisibility(defaultVisibility);
