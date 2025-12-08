@@ -2274,7 +2274,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 overflow: 'hidden',
               } as React.CSSProperties}
             >
-              <div className="w-full -mx-4 px-4" style={{ transform: `translateX(-${headerScrollLeft}px)` }}>
+              <div className="w-full -mx-4 px-4" style={{ marginLeft: `-${headerScrollLeft}px` }}>
                 <table 
                   className={`w-full bg-white fixed-header ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 [&_td]:p-3`}
                   style={{
