@@ -2276,9 +2276,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 backgroundColor: 'white',
               } as React.CSSProperties}
             >
-              <div className="relative w-full overflow-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', marginLeft: `-${headerScrollLeft}px` }}>
+              <div className="w-full -mx-4 px-4" style={{ transform: `translateX(-${headerScrollLeft}px)` }}>
                 <table 
-                  className={`w-full bg-white ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 [&_td]:p-3`}
+                  className={`w-full bg-white fixed-header ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 [&_td]:p-3`}
                 >
                   <thead className="bg-white">
                     {table.getHeaderGroups().map(headerGroup => (
