@@ -241,16 +241,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const [page, setPage] = useState(0);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const [isHeaderSticky, setIsHeaderSticky] = useState(false);
-  const [headerWidth, setHeaderWidth] = useState(0);
-  const [headerLeft, setHeaderLeft] = useState(0);
-  const [headerHeight, setHeaderHeight] = useState(0);
-  const [headerScrollLeft, setHeaderScrollLeft] = useState(0);
   const tableScrollRef = React.useRef<HTMLDivElement>(null);
   const tableRef = React.useRef<HTMLTableElement>(null);
   const tableContainerRef = React.useRef<HTMLDivElement>(null);
   const headerRef = React.useRef<HTMLTableRowElement>(null);
-  const fixedHeaderScrollRef = React.useRef<HTMLDivElement>(null);
   // Store current watchlistId in ref to avoid closure issues
   const watchlistIdRef = React.useRef<number | undefined>(watchlistId);
   useEffect(() => {
@@ -1822,44 +1816,6 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
     };
   }, [data, isLoading]);
 
-  // Handle sticky header on scroll using position: fixed
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!tableContainerRef.current || !headerRef.current) return;
-
-      const containerRect = tableContainerRef.current.getBoundingClientRect();
-      const shouldBeSticky = containerRect.top <= 0;
-
-      if (shouldBeSticky) {
-        // Calculate header position and width
-        const scrollContainer = tableScrollRef.current;
-        if (scrollContainer && headerRef.current) {
-          const scrollRect = scrollContainer.getBoundingClientRect();
-          const viewportWidth = window.innerWidth;
-          // Ensure header doesn't exceed viewport width to prevent horizontal scroll
-          setHeaderLeft(Math.max(0, scrollRect.left));
-          setHeaderWidth(Math.min(scrollRect.width, viewportWidth - Math.max(0, scrollRect.left)));
-          setHeaderHeight(headerRef.current.offsetHeight);
-        }
-      } else {
-        // Reset height when not sticky
-        if (headerRef.current) {
-          setHeaderHeight(headerRef.current.offsetHeight);
-        }
-      }
-
-      setIsHeaderSticky(shouldBeSticky);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', handleScroll, { passive: true });
-    handleScroll(); // Initial check
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', handleScroll);
-    };
-  }, []);
 
 
   // Prefetch данных для соседних вкладок, чтобы переключение было мгновенным
@@ -1943,7 +1899,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   return (
     <div className="space-y-6 overflow-x-hidden">
       {/* Controls - hide when header is sticky */}
-      <div className={`flex flex-col gap-3 sm:gap-4 transition-opacity duration-200 ${isHeaderSticky ? 'opacity-0 pointer-events-none h-0 overflow-hidden' : 'opacity-100'}`}>
+      <div className="flex flex-col gap-3 sm:gap-4">
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-stretch sm:items-center">
           <Select value={sortBy} onValueChange={(value) => {
             if (value === 'none') return;
@@ -2107,7 +2063,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
 
       {/* Watchlist requires auth - hide when header is sticky */}
       {dataset === 'watchlist' && !isLoggedIn && (
-        <Card className={`p-4 bg-amber-50 border-amber-200 text-amber-900 transition-opacity duration-200 ${isHeaderSticky ? 'opacity-0 pointer-events-none h-0 overflow-hidden' : 'opacity-100'}`}>
+        <Card className="p-4 bg-amber-50 border-amber-200 text-amber-900">
           <div className="flex items-center justify-between gap-3">
             <div className="text-sm">Sign in to view and manage your Watchlist.</div>
             <Button asChild size="sm" variant="outline">
@@ -2119,7 +2075,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
 
       {/* Layout Description Box - hide when header is sticky */}
       {selectedLayout && LAYOUT_DESCRIPTIONS[selectedLayout] && (
-        <Card className={`p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 transition-all ${isHeaderSticky ? 'opacity-0 pointer-events-none h-0 overflow-hidden' : 'opacity-100'}`}>
+        <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
            <div className="flex justify-between items-start gap-4">
             <div>
               <h4 className="font-semibold text-blue-800 dark:text-blue-200">{LAYOUT_DESCRIPTIONS[selectedLayout].title}</h4>
@@ -2147,7 +2103,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       {/* Table */}
       <div className="relative">
         {/* Scroll buttons - positioned above the table, always visible */}
-        <div className={`flex justify-end gap-1 mb-2 z-10 relative ${isHeaderSticky ? 'fixed top-12 right-4 z-[101] mb-0' : ''}`} style={{ display: 'flex' }}>
+        <div className="flex justify-end gap-1 mb-2 z-10 relative" style={{ display: 'flex' }}>
           <Button
             variant="outline"
             size="sm"
@@ -2190,10 +2146,6 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                   left: newScrollLeft, 
                   behavior: 'smooth' 
                 });
-                // Update header scroll position immediately
-                if (isHeaderSticky) {
-                  setHeaderScrollLeft(newScrollLeft);
-                }
               } else {
                 console.error('tableScrollRef.current is null');
               }
@@ -2247,10 +2199,6 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                   left: newScrollLeft, 
                   behavior: 'smooth' 
                 });
-                // Update header scroll position immediately
-                if (isHeaderSticky) {
-                  setHeaderScrollLeft(newScrollLeft);
-                }
               } else {
                 console.error('tableScrollRef.current is null');
               }
@@ -2262,55 +2210,6 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
           </Button>
         </div>
         <Card ref={tableContainerRef}>
-          {/* Fixed header overlay when sticky */}
-          {isHeaderSticky && (
-            <div 
-              className="fixed top-0 z-[200] shadow-md bg-white"
-              style={{
-                left: `${Math.max(0, headerLeft)}px`,
-                width: `${Math.min(headerWidth, window.innerWidth - Math.max(0, headerLeft))}px`,
-                maxWidth: `${window.innerWidth}px`,
-                right: 0,
-                overflow: 'hidden',
-              } as React.CSSProperties}
-            >
-              <div className="w-full -mx-4 px-4" style={{ marginLeft: `-${headerScrollLeft}px` }}>
-                <table 
-                  className={`w-full bg-white fixed-header ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 [&_td]:p-3`}
-                  style={{
-                    tableLayout: 'fixed',
-                    width: '100%',
-                  }}
-                >
-                  <thead className="bg-white">
-                    {table.getHeaderGroups().map(headerGroup => (
-                      <tr key={headerGroup.id} className="bg-white">
-                        {headerGroup.headers.map(header => {
-                          const hid = ((header.column.columnDef.meta as any)?.columnConfig.id) as string;
-                          return (
-                            <th
-                              key={header.id}
-                              className={`bg-white dark:bg-zinc-900 ${hid === 'rank' || hid === 'watchlist' || hid === 'dcfVerdict' || hid === 'roicStability' || hid === 'roicStabilityScore' ? 'text-center' : hid === 'name' ? '' : 'text-right'} cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(hid) } h-12 px-4 text-left align-middle font-semibold text-zinc-700 ${
-                                sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
-                              }`}
-                              onClick={header.column.getToggleSortingHandler()}
-                            >
-                              {header.isPlaceholder
-                                ? null
-                                : flexRender(
-                                    header.column.columnDef.header,
-                                    header.getContext()
-                                  )}
-                            </th>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </thead>
-                </table>
-              </div>
-            </div>
-          )}
           <div 
             ref={tableScrollRef}
             className="w-full overflow-x-auto -mx-4 px-4 scrollbar-hide"
@@ -2335,10 +2234,6 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               setCanScrollLeft(canScroll && scrollLeft > 1);
               setCanScrollRight(canScroll && scrollLeft < maxScroll - 1);
               
-              // Update scroll position for fixed header
-              if (isHeaderSticky) {
-                setHeaderScrollLeft(scrollLeft);
-              }
             }}
           >
           <div className="w-full overflow-visible">
@@ -2346,20 +2241,19 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               ref={tableRef}
               className={`w-full ${isReverseDcfMobile ? 'min-w-[520px]' : 'min-w-[620px]'} sm:min-w-[1200px] ${isMobile ? 'table-auto' : 'table-fixed'} text-xs sm:text-sm [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1 sm:[&_th]:p-3 sm:[&_td]:p-3`}
             >
-            <TableHeader className={isHeaderSticky ? 'hidden' : ''} style={isHeaderSticky ? { display: 'none' } as React.CSSProperties : undefined}>
+            <TableHeader>
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow 
                   key={headerGroup.id} 
                   ref={headerRef}
-                  className={isHeaderSticky ? 'hidden' : 'bg-muted/50'}
-                  style={isHeaderSticky ? { display: 'none' } as React.CSSProperties : undefined}
+                  className="bg-muted/50"
                 >
                   {headerGroup.headers.map(header => {
                     const hid = ((header.column.columnDef.meta as any)?.columnConfig.id) as string;
                     return (
                     <TableHead
                       key={header.id}
-                        className={`${hid === 'rank' || hid === 'watchlist' || hid === 'dcfVerdict' || hid === 'roicStability' || hid === 'roicStabilityScore' ? 'text-center' : hid === 'name' ? '' : 'text-right'} cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(hid) } ${ getStickyHeaderClass(hid) } ${isHeaderSticky ? 'bg-white dark:bg-zinc-900' : 'bg-muted/50'} ${
+                        className={`${hid === 'rank' || hid === 'watchlist' || hid === 'dcfVerdict' || hid === 'roicStability' || hid === 'roicStabilityScore' ? 'text-center' : hid === 'name' ? '' : 'text-right'} cursor-pointer hover:bg-muted/80 transition-colors ${ getWidthClass(hid) } ${ getStickyHeaderClass(hid) } bg-muted/50 ${
                         sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
                       }`}
                       onClick={header.column.getToggleSortingHandler()}
