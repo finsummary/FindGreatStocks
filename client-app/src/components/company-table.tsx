@@ -365,10 +365,21 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             (vis as any)[id] = false;
           }
         }
-        // Guard against broken prefs: always enable core fundamentals
-        for (const id of ['marketCap','price','revenue','netIncome','dividendYield','freeCashFlow'] as const) {
-          (vis as any)[id] = true;
+        
+        // If no layout is selected, enforce default columns only
+        if (!selectedLayout) {
+          // Reset all to false first
+          for (const col of ALL_COLUMNS) {
+            if (!['watchlist', 'rank', 'name'].includes(col.id)) {
+              (vis as any)[col.id] = false;
+            }
+          }
+          // Then set only the required columns to true
+          for (const id of ['marketCap', 'price', 'revenue', 'netIncome', 'peRatio', 'dividendYield'] as const) {
+            (vis as any)[id] = true;
+          }
         }
+        
         if (Object.keys(vis).length) setColumnVisibility(vis);
       } else {
         // No prefs stored: enforce default Market Cap sorting for S&P 500 / Nasdaq 100
