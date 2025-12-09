@@ -32,7 +32,7 @@ export function RevenueSparkline({ revenueData }: RevenueSparklineProps) {
     .map((item, index, array) => {
       // Определяем цвет на основе сравнения с предыдущим годом
       // После reverse: array[0] = Y10 (самый старый), array[array.length-1] = Y1 (самый новый)
-      let fillColor = "hsl(38, 92%, 50%)"; // yellow-500 по умолчанию (для первого года или если нет изменений)
+      let fillColor = "hsl(0, 72%, 51%)"; // red-600 по умолчанию
       
       if (index > 0) {
         // Сравниваем с предыдущим годом (более старым)
@@ -42,13 +42,27 @@ export function RevenueSparkline({ revenueData }: RevenueSparklineProps) {
         if (prevRevenue !== null && currentRevenue !== null && prevRevenue > 0) {
           const changePercent = ((currentRevenue - prevRevenue) / prevRevenue) * 100;
           
-          // Если изменение больше 5% - это значительное изменение
-          if (changePercent > 5) {
+          // Зеленый для роста, красный для падения
+          if (changePercent > 0) {
             fillColor = "hsl(142, 76%, 36%)"; // green-600 - рост
-          } else if (changePercent < -5) {
-            fillColor = "hsl(0, 72%, 51%)"; // red-600 - падение
           } else {
-            fillColor = "hsl(38, 92%, 50%)"; // yellow-500 - примерно то же самое
+            fillColor = "hsl(0, 72%, 51%)"; // red-600 - падение
+          }
+        }
+      } else {
+        // Для первого года (самого старого) используем нейтральный цвет или сравниваем со следующим
+        if (array.length > 1) {
+          const nextRevenue = array[1].revenue;
+          const currentRevenue = item.revenue;
+          
+          if (nextRevenue !== null && currentRevenue !== null && currentRevenue > 0) {
+            const changePercent = ((nextRevenue - currentRevenue) / currentRevenue) * 100;
+            
+            if (changePercent > 0) {
+              fillColor = "hsl(142, 76%, 36%)"; // green-600 - следующий год больше
+            } else {
+              fillColor = "hsl(0, 72%, 51%)"; // red-600 - следующий год меньше
+            }
           }
         }
       }
