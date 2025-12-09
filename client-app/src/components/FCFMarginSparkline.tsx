@@ -1,15 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { BarChart, Bar, XAxis, ReferenceLine } from "recharts"
+import { BarChart, Bar, XAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 
 interface FCFMarginSparklineProps {
   fcfMarginData: (number | string | null | undefined)[] // [fcfMarginY1, fcfMarginY2, ..., fcfMarginY10] от новых к старым
-  fcfMarginMedian10Y?: number | string | null // Median FCF Margin за 10 лет
 }
 
-export function FCFMarginSparkline({ fcfMarginData, fcfMarginMedian10Y }: FCFMarginSparklineProps) {
+export function FCFMarginSparkline({ fcfMarginData }: FCFMarginSparklineProps) {
   // Преобразуем данные: fcfMarginData идет от Y1 (новый) к Y10 (старый)
   // Но для графика нужно от старых к новым (Y10 → Y1)
   // fcfMarginData идет от Y1 (новый, 2025) к Y10 (старый, 2016): [fcfMarginY1, fcfMarginY2, ..., fcfMarginY10]
@@ -50,11 +49,6 @@ export function FCFMarginSparkline({ fcfMarginData, fcfMarginMedian10Y }: FCFMar
 
   const maxValue = Math.max(...chartData.map(d => d.fcfMargin!));
   const minValue = Math.min(...chartData.map(d => d.fcfMargin!));
-
-  // Вычисляем медиану в процентах для отображения на графике
-  const medianPercent = fcfMarginMedian10Y != null && fcfMarginMedian10Y !== undefined 
-    ? Number(fcfMarginMedian10Y) * 100 
-    : null;
 
   return (
     <div className="w-full h-[40px] flex items-center">
@@ -99,14 +93,6 @@ export function FCFMarginSparkline({ fcfMarginData, fcfMarginMedian10Y }: FCFMar
               );
             }}
           />
-          {medianPercent !== null && (
-            <ReferenceLine
-              y={medianPercent}
-              stroke="#3b82f6"
-              strokeWidth={2}
-              strokeDasharray="0"
-            />
-          )}
           <Bar
             dataKey="fcfMargin"
             radius={[2, 2, 0, 0]}
