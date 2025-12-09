@@ -167,7 +167,7 @@ const LAYOUT_DESCRIPTIONS: Record<string, { title: string; description: string; 
   }
 };
 
-const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlist' | 'none' | 'dcfVerdict', string>> = {
+const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlist' | 'none' | 'dcfVerdict' | 'roicHistory' | 'fcfMarginHistory', string>> = {
   watchlist: 'Add to your personal watchlist. Click the star to add or the lock to sign in.',
   rank: 'Rank based on the current sorting criteria.',
   name: 'Company name and stock ticker symbol.',
