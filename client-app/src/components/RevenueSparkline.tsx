@@ -32,7 +32,7 @@ export function RevenueSparkline({ revenueData }: RevenueSparklineProps) {
     .map((item, index, array) => {
       // Определяем цвет на основе сравнения с предыдущим годом
       // После reverse: array[0] = Y10 (самый старый), array[array.length-1] = Y1 (самый новый)
-      let fillColor = "hsl(25, 95%, 53%)"; // orange-500 по умолчанию
+      let fillColor = "hsl(38, 92%, 50%)"; // yellow-500 по умолчанию
       
       if (index > 0) {
         // Сравниваем с предыдущим годом (более старым)
@@ -42,11 +42,11 @@ export function RevenueSparkline({ revenueData }: RevenueSparklineProps) {
         if (prevRevenue !== null && currentRevenue !== null && prevRevenue > 0) {
           const changePercent = ((currentRevenue - prevRevenue) / prevRevenue) * 100;
           
-          // Зеленый для роста, оранжевый для падения
+          // Зеленый для роста, желтый для падения
           if (changePercent > 0) {
             fillColor = "hsl(142, 76%, 36%)"; // green-600 - рост
           } else {
-            fillColor = "hsl(25, 95%, 53%)"; // orange-500 - падение
+            fillColor = "hsl(38, 92%, 50%)"; // yellow-500 - падение
           }
         }
       } else {
@@ -61,7 +61,7 @@ export function RevenueSparkline({ revenueData }: RevenueSparklineProps) {
             if (changePercent > 0) {
               fillColor = "hsl(142, 76%, 36%)"; // green-600 - следующий год больше
             } else {
-              fillColor = "hsl(25, 95%, 53%)"; // orange-500 - следующий год меньше
+              fillColor = "hsl(38, 92%, 50%)"; // yellow-500 - следующий год меньше
             }
           }
         }
