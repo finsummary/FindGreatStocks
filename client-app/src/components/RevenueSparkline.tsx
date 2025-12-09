@@ -28,7 +28,36 @@ export function RevenueSparkline({ revenueData }: RevenueSparklineProps) {
       };
     })
     .filter(item => item.revenue !== null)
-    .reverse(); // Переворачиваем: Y10 (старый, 2016) слева → Y1 (новый, 2025) справа
+    .reverse() // Переворачиваем: Y10 (старый, 2016) слева → Y1 (новый, 2025) справа
+    .map((item, index, array) => {
+      // Определяем цвет на основе сравнения с предыдущим годом
+      // После reverse: array[0] = Y10 (самый старый), array[array.length-1] = Y1 (самый новый)
+      let fillColor = "hsl(38, 92%, 50%)"; // yellow-500 по умолчанию (для первого года или если нет изменений)
+      
+      if (index > 0) {
+        // Сравниваем с предыдущим годом (более старым)
+        const prevRevenue = array[index - 1].revenue;
+        const currentRevenue = item.revenue;
+        
+        if (prevRevenue !== null && currentRevenue !== null && prevRevenue > 0) {
+          const changePercent = ((currentRevenue - prevRevenue) / prevRevenue) * 100;
+          
+          // Если изменение больше 5% - это значительное изменение
+          if (changePercent > 5) {
+            fillColor = "hsl(142, 76%, 36%)"; // green-600 - рост
+          } else if (changePercent < -5) {
+            fillColor = "hsl(0, 72%, 51%)"; // red-600 - падение
+          } else {
+            fillColor = "hsl(38, 92%, 50%)"; // yellow-500 - примерно то же самое
+          }
+        }
+      }
+      
+      return {
+        ...item,
+        fill: fillColor,
+      };
+    });
 
   if (chartData.length === 0) {
     return (
@@ -90,7 +119,11 @@ export function RevenueSparkline({ revenueData }: RevenueSparklineProps) {
           <Bar
             dataKey="revenue"
             radius={[2, 2, 0, 0]}
-            fill="hsl(221, 83%, 53%)"
+            fill="#8884d8"
+            shape={(props: any) => {
+              const { payload, ...rest } = props;
+              return <rect {...rest} fill={payload.fill} />;
+            }}
           />
         </BarChart>
       </ChartContainer>
