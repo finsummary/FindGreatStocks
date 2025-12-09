@@ -58,14 +58,71 @@ function applyAgeBasedWindowNulls(rows, ipoMap) {
       const d = new Date(ipo);
       if (isNaN(d.getTime())) continue;
       const years = (now - d.getTime()) / (365.25 * 24 * 3600 * 1000);
+      
+      // For companies < 10 years old, compute ROIC metrics from available data if they exist
       if (years < 10) {
         if ('return_10_year' in r) r.return_10_year = null;
         if ('ar_mdd_ratio_10_year' in r) r.ar_mdd_ratio_10_year = null;
         if ('max_drawdown_10_year' in r) r.max_drawdown_10_year = null;
-        if ('revenue_growth_10y' in r) r.revenue_growth_10y = null;
-        if ('roic_10y_avg' in r) r.roic_10y_avg = null;
-        if ('roic_10y_std' in r) r.roic_10y_std = null;
-        if ('fcf_margin_median_10y' in r) r.fcf_margin_median_10y = null;
+        // Don't nullify revenue_growth_10y if we can compute it from available data
+        if ('revenue_growth_10y' in r && r.revenue_growth_10y == null) {
+          // Try to compute from revenue_y1, revenue_y10 if available
+          if (r.revenue_y1 != null && r.revenue_y10 != null) {
+            const rev1 = Number(r.revenue_y1);
+            const rev10 = Number(r.revenue_y10);
+            if (!isNaN(rev1) && !isNaN(rev10) && rev10 > 0) {
+              const cagr = Math.pow(rev1 / rev10, 1 / 10) - 1;
+              if (isFinite(cagr)) {
+                r.revenue_growth_10y = cagr;
+              }
+            }
+          }
+        }
+        
+        // Don't nullify ROIC metrics if we have data - compute from available years
+        if ('roic_10y_avg' in r && r.roic_10y_avg == null) {
+          // Try to compute from roic_y1, roic_y2, etc. if available
+          const roicVals = [];
+          for (let i = 1; i <= 10; i++) {
+            const key = `roic_y${i}`;
+            if (r[key] != null && r[key] !== undefined) {
+              const val = Number(r[key]);
+              if (!isNaN(val)) roicVals.push(val);
+            }
+          }
+          if (roicVals.length >= 2) {
+            const avg = roicVals.reduce((a, b) => a + b, 0) / roicVals.length;
+            const variance = roicVals.reduce((acc, v) => acc + Math.pow(v - avg, 2), 0) / roicVals.length;
+            const std = Math.sqrt(variance);
+            r.roic_10y_avg = avg;
+            r.roic_10y_std = std;
+          }
+        }
+        
+        // Don't nullify FCF margin median if we have data
+        if ('fcf_margin_median_10y' in r && r.fcf_margin_median_10y == null) {
+          // Try to compute from fcf_y1, fcf_y2, revenue_y1, revenue_y2, etc. if available
+          const fcfMargins = [];
+          for (let i = 1; i <= 10; i++) {
+            const fcfKey = `fcf_y${i}`;
+            const revKey = `revenue_y${i}`;
+            if (r[fcfKey] != null && r[revKey] != null) {
+              const fcf = Number(r[fcfKey]);
+              const rev = Number(r[revKey]);
+              if (!isNaN(fcf) && !isNaN(rev) && rev > 0) {
+                fcfMargins.push(fcf / rev);
+              }
+            }
+          }
+          if (fcfMargins.length >= 1) {
+            const sorted = [...fcfMargins].sort((a, b) => a - b);
+            const mid = Math.floor(sorted.length / 2);
+            const median = sorted.length % 2 === 0 
+              ? (sorted[mid - 1] + sorted[mid]) / 2 
+              : sorted[mid];
+            r.fcf_margin_median_10y = median;
+          }
+        }
       }
       if (years < 5) {
         if ('return_5_year' in r) r.return_5_year = null;
