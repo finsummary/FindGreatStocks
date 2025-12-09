@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { UpgradeModal } from './UpgradeModal';
 import { WatchlistManager } from './WatchlistManager';
 import { ROICSparkline } from './ROICSparkline';
+import { FCFMarginSparkline } from './FCFMarginSparkline';
 import {
   Tooltip,
   TooltipContent,
@@ -56,7 +57,7 @@ import {
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 interface ColumnConfig {
-  id: keyof Company | 'rank' | 'name' | 'watchlist' | 'none' | 'dcfVerdict' | 'roicHistory'; // 'none' for the placeholder
+  id: keyof Company | 'rank' | 'name' | 'watchlist' | 'none' | 'dcfVerdict' | 'roicHistory' | 'fcfMarginHistory'; // 'none' for the placeholder
   label: string;
   width: string;
   defaultVisible: boolean;
@@ -79,6 +80,7 @@ export const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'freeCashFlow', label: 'Free Cash Flow', width: 'w-[100px] sm:w-[120px]', defaultVisible: false },
   { id: 'fcfMargin', label: 'FCF Margin %', width: 'w-[90px] sm:w-[110px]', defaultVisible: false },
   { id: 'fcfMarginMedian10Y', label: 'FCF Margin 10Y Median %', width: 'w-[120px] sm:w-[150px]', defaultVisible: false },
+  { id: 'fcfMarginHistory', label: 'FCF Margin History (10Y)', width: 'w-[150px] sm:w-[180px]', defaultVisible: false },
   { id: 'debtToEquity', label: 'Debt-to-Equity', width: 'w-[100px] sm:w-[120px]', defaultVisible: false },
   { id: 'interestCoverage', label: 'Interest Coverage', width: 'w-[110px] sm:w-[130px]', defaultVisible: false },
   { id: 'cashFlowToDebt', label: 'Cash Flow to Debt', width: 'w-[110px] sm:w-[130px]', defaultVisible: false },
@@ -133,7 +135,7 @@ const PRESET_LAYOUTS = {
   },
   'cashflowLeverage': {
     name: 'Cashflow & Leverage',
-    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'fcfMargin', 'fcfMarginMedian10Y', 'debtToEquity', 'interestCoverage', 'cashFlowToDebt'],
+    columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'fcfMargin', 'fcfMarginMedian10Y', 'fcfMarginHistory', 'debtToEquity', 'interestCoverage', 'cashFlowToDebt'],
   },
 };
 
@@ -202,6 +204,7 @@ const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlis
   roe: 'Return on Equity measures a company\'s profitability in relation to stockholders\' equity. Calculated as Net Income / Total Equity.',
   fcfMargin: 'Free Cash Flow Margin = Free Cash Flow ÷ Revenue. Shows how much cash is generated from each dollar of sales.',
   fcfMarginMedian10Y: 'Median FCF margin over the last 10 fiscal years (FCF ÷ Revenue each year). Higher median indicates consistently strong cash conversion.',
+  fcfMarginHistory: 'FCF Margin History (10Y) = Bar chart showing annual FCF margin values for the last 10 fiscal years. Each bar represents one year. Green bars (≥15%) indicate excellent FCF margin, yellow (5-15%) good, red (<5%) weak.',
   roic: 'ROIC % (Latest) = Return on Invested Capital using the most recent fiscal year. Shows how efficiently a company generates returns on its invested capital.',
   roic10YAvg: 'Average ROIC % over the last 10 fiscal years (or available history). Higher means consistently strong capital efficiency.',
   roic10YStd: 'ROIC Volatility % = Standard deviation of annual ROIC over the last 10 years. Lower values mean more stable returns.',
@@ -1321,6 +1324,55 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 else if (value >= 0.05) cls = "text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950";
                 cellContent = <Badge variant="outline" className={`${cls} font-mono`}>{formatPercentageFromDecimal(value, true)}</Badge>;
               }
+              break;
+            }
+            case 'fcfMarginHistory': {
+              // Вычисляем FCF Margin для каждого года из fcfY1-fcfY10 и revenueY1-revenueY10
+              const fcfY1 = (row as any).fcfY1 ?? (row as any).fcf_y1;
+              const fcfY2 = (row as any).fcfY2 ?? (row as any).fcf_y2;
+              const fcfY3 = (row as any).fcfY3 ?? (row as any).fcf_y3;
+              const fcfY4 = (row as any).fcfY4 ?? (row as any).fcf_y4;
+              const fcfY5 = (row as any).fcfY5 ?? (row as any).fcf_y5;
+              const fcfY6 = (row as any).fcfY6 ?? (row as any).fcf_y6;
+              const fcfY7 = (row as any).fcfY7 ?? (row as any).fcf_y7;
+              const fcfY8 = (row as any).fcfY8 ?? (row as any).fcf_y8;
+              const fcfY9 = (row as any).fcfY9 ?? (row as any).fcf_y9;
+              const fcfY10 = (row as any).fcfY10 ?? (row as any).fcf_y10;
+              
+              const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
+              const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
+              const revenueY3 = (row as any).revenueY3 ?? (row as any).revenue_y3;
+              const revenueY4 = (row as any).revenueY4 ?? (row as any).revenue_y4;
+              const revenueY5 = (row as any).revenueY5 ?? (row as any).revenue_y5;
+              const revenueY6 = (row as any).revenueY6 ?? (row as any).revenue_y6;
+              const revenueY7 = (row as any).revenueY7 ?? (row as any).revenue_y7;
+              const revenueY8 = (row as any).revenueY8 ?? (row as any).revenue_y8;
+              const revenueY9 = (row as any).revenueY9 ?? (row as any).revenue_y9;
+              const revenueY10 = (row as any).revenueY10 ?? (row as any).revenue_y10;
+              
+              const calculateFcfMargin = (fcf: any, revenue: any): number | null => {
+                const fcfNum = fcf != null ? Number(fcf) : null;
+                const revenueNum = revenue != null ? Number(revenue) : null;
+                if (fcfNum !== null && revenueNum !== null && revenueNum !== 0) {
+                  return fcfNum / revenueNum;
+                }
+                return null;
+              };
+              
+              const fcfMarginHistory: (number | string | null | undefined)[] = [
+                calculateFcfMargin(fcfY1, revenueY1),
+                calculateFcfMargin(fcfY2, revenueY2),
+                calculateFcfMargin(fcfY3, revenueY3),
+                calculateFcfMargin(fcfY4, revenueY4),
+                calculateFcfMargin(fcfY5, revenueY5),
+                calculateFcfMargin(fcfY6, revenueY6),
+                calculateFcfMargin(fcfY7, revenueY7),
+                calculateFcfMargin(fcfY8, revenueY8),
+                calculateFcfMargin(fcfY9, revenueY9),
+                calculateFcfMargin(fcfY10, revenueY10),
+              ];
+              
+              cellContent = <FCFMarginSparkline fcfMarginData={fcfMarginHistory} />;
               break;
             }
             case 'debtToEquity': {
