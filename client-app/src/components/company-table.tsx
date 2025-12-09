@@ -1372,7 +1372,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 calculateFcfMargin(fcfY10, revenueY10),
               ];
               
-              cellContent = <FCFMarginSparkline fcfMarginData={fcfMarginHistory} />;
+              cellContent = <FCFMarginSparkline fcfMarginData={fcfMarginHistory} fcfMarginMedian10Y={row.fcfMarginMedian10Y} />;
               break;
             }
             case 'debtToEquity': {
