@@ -3827,7 +3827,7 @@ export function setupRoutes(app, supabase) {
       const bySym = new Map((master || []).map(r => [r.symbol, r]));
 
       // Load fallbacks from index tables for ALL symbols (not only missing)
-      const selectCols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, total_assets, total_equity, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std, fcf_margin_median_10y, debt_to_equity, interest_coverage, cash_flow_to_debt';
+      const selectCols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, total_assets, total_equity, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std, fcf_margin_median_10y, debt_to_equity, interest_coverage, cash_flow_to_debt, revenue_growth_3y, revenue_growth_5y, revenue_growth_10y, roic_y1, roic_y2, roic_y3, roic_y4, roic_y5, roic_y6, roic_y7, roic_y8, roic_y9, roic_y10, revenue_y1, revenue_y2, revenue_y3, revenue_y4, revenue_y5, revenue_y6, revenue_y7, revenue_y8, revenue_y9, revenue_y10, fcf_y1, fcf_y2, fcf_y3, fcf_y4, fcf_y5, fcf_y6, fcf_y7, fcf_y8, fcf_y9, fcf_y10';
       const [sp500, ndx, dji, ftse] = await Promise.all([
         supabase.from('sp500_companies').select(selectCols).in('symbol', symbols),
         supabase.from('nasdaq100_companies').select(selectCols).in('symbol', symbols),
@@ -3843,7 +3843,7 @@ export function setupRoutes(app, supabase) {
             if (!r?.symbol) continue;
             const prev = fallback.get(r.symbol) || {};
             const next = { ...prev };
-            const keys = ['price','market_cap','pe_ratio','price_to_sales_ratio','dividend_yield','revenue','net_income','free_cash_flow','total_assets','total_equity','return_3_year','return_5_year','return_10_year','max_drawdown_3_year','max_drawdown_5_year','max_drawdown_10_year','dcf_enterprise_value','margin_of_safety','dcf_implied_growth','roic','roic_10y_avg','roic_10y_std','fcf_margin_median_10y','debt_to_equity','interest_coverage','cash_flow_to_debt'];
+            const keys = ['price','market_cap','pe_ratio','price_to_sales_ratio','dividend_yield','revenue','net_income','free_cash_flow','total_assets','total_equity','return_3_year','return_5_year','return_10_year','max_drawdown_3_year','max_drawdown_5_year','max_drawdown_10_year','dcf_enterprise_value','margin_of_safety','dcf_implied_growth','roic','roic_10y_avg','roic_10y_std','fcf_margin_median_10y','debt_to_equity','interest_coverage','cash_flow_to_debt','revenue_growth_3y','revenue_growth_5y','revenue_growth_10y','roic_y1','roic_y2','roic_y3','roic_y4','roic_y5','roic_y6','roic_y7','roic_y8','roic_y9','roic_y10','revenue_y1','revenue_y2','revenue_y3','revenue_y4','revenue_y5','revenue_y6','revenue_y7','revenue_y8','revenue_y9','revenue_y10','fcf_y1','fcf_y2','fcf_y3','fcf_y4','fcf_y5','fcf_y6','fcf_y7','fcf_y8','fcf_y9','fcf_y10'];
             for (const k of keys) {
               const val = r[k];
               if ((next[k] === undefined || next[k] === null) && (val !== undefined && val !== null)) next[k] = val;
@@ -3905,6 +3905,36 @@ export function setupRoutes(app, supabase) {
           applyIfMissing('revenue_growth_3y', 'revenue_growth_3y');
           applyIfMissing('revenue_growth_5y', 'revenue_growth_5y');
           applyIfMissing('revenue_growth_10y', 'revenue_growth_10y');
+          applyIfMissing('roic_y1', 'roic_y1');
+          applyIfMissing('roic_y2', 'roic_y2');
+          applyIfMissing('roic_y3', 'roic_y3');
+          applyIfMissing('roic_y4', 'roic_y4');
+          applyIfMissing('roic_y5', 'roic_y5');
+          applyIfMissing('roic_y6', 'roic_y6');
+          applyIfMissing('roic_y7', 'roic_y7');
+          applyIfMissing('roic_y8', 'roic_y8');
+          applyIfMissing('roic_y9', 'roic_y9');
+          applyIfMissing('roic_y10', 'roic_y10');
+          applyIfMissing('revenue_y1', 'revenue_y1');
+          applyIfMissing('revenue_y2', 'revenue_y2');
+          applyIfMissing('revenue_y3', 'revenue_y3');
+          applyIfMissing('revenue_y4', 'revenue_y4');
+          applyIfMissing('revenue_y5', 'revenue_y5');
+          applyIfMissing('revenue_y6', 'revenue_y6');
+          applyIfMissing('revenue_y7', 'revenue_y7');
+          applyIfMissing('revenue_y8', 'revenue_y8');
+          applyIfMissing('revenue_y9', 'revenue_y9');
+          applyIfMissing('revenue_y10', 'revenue_y10');
+          applyIfMissing('fcf_y1', 'fcf_y1');
+          applyIfMissing('fcf_y2', 'fcf_y2');
+          applyIfMissing('fcf_y3', 'fcf_y3');
+          applyIfMissing('fcf_y4', 'fcf_y4');
+          applyIfMissing('fcf_y5', 'fcf_y5');
+          applyIfMissing('fcf_y6', 'fcf_y6');
+          applyIfMissing('fcf_y7', 'fcf_y7');
+          applyIfMissing('fcf_y8', 'fcf_y8');
+          applyIfMissing('fcf_y9', 'fcf_y9');
+          applyIfMissing('fcf_y10', 'fcf_y10');
           // Prefer master DCF when есть, иначе fallback
           if (r.dcf_enterprise_value == null && fb.dcf_enterprise_value != null) r.dcf_enterprise_value = fb.dcf_enterprise_value;
           if (r.margin_of_safety == null && fb.margin_of_safety != null) r.margin_of_safety = fb.margin_of_safety;
@@ -3915,7 +3945,7 @@ export function setupRoutes(app, supabase) {
 
       // Enrich with master table data (like listFromTable does)
       if (symbols.length) {
-        const cols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, total_assets, total_equity, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std, fcf_margin_median_10y, debt_to_equity, interest_coverage, cash_flow_to_debt, revenue_growth_3y, revenue_growth_5y, revenue_growth_10y';
+        const cols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, revenue, net_income, free_cash_flow, total_assets, total_equity, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std, fcf_margin_median_10y, debt_to_equity, interest_coverage, cash_flow_to_debt, revenue_growth_3y, revenue_growth_5y, revenue_growth_10y, roic_y1, roic_y2, roic_y3, roic_y4, roic_y5, roic_y6, roic_y7, roic_y8, roic_y9, roic_y10, revenue_y1, revenue_y2, revenue_y3, revenue_y4, revenue_y5, revenue_y6, revenue_y7, revenue_y8, revenue_y9, revenue_y10, fcf_y1, fcf_y2, fcf_y3, fcf_y4, fcf_y5, fcf_y6, fcf_y7, fcf_y8, fcf_y9, fcf_y10';
         const { data: masterEnrich } = await supabase.from('companies').select(cols).in('symbol', symbols);
         if (masterEnrich && Array.isArray(masterEnrich)) {
           const masterBySym = new Map(masterEnrich.map(m => [m.symbol, m]));
@@ -3960,6 +3990,36 @@ export function setupRoutes(app, supabase) {
             applyIfMissing('revenue_growth_3y');
             applyIfMissing('revenue_growth_5y');
             applyIfMissing('revenue_growth_10y');
+            applyIfMissing('roic_y1');
+            applyIfMissing('roic_y2');
+            applyIfMissing('roic_y3');
+            applyIfMissing('roic_y4');
+            applyIfMissing('roic_y5');
+            applyIfMissing('roic_y6');
+            applyIfMissing('roic_y7');
+            applyIfMissing('roic_y8');
+            applyIfMissing('roic_y9');
+            applyIfMissing('roic_y10');
+            applyIfMissing('revenue_y1');
+            applyIfMissing('revenue_y2');
+            applyIfMissing('revenue_y3');
+            applyIfMissing('revenue_y4');
+            applyIfMissing('revenue_y5');
+            applyIfMissing('revenue_y6');
+            applyIfMissing('revenue_y7');
+            applyIfMissing('revenue_y8');
+            applyIfMissing('revenue_y9');
+            applyIfMissing('revenue_y10');
+            applyIfMissing('fcf_y1');
+            applyIfMissing('fcf_y2');
+            applyIfMissing('fcf_y3');
+            applyIfMissing('fcf_y4');
+            applyIfMissing('fcf_y5');
+            applyIfMissing('fcf_y6');
+            applyIfMissing('fcf_y7');
+            applyIfMissing('fcf_y8');
+            applyIfMissing('fcf_y9');
+            applyIfMissing('fcf_y10');
           }
         }
       }
