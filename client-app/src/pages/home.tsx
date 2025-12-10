@@ -42,6 +42,13 @@ export function HomePage() {
     }
   });
 
+  // Mark that user has seen the landing page when they use the home page
+  useEffect(() => {
+    try {
+      localStorage.setItem('fgs:landing:seen', '1');
+    } catch {}
+  }, []);
+
   // Capture video_opened when modal opens (extra safety)
   useEffect(() => {
     if (!videoId) return;

@@ -20,13 +20,36 @@ import Footer from "./components/footer";
 import { useFlag } from "./providers/FeatureFlagsProvider";
 import EducationPage from "./pages/education";
 import AdminFlagsPage from "./pages/admin-flags";
-import { useEffect, useRef } from 'react';
+import LandingPage from "./pages/landing";
+import { useEffect, useRef, useState } from 'react';
 
 declare global { interface Window { posthog?: any } }
 
 // Use relative paths to go through Vercel proxy (see vercel.json rewrites)
 // Only use absolute URL if explicitly set via env var (for local dev with Railway)
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '';
+
+// Component to conditionally show LandingPage or HomePage
+function HomePageWrapper() {
+  const [hasSeenLanding, setHasSeenLanding] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem('fgs:landing:seen');
+      setHasSeenLanding(seen === '1');
+    } catch {
+      setHasSeenLanding(false);
+    }
+  }, []);
+
+  // Show loading state while checking
+  if (hasSeenLanding === null) {
+    return <Home />; // Default to Home while checking
+  }
+
+  // Show LandingPage for new users, HomePage for returning users
+  return hasSeenLanding ? <Home /> : <LandingPage />;
+}
 
 function App() {
   useAnalytics();
@@ -90,6 +113,9 @@ function App() {
               <Link to="/admin/flags">Flags</Link>
             </Button>
           )}
+          <Button asChild variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground">
+            <Link to="/start-here">Start Here</Link>
+          </Button>
           {educationOn ? (
             <Button asChild variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground">
               <Link to="/education">Education</Link>
@@ -143,7 +169,8 @@ function App() {
       </header>
       <main className="flex-1 p-4 overflow-x-hidden">
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<HomePageWrapper />} />
+          <Route path="/start-here" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/watchlist" element={<Watchlist />} />
           <Route path="/profile" element={<ProfilePage />} />
