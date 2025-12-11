@@ -4,8 +4,9 @@ import { CompanyTable } from "@/components/company-table";
 import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, HelpCircle } from "lucide-react";
 import { useFlag } from "@/providers/FeatureFlagsProvider";
+import { GuidedTour, useGuidedTour } from "@/components/GuidedTour";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -74,6 +75,7 @@ export function HomePage() {
   const hsiOn = useFlag('market:hangseng');
   const nifty50On = useFlag('market:nifty50');
   const ibovespaOn = useFlag('market:ibovespa');
+  const { shouldRun, startTour, stopTour } = useGuidedTour();
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -84,8 +86,9 @@ export function HomePage() {
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-950">
       
       <main className="container mx-auto px-4 py-8">
+        <GuidedTour run={shouldRun} onComplete={stopTour} />
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-between gap-3 mb-4">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2" data-tour="market-selector">
             <Button
               variant={activeTab === 'dowjones' ? 'secondary' : 'outline'}
               onClick={() => { setActiveTab('dowjones'); try { (window as any).phCapture?.('dataset_selected', { dataset: 'dowjones' }); } catch {} }}
@@ -227,15 +230,26 @@ export function HomePage() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <form onSubmit={handleSearch} className="flex w-full sm:max-w-sm items-center space-x-2">
-            <Input 
-              type="text" 
-              placeholder="Search by company or ticker..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-            />
-            <Button type="submit" variant="outline">Search</Button>
-          </form>
+          <div className="flex items-center gap-2">
+            <form onSubmit={handleSearch} className="flex w-full sm:max-w-sm items-center space-x-2" data-tour="search">
+              <Input 
+                type="text" 
+                placeholder="Search by company or ticker..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+              />
+              <Button type="submit" variant="outline">Search</Button>
+            </form>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={startTour}
+              className="text-muted-foreground hover:text-foreground"
+              title="Показать тур по приложению"
+            >
+              <HelpCircle className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
 
         {/* Tutorial video buttons with popup player (collapsible) */}

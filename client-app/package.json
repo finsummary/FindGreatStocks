@@ -54,6 +54,7 @@
     "react-dom": "^18.2.0",
     "react-helmet-async": "^2.0.4",
     "react-hook-form": "^7.48.2",
+    "react-joyride": "^2.9.3",
     "react-resizable-panels": "^0.0.55",
     "react-router-dom": "^6.21.3",
     "recharts": "^2.8.0",

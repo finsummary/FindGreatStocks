@@ -1025,7 +1025,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
           <TooltipProvider delayDuration={100}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className={`flex items-center ${colConfig.id === 'name' ? 'justify-start' : 'justify-center'} gap-1`}>
+                <div 
+                  className={`flex items-center ${colConfig.id === 'name' ? 'justify-start' : 'justify-center'} gap-1`}
+                  data-tour={colConfig.id === 'marketCap' ? 'columns' : colConfig.id === 'watchlist' ? 'watchlist' : undefined}
+                >
                   {colConfig.id === 'watchlist' ? <Star className="h-4 w-4" /> : colConfig.label}
                   {colConfig.id !== 'watchlist' && <SortIcon column={colConfig.id} />}
                 </div>
@@ -2088,7 +2091,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full sm:w-auto text-sm">
+                <Button variant="outline" size="sm" className="w-full sm:w-auto text-sm" data-tour="layout-selector">
                   <span className="flex items-center">
                     Choose Layout
                   </span>
@@ -2167,7 +2170,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               </DropdownMenuContent>
             </DropdownMenu>
             {!authLoading && !isPaidUser && (
-               <Button size="sm" onClick={() => { try { (window as any).phCapture?.('upgrade_clicked', { source: 'table_button' }); } catch {} setIsUpgradeModalOpen(true); }}>
+               <Button size="sm" data-tour="upgrade" onClick={() => { try { (window as any).phCapture?.('upgrade_clicked', { source: 'table_button' }); } catch {} setIsUpgradeModalOpen(true); }}>
                 <Unlock className="mr-2 h-4 w-4" />
                 Upgrade
               </Button>
