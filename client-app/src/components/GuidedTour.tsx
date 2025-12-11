@@ -36,13 +36,13 @@ export function GuidedTour({ run, onComplete }: GuidedTourProps) {
             <p className="text-sm">
               Layouts help you analyze companies from different angles:
             </p>
-            <ul className="text-sm mt-2 space-y-1 list-disc list-outside ml-4">
-              <li><strong>Compounders (ROIC)</strong> - identify great compounders</li>
-              <li><strong>Cashflow & Leverage</strong> - assess cash generation and debt</li>
-              <li><strong>DuPont ROE Decomposition</strong> - understand what drives returns</li>
-              <li><strong>Return on Risk</strong> - analyze risk-adjusted returns</li>
-              <li><strong>DCF Valuation</strong> - estimate intrinsic value</li>
-              <li><strong>Reverse DCF</strong> - understand growth expectations priced in</li>
+            <ul className="text-sm mt-2 space-y-1" style={{ listStyle: 'disc', listStylePosition: 'outside', paddingLeft: '1.5rem', marginLeft: '0' }}>
+              <li style={{ paddingLeft: '0.5rem' }}><strong>Compounders (ROIC)</strong> - identify great compounders</li>
+              <li style={{ paddingLeft: '0.5rem' }}><strong>Cashflow & Leverage</strong> - assess cash generation and debt</li>
+              <li style={{ paddingLeft: '0.5rem' }}><strong>DuPont ROE Decomposition</strong> - understand what drives returns</li>
+              <li style={{ paddingLeft: '0.5rem' }}><strong>Return on Risk</strong> - analyze risk-adjusted returns</li>
+              <li style={{ paddingLeft: '0.5rem' }}><strong>DCF Valuation</strong> - estimate intrinsic value</li>
+              <li style={{ paddingLeft: '0.5rem' }}><strong>Reverse DCF</strong> - understand growth expectations priced in</li>
             </ul>
             <p className="text-sm mt-2">
               All layouts are free for Dow Jones!
@@ -141,6 +141,9 @@ export function GuidedTour({ run, onComplete }: GuidedTourProps) {
         },
         tooltip: {
           borderRadius: '8px',
+        },
+        tooltipContainer: {
+          textAlign: 'left',
         },
         buttonNext: {
           backgroundColor: '#10b981',
