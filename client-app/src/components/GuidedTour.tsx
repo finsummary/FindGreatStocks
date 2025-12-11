@@ -37,10 +37,12 @@ export function GuidedTour({ run, onComplete }: GuidedTourProps) {
               Layouts help you analyze companies from different angles:
             </p>
             <ul className="text-sm mt-2 space-y-1 list-disc list-inside">
-              <li><strong>Value</strong> - find undervalued stocks</li>
-              <li><strong>DCF</strong> - estimate intrinsic value</li>
+              <li><strong>Compounders (ROIC)</strong> - identify great compounders</li>
+              <li><strong>Cashflow & Leverage</strong> - assess cash generation and debt</li>
+              <li><strong>DuPont ROE Decomposition</strong> - understand what drives returns</li>
               <li><strong>Return on Risk</strong> - analyze risk-adjusted returns</li>
-              <li><strong>Growth</strong> - evaluate company growth</li>
+              <li><strong>DCF Valuation</strong> - estimate intrinsic value</li>
+              <li><strong>Reverse DCF</strong> - understand growth expectations priced in</li>
             </ul>
             <p className="text-sm mt-2">
               All layouts are free for Dow Jones!
