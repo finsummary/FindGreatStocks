@@ -88,8 +88,12 @@ export function UpgradeModal({ isOpen, onClose, onUpgrade }: UpgradeModalProps) 
         </div>
         <DialogFooter className="flex-col gap-3 bg-zinc-50 dark:bg-zinc-800/60 p-6">
           <div className="w-full">
-            <div className="rounded-lg border bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm p-4 text-center">
+            <div className="rounded-lg border bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm p-4 text-center relative">
               <span className="font-semibold text-lg">Lifetime Deal</span>
+              <div className="mt-2 flex items-center justify-center gap-2">
+                <span className="text-xl text-muted-foreground line-through">$199</span>
+                <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">75% OFF</span>
+              </div>
               <div className="mt-1 text-3xl font-bold">$49</div>
               <div className="text-xs text-muted-foreground">one-time payment</div>
             </div>
