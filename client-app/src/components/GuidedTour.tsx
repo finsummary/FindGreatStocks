@@ -36,7 +36,7 @@ export function GuidedTour({ run, onComplete }: GuidedTourProps) {
             <p className="text-sm">
               Layouts help you analyze companies from different angles:
             </p>
-            <ul className="text-sm mt-2 space-y-1 list-disc list-inside">
+            <ul className="text-sm mt-2 space-y-1 list-disc list-outside ml-4">
               <li><strong>Compounders (ROIC)</strong> - identify great compounders</li>
               <li><strong>Cashflow & Leverage</strong> - assess cash generation and debt</li>
               <li><strong>DuPont ROE Decomposition</strong> - understand what drives returns</li>
