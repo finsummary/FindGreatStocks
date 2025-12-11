@@ -2098,8 +2098,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 <DropdownMenuLabel>Table Layouts</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {Object.entries(PRESET_LAYOUTS).filter(([key]) => key !== 'compounders').map(([key, layout]) => {
-                  const isPaidLayout = ['dcfValuation', 'dupontRoe', 'returnOnRisk', 'reverseDcf', 'cashflowLeverage'].includes(key);
-                  const isLocked = !isPaidUser && dataset !== 'dowjones' && isPaidLayout && !layoutAccess[key];
+                  // For S&P 500 and Nasdaq 100: all layouts are locked for non-premium users
+                  // For Dow Jones: all layouts are accessible to everyone
+                  const isLocked = !isPaidUser && (dataset === 'sp500' || dataset === 'nasdaq100');
                   return (
                     <DropdownMenuItem
                       key={key}
@@ -2128,26 +2129,36 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 })}
                 <DropdownMenuSeparator />
                 {compoundersOn ? (
-                  <DropdownMenuItem
-                    onSelect={() => {
-                      const layout = (PRESET_LAYOUTS as any)['compounders'];
-                      const newVisibility = ALL_COLUMNS.reduce((acc, col) => {
-                        if (['watchlist', 'rank', 'name'].includes(col.id)) {
-                          acc[col.id] = true;
-                        } else {
-                          acc[col.id] = layout.columns.includes(col.id);
-                        }
-                        return acc;
-                      }, {} as VisibilityState);
-                      setColumnVisibility(newVisibility);
-                      setSelectedLayout('compounders');
-                      try { (window as any).phCapture?.('layout_selected', { layout: 'compounders', dataset }); } catch {}
-                    }}
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <span>Compounders (ROIC, FCF)</span>
-                    </div>
-                  </DropdownMenuItem>
+                  (() => {
+                    // For S&P 500 and Nasdaq 100: compounders layout is locked for non-premium users
+                    // For Dow Jones: compounders layout is accessible to everyone
+                    const isCompoundersLocked = !isPaidUser && (dataset === 'sp500' || dataset === 'nasdaq100');
+                    return (
+                      <DropdownMenuItem
+                        disabled={isCompoundersLocked}
+                        onSelect={() => {
+                          if (isCompoundersLocked) return;
+                          const layout = (PRESET_LAYOUTS as any)['compounders'];
+                          const newVisibility = ALL_COLUMNS.reduce((acc, col) => {
+                            if (['watchlist', 'rank', 'name'].includes(col.id)) {
+                              acc[col.id] = true;
+                            } else {
+                              acc[col.id] = layout.columns.includes(col.id);
+                            }
+                            return acc;
+                          }, {} as VisibilityState);
+                          setColumnVisibility(newVisibility);
+                          setSelectedLayout('compounders');
+                          try { (window as any).phCapture?.('layout_selected', { layout: 'compounders', dataset }); } catch {}
+                        }}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span>Compounders (ROIC, FCF)</span>
+                          {isCompoundersLocked && <Lock className="h-4 w-4 text-muted-foreground ml-2" />}
+                        </div>
+                      </DropdownMenuItem>
+                    );
+                  })()
                 ) : (
                   <DropdownMenuItem disabled className="text-muted-foreground">
                     Compounders (Coming Soon)
