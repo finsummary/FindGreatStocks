@@ -44,9 +44,6 @@ export function GuidedTour({ run, onComplete }: GuidedTourProps) {
               <li style={{ paddingLeft: '0.5rem' }}><strong>DCF Valuation</strong> - estimate intrinsic value</li>
               <li style={{ paddingLeft: '0.5rem' }}><strong>Reverse DCF</strong> - understand growth expectations priced in</li>
             </ul>
-            <p className="text-sm mt-2">
-              All layouts are free for Dow Jones!
-            </p>
           </div>
         ),
         placement: 'bottom',
