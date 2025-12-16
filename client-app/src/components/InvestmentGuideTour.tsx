@@ -13,6 +13,7 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
   const [steps, setSteps] = useState<Step[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
   const [selectedLayout, setSelectedLayout] = useState<string | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const joyrideRef = useRef<Joyride>(null);
 
   // Listen for layout selection events
@@ -21,9 +22,22 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
       setSelectedLayout(event.detail?.layout || null);
     };
 
+    const handleDropdownOpened = () => {
+      setIsDropdownOpen(true);
+    };
+
+    const handleDropdownClosed = () => {
+      setIsDropdownOpen(false);
+    };
+
     window.addEventListener('fgs:layout-selected', handleLayoutSelected as EventListener);
+    window.addEventListener('fgs:layout-dropdown-opened', handleDropdownOpened as EventListener);
+    window.addEventListener('fgs:layout-dropdown-closed', handleDropdownClosed as EventListener);
+    
     return () => {
       window.removeEventListener('fgs:layout-selected', handleLayoutSelected as EventListener);
+      window.removeEventListener('fgs:layout-dropdown-opened', handleDropdownOpened as EventListener);
+      window.removeEventListener('fgs:layout-dropdown-closed', handleDropdownClosed as EventListener);
     };
   }, []);
 
@@ -55,12 +69,15 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         disableBeacon: true,
       },
       {
-        target: '[data-tour="layout-selector"]',
+        target: isDropdownOpen ? '[data-tour="compounders-layout"]' : '[data-tour="layout-selector"]',
         content: (
           <div>
             <h3 className="font-semibold text-lg mb-2">Step 1: Find Great Companies</h3>
             <p className="text-sm mb-2">
-              Click on <strong>"Choose Layout"</strong> and select <strong>Compounders (ROIC)</strong> to identify exceptional businesses.
+              {isDropdownOpen 
+                ? <>Select <strong>Compounders (ROIC)</strong> to identify exceptional businesses.</>
+                : <>Click on <strong>"Choose Layout"</strong> and select <strong>Compounders (ROIC)</strong> to identify exceptional businesses.</>
+              }
             </p>
             <p className="text-sm mb-2">
               Look for companies with:
@@ -70,11 +87,14 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
               <li style={{ paddingLeft: '0.5rem' }}>High ROIC Stability Score (consistency over 10 years)</li>
             </ul>
             <p className="text-sm mt-2 font-semibold text-emerald-600">
-              Please select the Compounders (ROIC) layout to continue.
+              {isDropdownOpen 
+                ? 'Click on Compounders (ROIC) to continue.'
+                : 'Please select the Compounders (ROIC) layout to continue.'
+              }
             </p>
           </div>
         ),
-        placement: 'bottom',
+        placement: isDropdownOpen ? 'top' : 'bottom',
         disableBeacon: true,
         spotlightClicks: true,
       },
@@ -193,7 +213,7 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
     ];
 
     setSteps(tourSteps);
-  }, []);
+  }, [isDropdownOpen]);
 
   // Auto-advance when user selects compounders layout on step 1
   useEffect(() => {
@@ -257,8 +277,8 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
       showSkipButton
       callback={handleJoyrideCallback}
       spotlightClicks={stepIndex === 1}
-      disableOverlayClose={stepIndex === 1}
-      disableScrolling={stepIndex === 1}
+      disableOverlayClose={stepIndex === 1 && !isDropdownOpen}
+      disableScrolling={stepIndex === 1 && !isDropdownOpen}
       styles={{
         options: {
           primaryColor: '#10b981', // emerald-500

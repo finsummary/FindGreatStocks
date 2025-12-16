@@ -2089,7 +2089,16 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <DropdownMenu>
+            <DropdownMenu
+              onOpenChange={(open) => {
+                // Dispatch event when dropdown opens/closes for investment guide tour
+                if (open) {
+                  window.dispatchEvent(new CustomEvent('fgs:layout-dropdown-opened'));
+                } else {
+                  window.dispatchEvent(new CustomEvent('fgs:layout-dropdown-closed'));
+                }
+              }}
+            >
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="w-full sm:w-auto text-sm" data-tour="layout-selector">
                   <span className="flex items-center">
@@ -2125,6 +2134,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                       <DropdownMenuItem
                         key={key}
                         disabled={isLocked}
+                        data-tour={key === 'compounders' ? 'compounders-layout' : undefined}
                         onSelect={() => {
                           if (isLocked) return;
                           const newVisibility = ALL_COLUMNS.reduce((acc, col) => {
