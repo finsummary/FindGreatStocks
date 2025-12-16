@@ -115,6 +115,8 @@ export function GuidedTour({ run, onComplete }: GuidedTourProps) {
       // Mark tour as completed
       try {
         localStorage.setItem(TOUR_STORAGE_KEY, '1');
+        // Trigger custom event to notify that first tour is complete
+        window.dispatchEvent(new CustomEvent('fgs:first-tour-completed'));
       } catch {}
       
       if (onComplete) {
