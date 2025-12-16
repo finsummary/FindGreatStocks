@@ -232,7 +232,7 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
           return;
         }
         setStepIndex(index + 1);
-      } else if (action === 'back') {
+      } else if (action === 'prev') {
         setStepIndex(index - 1);
       }
     } else if (type === 'step:before') {
