@@ -1,15 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Joyride, { CallBackProps, STATUS, Step } from 'react-joyride';
 
 interface InvestmentGuideTourProps {
   run: boolean;
   onComplete?: () => void;
+  selectedLayout?: string | null;
 }
 
 const TOUR_STORAGE_KEY = 'fgs:investment_guide_tour:completed';
 
-export function InvestmentGuideTour({ run, onComplete }: InvestmentGuideTourProps) {
+export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedLayoutProp }: InvestmentGuideTourProps) {
   const [steps, setSteps] = useState<Step[]>([]);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [selectedLayout, setSelectedLayout] = useState<string | null>(null);
+  const joyrideRef = useRef<Joyride>(null);
+
+  // Listen for layout selection events
+  useEffect(() => {
+    const handleLayoutSelected = (event: CustomEvent) => {
+      setSelectedLayout(event.detail?.layout || null);
+    };
+
+    window.addEventListener('fgs:layout-selected', handleLayoutSelected as EventListener);
+    return () => {
+      window.removeEventListener('fgs:layout-selected', handleLayoutSelected as EventListener);
+    };
+  }, []);
+
+  // Also use prop if provided
+  useEffect(() => {
+    if (selectedLayoutProp) {
+      setSelectedLayout(selectedLayoutProp);
+    }
+  }, [selectedLayoutProp]);
 
   useEffect(() => {
     // Define tour steps based on Landing Page content
@@ -37,7 +60,7 @@ export function InvestmentGuideTour({ run, onComplete }: InvestmentGuideTourProp
           <div>
             <h3 className="font-semibold text-lg mb-2">Step 1: Find Great Companies</h3>
             <p className="text-sm mb-2">
-              Start by using the <strong>Compounders (ROIC)</strong> layout to identify exceptional businesses.
+              Click on <strong>"Choose Layout"</strong> and select <strong>Compounders (ROIC)</strong> to identify exceptional businesses.
             </p>
             <p className="text-sm mb-2">
               Look for companies with:
@@ -46,8 +69,25 @@ export function InvestmentGuideTour({ run, onComplete }: InvestmentGuideTourProp
               <li style={{ paddingLeft: '0.5rem' }}>High ROIC (Return on Invested Capital)</li>
               <li style={{ paddingLeft: '0.5rem' }}>High ROIC Stability Score (consistency over 10 years)</li>
             </ul>
-            <p className="text-sm mt-2">
-              These metrics indicate a durable business model.
+            <p className="text-sm mt-2 font-semibold text-emerald-600">
+              Please select the Compounders (ROIC) layout to continue.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+        disableBeacon: true,
+        spotlightClicks: true,
+      },
+      {
+        target: '[data-tour="layout-selector"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Great! You selected Compounders layout</h3>
+            <p className="text-sm mb-2">
+              Now you can see companies sorted by ROIC and ROIC Stability Score. This helps identify exceptional compounders.
+            </p>
+            <p className="text-sm">
+              Next, let's check cash flow quality.
             </p>
           </div>
         ),
@@ -155,8 +195,18 @@ export function InvestmentGuideTour({ run, onComplete }: InvestmentGuideTourProp
     setSteps(tourSteps);
   }, []);
 
+  // Auto-advance when user selects compounders layout on step 1
+  useEffect(() => {
+    if (stepIndex === 1 && selectedLayout === 'compounders' && run) {
+      // User selected compounders, advance to next step after a short delay
+      setTimeout(() => {
+        setStepIndex(2);
+      }, 500);
+    }
+  }, [stepIndex, selectedLayout, run]);
+
   const handleJoyrideCallback = (data: CallBackProps) => {
-    const { status } = data;
+    const { status, index, action, type } = data;
     
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       // Mark tour as completed
@@ -167,17 +217,48 @@ export function InvestmentGuideTour({ run, onComplete }: InvestmentGuideTourProp
       if (onComplete) {
         onComplete();
       }
+      return;
+    }
+
+    // Update step index when user navigates
+    if (type === 'step:after') {
+      if (action === 'next') {
+        // Block advancement on step 1 if layout not selected
+        if (index === 1 && selectedLayout !== 'compounders') {
+          // Reset stepIndex back to 1 to prevent advancement
+          requestAnimationFrame(() => {
+            setStepIndex(1);
+          });
+          return;
+        }
+        setStepIndex(index + 1);
+      } else if (action === 'back') {
+        setStepIndex(index - 1);
+      }
+    } else if (type === 'step:before') {
+      // Sync stepIndex with joyride's internal index only if not blocking
+      if (!(index === 1 && selectedLayout !== 'compounders')) {
+        setStepIndex(index);
+      } else {
+        // Keep at step 1 if trying to advance without layout selection
+        setStepIndex(1);
+      }
     }
   };
 
   return (
     <Joyride
+      ref={joyrideRef}
       steps={steps}
       run={run}
+      stepIndex={stepIndex}
       continuous
       showProgress
       showSkipButton
       callback={handleJoyrideCallback}
+      spotlightClicks={stepIndex === 1}
+      disableOverlayClose={stepIndex === 1}
+      disableScrolling={stepIndex === 1}
       styles={{
         options: {
           primaryColor: '#10b981', // emerald-500
@@ -190,9 +271,11 @@ export function InvestmentGuideTour({ run, onComplete }: InvestmentGuideTourProp
           textAlign: 'left',
         },
         buttonNext: {
-          backgroundColor: '#10b981',
+          backgroundColor: stepIndex === 1 && selectedLayout !== 'compounders' ? '#9ca3af' : '#10b981',
           fontSize: '14px',
           padding: '8px 16px',
+          cursor: stepIndex === 1 && selectedLayout !== 'compounders' ? 'not-allowed' : 'pointer',
+          opacity: stepIndex === 1 && selectedLayout !== 'compounders' ? 0.6 : 1,
         },
         buttonBack: {
           color: '#6b7280',
@@ -227,4 +310,3 @@ export function useInvestmentGuideTour() {
 
   return { shouldRun, startTour, stopTour };
 }
-

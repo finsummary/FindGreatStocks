@@ -2137,6 +2137,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                           }, {} as VisibilityState);
                           setColumnVisibility(newVisibility);
                           setSelectedLayout(key);
+                          // Dispatch event for investment guide tour
+                          window.dispatchEvent(new CustomEvent('fgs:layout-selected', { detail: { layout: key } }));
                           try { (window as any).phCapture?.('layout_selected', { layout: key, dataset }); } catch {}
                         }}
                       >
