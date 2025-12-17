@@ -7,7 +7,6 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ChevronDown, HelpCircle, BookOpen } from "lucide-react";
 import { useFlag } from "@/providers/FeatureFlagsProvider";
 import { GuidedTour, useGuidedTour } from "@/components/GuidedTour";
-import { InvestmentGuideTour, useInvestmentGuideTour } from "@/components/InvestmentGuideTour";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -77,31 +76,6 @@ export function HomePage() {
   const nifty50On = useFlag('market:nifty50');
   const ibovespaOn = useFlag('market:ibovespa');
   const { shouldRun, startTour, stopTour } = useGuidedTour();
-  const { shouldRun: shouldRunInvestmentGuide, startTour: startInvestmentGuide, stopTour: stopInvestmentGuide } = useInvestmentGuideTour();
-  
-  // Show investment guide tour after first tour completes
-  useEffect(() => {
-    const handleFirstTourCompleted = () => {
-      try {
-        const investmentGuideShown = localStorage.getItem('fgs:investment_guide_tour:completed');
-        if (!investmentGuideShown && !shouldRunInvestmentGuide) {
-          // Show investment guide tour after a short delay
-          setTimeout(() => {
-            const layoutSelector = document.querySelector('[data-tour="layout-selector"]');
-            if (layoutSelector) {
-              startInvestmentGuide();
-            }
-          }, 1500);
-        }
-      } catch {}
-    };
-
-    window.addEventListener('fgs:first-tour-completed', handleFirstTourCompleted);
-    
-    return () => {
-      window.removeEventListener('fgs:first-tour-completed', handleFirstTourCompleted);
-    };
-  }, [shouldRunInvestmentGuide, startInvestmentGuide]);
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -113,7 +87,6 @@ export function HomePage() {
       
       <main className="container mx-auto px-4 py-8">
         <GuidedTour run={shouldRun} onComplete={stopTour} onStop={stopTour} />
-        <InvestmentGuideTour run={shouldRunInvestmentGuide} onComplete={stopInvestmentGuide} onStop={stopInvestmentGuide} />
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex flex-wrap items-center gap-2" data-tour="market-selector">
             <Button

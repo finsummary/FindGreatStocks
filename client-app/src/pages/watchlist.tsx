@@ -72,12 +72,8 @@ export function WatchlistPage() {
                      // user?.subscriptionTier === 'annual' || 
                      // user?.subscriptionTier === 'lifetime';
 
-  // Get investment guide tour state
-  const { shouldRun: shouldRunInvestmentGuide, stopTour: stopInvestmentGuide } = useInvestmentGuideTour();
-
   return (
     <div className="space-y-6">
-      <InvestmentGuideTour run={shouldRunInvestmentGuide} onComplete={stopInvestmentGuide} onStop={stopInvestmentGuide} />
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
