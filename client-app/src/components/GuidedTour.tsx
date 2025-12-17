@@ -8,7 +8,7 @@ interface GuidedTourProps {
 
 const TOUR_STORAGE_KEY = 'fgs:guided_tour:completed';
 
-export function GuidedTour({ run, onComplete }: GuidedTourProps) {
+export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
   const [steps, setSteps] = useState<Step[]>([]);
 
   useEffect(() => {
@@ -109,15 +109,20 @@ export function GuidedTour({ run, onComplete }: GuidedTourProps) {
   }, []);
 
   const handleJoyrideCallback = (data: CallBackProps) => {
-    const { status } = data;
+    const { status, action } = data;
     
-    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+    // Handle close button click or tour completion
+    if (action === 'close' || status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       // Mark tour as completed
       try {
         localStorage.setItem(TOUR_STORAGE_KEY, '1');
         // Trigger custom event to notify that first tour is complete
         window.dispatchEvent(new CustomEvent('fgs:first-tour-completed'));
       } catch {}
+      
+      if (onStop) {
+        onStop();
+      }
       
       if (onComplete) {
         onComplete();

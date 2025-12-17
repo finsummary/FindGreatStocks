@@ -268,7 +268,6 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const [selectedSymbolForWatchlist, setSelectedSymbolForWatchlist] = useState<string | null>(null);
   const [moveCompanyDialogOpen, setMoveCompanyDialogOpen] = useState(false);
   const [companyToMove, setCompanyToMove] = useState<{ symbol: string; watchlistId?: number; mode?: 'move' | 'copy' } | null>(null);
-  const [isInvestmentTourStep1Active, setIsInvestmentTourStep1Active] = useState(false);
   const { user, session, loading: authLoading } = useAuth();
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 640px)');
@@ -276,24 +275,6 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
     update();
     mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
-  }, []);
-
-  // Listen for investment tour step 1 active state
-  useEffect(() => {
-    const handleTourStep1Active = () => {
-      setIsInvestmentTourStep1Active(true);
-    };
-    const handleTourStep1Inactive = () => {
-      setIsInvestmentTourStep1Active(false);
-    };
-
-    window.addEventListener('fgs:investment-tour-step1-active', handleTourStep1Active);
-    window.addEventListener('fgs:investment-tour-step1-inactive', handleTourStep1Inactive);
-    
-    return () => {
-      window.removeEventListener('fgs:investment-tour-step1-active', handleTourStep1Active);
-      window.removeEventListener('fgs:investment-tour-step1-inactive', handleTourStep1Inactive);
-    };
   }, []);
 
   const queryClient = useQueryClient();
@@ -2173,12 +2154,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                       >
                         <div className="flex items-center justify-between w-full">
                           <span>{layout.name}</span>
-                          <div className="flex items-center gap-2">
-                            {key === 'compounders' && isInvestmentTourStep1Active && (
-                              <div className="h-2 w-2 rounded-full bg-emerald-500 flex-shrink-0 animate-pulse" />
-                            )}
-                            {isLocked && <Lock className="h-4 w-4 text-muted-foreground ml-2" />}
-                          </div>
+                          {isLocked && <Lock className="h-4 w-4 text-muted-foreground ml-2" />}
                         </div>
                       </DropdownMenuItem>
                     );

@@ -17,14 +17,6 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const joyrideRef = useRef<Joyride>(null);
 
-  // Dispatch event when tour is active on step 1
-  useEffect(() => {
-    if (run && stepIndex === 1) {
-      window.dispatchEvent(new CustomEvent('fgs:investment-tour-step1-active'));
-    } else {
-      window.dispatchEvent(new CustomEvent('fgs:investment-tour-step1-inactive'));
-    }
-  }, [run, stepIndex]);
 
   // Listen for layout selection events
   useEffect(() => {
@@ -105,7 +97,7 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
           </div>
         ),
         placement: isDropdownOpen ? 'top' : 'bottom',
-        disableBeacon: true,
+        disableBeacon: false, // Enable beacon to show green dot
         spotlightClicks: true,
       },
       {

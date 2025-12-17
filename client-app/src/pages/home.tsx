@@ -112,7 +112,7 @@ export function HomePage() {
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-950">
       
       <main className="container mx-auto px-4 py-8">
-        <GuidedTour run={shouldRun} onComplete={stopTour} />
+        <GuidedTour run={shouldRun} onComplete={stopTour} onStop={stopTour} />
         <InvestmentGuideTour run={shouldRunInvestmentGuide} onComplete={stopInvestmentGuide} onStop={stopInvestmentGuide} />
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex flex-wrap items-center gap-2" data-tour="market-selector">
