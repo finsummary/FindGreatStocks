@@ -339,19 +339,6 @@ export function HomePage() {
           </DialogContent>
         </Dialog>
 
-        {/* Investment Guide Tour Button */}
-        <div className="mb-4 flex items-center justify-center">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={startInvestmentGuide}
-            className="inline-flex items-center gap-2 text-sm"
-          >
-            <BookOpen className="h-4 w-4" />
-            How to Find Great Stocks at a Good Price
-          </Button>
-        </div>
-
         <div>
           {activeTab === 'sp500' && <CompanyTable searchQuery={searchQuery} dataset="sp500" activeTab={activeTab} />}
           {activeTab === 'nasdaq100' && <CompanyTable searchQuery={searchQuery} dataset="nasdaq100" activeTab={activeTab} />}
