@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import Joyride, { CallBackProps, STATUS, Step } from 'react-joyride';
+import React, { useState, useEffect, useMemo } from 'react';
+import Joyride, { CallBackProps, STATUS, Step, EVENTS } from 'react-joyride';
 
 interface GuidedTourProps {
   run: boolean;
@@ -122,10 +122,19 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
         ),
         placement: 'left',
       },
-    ];
+    ], []);
 
-    setSteps(tourSteps);
-  }, []);
+  const [stepIndex, setStepIndex] = useState(() => {
+    if (!run) return 0;
+    try {
+      const saved = localStorage.getItem('fgs:guided-tour:stepIndex');
+      if (saved !== null) {
+        const idx = parseInt(saved, 10);
+        return isNaN(idx) ? 0 : idx;
+      }
+    } catch {}
+    return 0;
+  });
 
   // Reset stepIndex when tour starts
   useEffect(() => {
@@ -281,13 +290,18 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
       } else if (action === 'prev') {
         setStepIndex(index - 1);
       }
-    } else if (type === 'error:target_not_found') {
-      console.warn('Tour target not found for step:', index, 'Target:', currentSteps[index]?.target);
+    // CRITICAL: Handle TARGET_NOT_FOUND explicitly to prevent tour from ending early
+    // This happens when Joyride can't find the next step's target element
+    else if (type === EVENTS.TARGET_NOT_FOUND || type === 'error:target_not_found') {
       const targetSelector = currentSteps[index]?.target;
+      console.error('TARGET_NOT_FOUND for step:', index, 'Target:', targetSelector, 'Total steps:', currentSteps.length);
+      
+      // Don't end the tour - try to find the element or skip to next step
       if (targetSelector && typeof targetSelector === 'string') {
-        const maxAttempts = 50;
+        const maxAttempts = 30;
         const delay = 200;
         let attempts = 0;
+        
         const findElement = () => {
           const element = document.querySelector(targetSelector);
           if (element) {
@@ -300,34 +314,58 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
               console.log('Element found and visible after', attempts, 'attempts, scrolling to it');
               element.scrollIntoView({ behavior: 'smooth', block: 'center' });
               setTimeout(() => {
+                // Stay on current step if element is found
                 if (stepIndex !== index) {
                   setStepIndex(index);
                 }
               }, 300);
-            } else if (attempts < maxAttempts) {
-              attempts++;
-              setTimeout(findElement, delay);
-            } else {
-              console.warn('Element found but not visible after', maxAttempts, 'attempts, skipping to next step:', index + 1);
-              if (index < currentSteps.length - 1) {
-                setTimeout(() => setStepIndex(index + 1), 100);
-              }
+              return;
             }
-          } else if (attempts < maxAttempts) {
+          }
+          
+          // Element not found or not visible
+          if (attempts < maxAttempts) {
             attempts++;
             setTimeout(findElement, delay);
           } else {
-            console.warn('Element not found after', maxAttempts, 'attempts, skipping to next step:', index + 1);
+            // After max attempts, skip this step but DON'T end the tour
+            console.warn('Element not found after', maxAttempts, 'attempts. Skipping step', index, 'to', index + 1);
             if (index < currentSteps.length - 1) {
-              setTimeout(() => setStepIndex(index + 1), 100);
+              // Skip to next step - don't end tour
+              setTimeout(() => {
+                setStepIndex(index + 1);
+              }, 100);
+            } else {
+              // This was the last step - only now finish the tour
+              console.log('TARGET_NOT_FOUND on last step, finishing tour');
+              try {
+                localStorage.setItem(TOUR_STORAGE_KEY, '1');
+                localStorage.removeItem('fgs:guided-tour:stepIndex');
+                window.dispatchEvent(new CustomEvent('fgs:first-tour-completed'));
+              } catch {}
+              if (onStop) onStop();
+              if (onComplete) onComplete();
             }
           }
         };
+        
         setTimeout(findElement, 0);
       } else {
-        console.warn('No valid target selector, continuing to next step:', index + 1);
+        // No valid target selector - skip to next step
+        console.warn('No valid target selector for step', index, 'skipping to next');
         if (index < currentSteps.length - 1) {
-          setTimeout(() => setStepIndex(index + 1), 100);
+          setTimeout(() => {
+            setStepIndex(index + 1);
+          }, 100);
+        } else {
+          // Last step - finish tour
+          try {
+            localStorage.setItem(TOUR_STORAGE_KEY, '1');
+            localStorage.removeItem('fgs:guided-tour:stepIndex');
+            window.dispatchEvent(new CustomEvent('fgs:first-tour-completed'));
+          } catch {}
+          if (onStop) onStop();
+          if (onComplete) onComplete();
         }
       }
     }
