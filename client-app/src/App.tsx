@@ -136,7 +136,7 @@ function App() {
             <a href="https://blog.findgreatstocks.com" target="_blank" rel="noopener noreferrer" onClick={() => { try { (window as any).phCapture?.('blog_clicked'); } catch {} }}>Blog</a>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link to="/watchlist">Watchlist</Link>
+            <Link to="/watchlist" data-tour="watchlist-nav-button">Watchlist</Link>
           </Button>
           {user ? (
             <DropdownMenu>

@@ -2144,7 +2144,11 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                       <DropdownMenuItem
                         key={key}
                         disabled={isLocked}
-                        data-tour={key === 'compounders' ? 'compounders-layout' : undefined}
+                        data-tour={
+                          key === 'compounders' ? 'compounders-layout' :
+                          key === 'cashflowLeverage' ? 'cashflow-leverage-layout' :
+                          undefined
+                        }
                         onSelect={(event) => {
                           if (isLocked) return;
                           // Prevent any default navigation

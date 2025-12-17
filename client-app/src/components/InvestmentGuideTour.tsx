@@ -234,6 +234,67 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         placement: 'right',
       },
       {
+        target: '[data-tour="watchlist-nav-button"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Step 2: Buy at a Good Price</h3>
+            <p className="text-sm mb-2">
+              Now let's check the cash flow quality of companies in your watchlist. Click on <strong>"Watchlist"</strong> in the top navigation to view your saved companies.
+            </p>
+            <p className="text-sm">
+              Once you're on the watchlist page, we'll switch to the <strong>Cashflow & Leverage</strong> layout to verify financial health.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+        disableBeacon: false,
+      },
+      {
+        target: '[data-tour="layout-selector"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Step 2: Buy at a Good Price</h3>
+            <p className="text-sm mb-2">
+              Now that you're on your watchlist, click on <strong>"Choose Layout"</strong> and select <strong>Cashflow & Leverage</strong> to verify:
+            </p>
+            <ul className="text-sm space-y-1" style={{ listStyle: 'disc', listStylePosition: 'outside', paddingLeft: '1.5rem', marginLeft: '0' }}>
+              <li style={{ paddingLeft: '0.5rem' }}>High FCF Margin (Free Cash Flow / Revenue)</li>
+              <li style={{ paddingLeft: '0.5rem' }}>Stable 10-Year Median FCF Margin</li>
+              <li style={{ paddingLeft: '0.5rem' }}>Strong balance sheet (low Debt-to-Equity, high Interest Coverage)</li>
+            </ul>
+            <p className="text-sm mt-2 font-semibold text-emerald-600">
+              Please click "Choose Layout" to see the options.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+        disableBeacon: false,
+      },
+      {
+        target: '[data-tour="cashflow-leverage-layout"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Step 2: Buy at a Good Price</h3>
+            <p className="text-sm mb-2">
+              Select <strong>Cashflow & Leverage</strong> to verify the financial health of companies in your watchlist.
+            </p>
+            <p className="text-sm mb-2">
+              This layout shows:
+            </p>
+            <ul className="text-sm space-y-1" style={{ listStyle: 'disc', listStylePosition: 'outside', paddingLeft: '1.5rem', marginLeft: '0' }}>
+              <li style={{ paddingLeft: '0.5rem' }}>High FCF Margin (Free Cash Flow / Revenue)</li>
+              <li style={{ paddingLeft: '0.5rem' }}>Stable 10-Year Median FCF Margin</li>
+              <li style={{ paddingLeft: '0.5rem' }}>Strong balance sheet (low Debt-to-Equity, high Interest Coverage)</li>
+            </ul>
+            <p className="text-sm mt-2 font-semibold text-emerald-600">
+              Click on Cashflow & Leverage to continue.
+            </p>
+          </div>
+        ),
+        placement: 'top',
+        disableBeacon: false,
+      },
+      {
         target: '[data-tour="layout-selector"]',
         content: (
           <div>
@@ -350,6 +411,39 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
       // User selected compounders, advance to step 3 (ROIC % Latest) after a short delay
       setTimeout(() => {
         setStepIndex(3);
+      }, 500);
+    }
+  }, [stepIndex, selectedLayout, run]);
+
+  // Auto-advance when user navigates to watchlist (step 9)
+  useEffect(() => {
+    if (run && stepIndex === 9) {
+      // Check if we're on watchlist page
+      const isOnWatchlistPage = window.location.pathname === '/watchlist';
+      if (isOnWatchlistPage) {
+        // Wait for page to load, then advance to step 10 (layout selector)
+        setTimeout(() => {
+          setStepIndex(10);
+        }, 1000);
+      }
+    }
+  }, [run, stepIndex]);
+
+  // Auto-advance when dropdown opens on step 10 (layout selector in watchlist)
+  useEffect(() => {
+    if (run && stepIndex === 10 && isDropdownOpen) {
+      setTimeout(() => {
+        setStepIndex(11);
+      }, 100);
+    }
+  }, [run, stepIndex, isDropdownOpen]);
+
+  // Auto-advance when user selects cashflowLeverage layout on step 11
+  useEffect(() => {
+    if (stepIndex === 11 && selectedLayout === 'cashflowLeverage' && run) {
+      // User selected cashflow & leverage, advance to next step after a short delay
+      setTimeout(() => {
+        setStepIndex(12);
       }, 500);
     }
   }, [stepIndex, selectedLayout, run]);
