@@ -360,10 +360,8 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
     // Get current steps for this callback
     const currentSteps = steps;
     
-    // Log callback for debugging
-    if (type === 'step:after' || type === 'error:target_not_found') {
-      console.log('Tour callback:', { type, index, action, status, stepIndex, target: currentSteps[index]?.target, stepsLength: currentSteps.length });
-    }
+    // Log callback for debugging - log all callbacks to understand what's happening
+    console.log('Tour callback:', { type, index, action, status, stepIndex, target: currentSteps[index]?.target, stepsLength: currentSteps.length, run });
     
     // Handle close button click
     if (action === 'close' || status === STATUS.SKIPPED) {
@@ -446,16 +444,31 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
           return;
         }
         // Allow normal navigation for all other steps
-        // Add a small delay to ensure the next element is ready
+        // Add a delay and check if element exists before advancing
         const nextIndex = index + 1;
         if (nextIndex < currentSteps.length) {
-          // Check if next step's target exists before advancing
           const nextTarget = currentSteps[nextIndex]?.target;
           if (nextTarget && typeof nextTarget === 'string') {
-            // Wait a bit to ensure DOM is ready
-            setTimeout(() => {
-              setStepIndex(nextIndex);
-            }, 100);
+            // Try to find the element, with retries
+            let attempts = 0;
+            const maxAttempts = 10;
+            const tryAdvance = () => {
+              const element = document.querySelector(nextTarget);
+              if (element) {
+                // Element found, advance to next step
+                setStepIndex(nextIndex);
+              } else if (attempts < maxAttempts) {
+                // Element not found yet, try again
+                attempts++;
+                setTimeout(tryAdvance, 200);
+              } else {
+                // Element not found after attempts, but still advance
+                console.warn('Element not found after attempts, advancing anyway:', nextTarget);
+                setStepIndex(nextIndex);
+              }
+            };
+            // Start trying after a short delay
+            setTimeout(tryAdvance, 100);
           } else {
             // No target or invalid target, just advance
             setStepIndex(nextIndex);
@@ -482,19 +495,21 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
       // If target not found, try to continue anyway (element might be in scrollable area)
       console.warn('Tour target not found for step:', index, 'Target:', currentSteps[index]?.target);
       
-      // Don't stop the tour - try to find the element or continue to next step
+      // IMPORTANT: Don't stop the tour - just try to find the element or continue to next step
+      // Do NOT call onStop or onComplete here - that would end the tour prematurely
       const targetSelector = currentSteps[index]?.target;
       if (targetSelector && typeof targetSelector === 'string') {
-        // Try multiple times to find the element (it might be loading)
+        // Try multiple times to find the element (it might be loading or in a scrollable area)
         let attempts = 0;
-        const maxAttempts = 5;
+        const maxAttempts = 10;
         const findElement = () => {
           const element = document.querySelector(targetSelector);
           if (element) {
+            // Element found! Scroll to it and continue to next step
             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // Wait a bit for scroll, then continue to next step
             setTimeout(() => {
               if (index < currentSteps.length - 1) {
+                console.log('Element found, advancing to next step:', index + 1);
                 setStepIndex(index + 1);
               }
             }, 500);
@@ -503,8 +518,8 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
             attempts++;
             setTimeout(findElement, 200);
           } else {
-            // Element not found after multiple attempts, skip to next step
-            console.warn('Element not found after attempts, skipping step:', index);
+            // Element not found after multiple attempts, but continue to next step anyway
+            console.warn('Element not found after', maxAttempts, 'attempts, continuing to next step:', index + 1);
             if (index < currentSteps.length - 1) {
               setStepIndex(index + 1);
             }
@@ -513,10 +528,12 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         findElement();
       } else {
         // No valid target, just continue to next step
+        console.warn('No valid target selector, continuing to next step:', index + 1);
         if (index < currentSteps.length - 1) {
           setStepIndex(index + 1);
         }
       }
+    }
     }
   };
 
