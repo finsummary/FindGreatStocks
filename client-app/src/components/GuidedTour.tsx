@@ -116,6 +116,15 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
     return 0;
   });
 
+  // Save stepIndex to localStorage
+  useEffect(() => {
+    if (run) {
+      try {
+        localStorage.setItem('fgs:guided-tour:stepIndex', stepIndex.toString());
+      } catch {}
+    }
+  }, [stepIndex, run]);
+
   // Reset stepIndex when tour starts
   useEffect(() => {
     if (run && steps.length > 0) {
