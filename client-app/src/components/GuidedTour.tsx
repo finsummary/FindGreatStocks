@@ -185,27 +185,54 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
         if (nextIndex < currentSteps.length) {
           const nextTarget = currentSteps[nextIndex]?.target;
           if (nextTarget && typeof nextTarget === 'string') {
-            const maxAttempts = 30;
-            const delay = 150;
+            const maxAttempts = 50;
+            const delay = 200;
             let attempts = 0;
             const checkAndAdvance = () => {
               const element = document.querySelector(nextTarget);
+              // Check if element exists and is visible
               if (element) {
-                console.log('Element found, advancing to step:', nextIndex, 'Target:', nextTarget, 'Attempts:', attempts);
-                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                requestAnimationFrame(() => setStepIndex(nextIndex));
+                const rect = element.getBoundingClientRect();
+                const isVisible = rect.width > 0 && rect.height > 0 && 
+                                 window.getComputedStyle(element).display !== 'none' &&
+                                 window.getComputedStyle(element).visibility !== 'hidden';
+                
+                if (isVisible) {
+                  console.log('Element found and visible, advancing to step:', nextIndex, 'Target:', nextTarget, 'Attempts:', attempts);
+                  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  // Use setTimeout to ensure scroll completes before advancing
+                  setTimeout(() => {
+                    setStepIndex(nextIndex);
+                  }, 300);
+                } else if (attempts < maxAttempts) {
+                  attempts++;
+                  setTimeout(checkAndAdvance, delay);
+                } else {
+                  console.warn('Element found but not visible after', maxAttempts, 'attempts, advancing anyway. Target:', nextTarget);
+                  setTimeout(() => {
+                    setStepIndex(nextIndex);
+                  }, 100);
+                }
               } else if (attempts < maxAttempts) {
                 attempts++;
                 setTimeout(checkAndAdvance, delay);
               } else {
                 console.warn('Element not found after', maxAttempts, 'attempts, advancing anyway. Target:', nextTarget);
-                requestAnimationFrame(() => setStepIndex(nextIndex));
+                setTimeout(() => {
+                  setStepIndex(nextIndex);
+                }, 100);
               }
             };
-            setTimeout(checkAndAdvance, 50);
+            setTimeout(checkAndAdvance, 100);
           } else {
-            requestAnimationFrame(() => setStepIndex(nextIndex));
+            // No target (like 'body'), advance immediately
+            setTimeout(() => {
+              setStepIndex(nextIndex);
+            }, 100);
           }
+        } else {
+          // This is the last step
+          console.log('Reached last step, finishing tour');
         }
       } else if (action === 'prev') {
         setStepIndex(index - 1);
@@ -214,16 +241,33 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
       console.warn('Tour target not found for step:', index, 'Target:', currentSteps[index]?.target);
       const targetSelector = currentSteps[index]?.target;
       if (targetSelector && typeof targetSelector === 'string') {
-        const maxAttempts = 30;
+        const maxAttempts = 50;
         const delay = 200;
         let attempts = 0;
         const findElement = () => {
           const element = document.querySelector(targetSelector);
           if (element) {
-            console.log('Element found after', attempts, 'attempts, scrolling to it');
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            if (stepIndex !== index) {
-              setStepIndex(index);
+            const rect = element.getBoundingClientRect();
+            const isVisible = rect.width > 0 && rect.height > 0 && 
+                             window.getComputedStyle(element).display !== 'none' &&
+                             window.getComputedStyle(element).visibility !== 'hidden';
+            
+            if (isVisible) {
+              console.log('Element found and visible after', attempts, 'attempts, scrolling to it');
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              setTimeout(() => {
+                if (stepIndex !== index) {
+                  setStepIndex(index);
+                }
+              }, 300);
+            } else if (attempts < maxAttempts) {
+              attempts++;
+              setTimeout(findElement, delay);
+            } else {
+              console.warn('Element found but not visible after', maxAttempts, 'attempts, skipping to next step:', index + 1);
+              if (index < currentSteps.length - 1) {
+                setTimeout(() => setStepIndex(index + 1), 100);
+              }
             }
           } else if (attempts < maxAttempts) {
             attempts++;
@@ -231,7 +275,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
           } else {
             console.warn('Element not found after', maxAttempts, 'attempts, skipping to next step:', index + 1);
             if (index < currentSteps.length - 1) {
-              setStepIndex(index + 1);
+              setTimeout(() => setStepIndex(index + 1), 100);
             }
           }
         };
@@ -239,7 +283,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
       } else {
         console.warn('No valid target selector, continuing to next step:', index + 1);
         if (index < currentSteps.length - 1) {
-          setStepIndex(index + 1);
+          setTimeout(() => setStepIndex(index + 1), 100);
         }
       }
     }
