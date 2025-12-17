@@ -346,6 +346,9 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
       showProgress
       showSkipButton
       callback={handleJoyrideCallback}
+      disableScrolling={false}
+      disableOverlayClose={false}
+      hideCloseButton={false}
       styles={{
         options: {
           primaryColor: '#10b981', // emerald-500
