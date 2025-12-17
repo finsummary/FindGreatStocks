@@ -119,21 +119,6 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         spotlightClicks: true,
       },
       {
-        target: '[data-tour="layout-selector"]',
-        content: (
-          <div>
-            <h3 className="font-semibold text-lg mb-2">Great! You selected Compounders layout</h3>
-            <p className="text-sm mb-2">
-              Now you can see companies sorted by ROIC and ROIC Stability Score. This helps identify exceptional compounders.
-            </p>
-            <p className="text-sm">
-              Let's explore the ROIC columns to understand what they mean.
-            </p>
-          </div>
-        ),
-        placement: 'bottom',
-      },
-      {
         target: '[data-tour="tour-roic-latest"]',
         content: (
           <div>
@@ -347,12 +332,12 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
     setSteps(tourSteps);
   }, []);
 
-  // Auto-advance when user selects compounders layout on step 1
+  // Auto-advance when user selects compounders layout on step 2 (dropdown item)
   useEffect(() => {
-    if (stepIndex === 1 && selectedLayout === 'compounders' && run) {
-      // User selected compounders, advance to next step after a short delay
+    if (stepIndex === 2 && selectedLayout === 'compounders' && run) {
+      // User selected compounders, advance to step 3 (ROIC % Latest) after a short delay
       setTimeout(() => {
-        setStepIndex(2);
+        setStepIndex(3);
       }, 500);
     }
   }, [stepIndex, selectedLayout, run]);
