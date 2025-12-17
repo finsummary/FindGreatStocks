@@ -2,6 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Intro.js custom styles */
+.customIntroJS {
+  border-radius: 8px;
+  font-family: inherit;
+}
+
+.customIntroJSHighlight {
+  border-radius: 8px;
+}
+
+.customIntroJSButton {
+  background-color: #10b981 !important;
+  color: white !important;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+}
+
+.customIntroJSButton:hover {
+  background-color: #059669 !important;
+}
+
+.introjs-tooltipbuttons {
+  text-align: right;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.introjs-button {
+  margin-left: 5px;
+}
+
+.introjs-skipbutton {
+  color: #6b7280 !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.introjs-prevbutton {
+  color: #6b7280 !important;
+  background: transparent !important;
+  border: none !important;
+}
+
 /* Import blog styles */
 @import './styles/blog.css';
 
