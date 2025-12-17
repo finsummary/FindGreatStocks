@@ -246,19 +246,45 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
                   attempts++;
                   setTimeout(checkAndAdvance, delay);
                 } else {
-                  console.warn('Element found but not visible after', maxAttempts, 'attempts, advancing anyway. Target:', nextTarget);
-                  setTimeout(() => {
-                    setStepIndex(nextIndex);
-                  }, 100);
+                  console.warn('Element found but not visible after', maxAttempts, 'attempts. Skipping this step and continuing to next.');
+                  // Skip this step if element is not visible (e.g., upgrade button for paid users)
+                  if (nextIndex + 1 < currentSteps.length) {
+                    setTimeout(() => {
+                      setStepIndex(nextIndex + 1);
+                    }, 100);
+                  } else {
+                    // This was the last step, finish tour
+                    console.log('Skipped last step, finishing tour');
+                    try {
+                      localStorage.setItem(TOUR_STORAGE_KEY, '1');
+                      localStorage.removeItem('fgs:guided-tour:stepIndex');
+                      window.dispatchEvent(new CustomEvent('fgs:first-tour-completed'));
+                    } catch {}
+                    if (onStop) onStop();
+                    if (onComplete) onComplete();
+                  }
                 }
               } else if (attempts < maxAttempts) {
                 attempts++;
                 setTimeout(checkAndAdvance, delay);
               } else {
-                console.warn('Element not found after', maxAttempts, 'attempts, advancing anyway. Target:', nextTarget);
-                setTimeout(() => {
-                  setStepIndex(nextIndex);
-                }, 100);
+                console.warn('Element not found after', maxAttempts, 'attempts. Skipping this step and continuing to next. Target:', nextTarget);
+                // Skip this step if element doesn't exist (e.g., upgrade button for paid users)
+                if (nextIndex + 1 < currentSteps.length) {
+                  setTimeout(() => {
+                    setStepIndex(nextIndex + 1);
+                  }, 100);
+                } else {
+                  // This was the last step, finish tour
+                  console.log('Skipped last step, finishing tour');
+                  try {
+                    localStorage.setItem(TOUR_STORAGE_KEY, '1');
+                    localStorage.removeItem('fgs:guided-tour:stepIndex');
+                    window.dispatchEvent(new CustomEvent('fgs:first-tour-completed'));
+                  } catch {}
+                  if (onStop) onStop();
+                  if (onComplete) onComplete();
+                }
               }
             };
             setTimeout(checkAndAdvance, 100);
