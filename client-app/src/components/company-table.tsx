@@ -2135,8 +2135,13 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                         key={key}
                         disabled={isLocked}
                         data-tour={key === 'compounders' ? 'compounders-layout' : undefined}
-                        onSelect={() => {
+                        onSelect={(event) => {
                           if (isLocked) return;
+                          // Prevent any default navigation
+                          if (event) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                          }
                           const newVisibility = ALL_COLUMNS.reduce((acc, col) => {
                             if (['watchlist', 'rank', 'name'].includes(col.id)) {
                               acc[col.id] = true;

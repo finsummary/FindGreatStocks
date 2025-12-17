@@ -71,15 +71,12 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         disableBeacon: true,
       },
       {
-        target: isDropdownOpen ? '[data-tour="compounders-layout"]' : '[data-tour="layout-selector"]',
+        target: '[data-tour="layout-selector"]',
         content: (
           <div>
             <h3 className="font-semibold text-lg mb-2">Step 1: Find Great Companies</h3>
             <p className="text-sm mb-2">
-              {isDropdownOpen 
-                ? <>Select <strong>Compounders (ROIC)</strong> to identify exceptional businesses.</>
-                : <>Click on <strong>"Choose Layout"</strong> and select <strong>Compounders (ROIC)</strong> to identify exceptional businesses.</>
-              }
+              Click on <strong>"Choose Layout"</strong> and select <strong>Compounders (ROIC)</strong> to identify exceptional businesses.
             </p>
             <p className="text-sm mb-2">
               Look for companies with:
@@ -89,14 +86,35 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
               <li style={{ paddingLeft: '0.5rem' }}>High ROIC Stability Score (consistency over 10 years)</li>
             </ul>
             <p className="text-sm mt-2 font-semibold text-emerald-600">
-              {isDropdownOpen 
-                ? 'Click on Compounders (ROIC) to continue.'
-                : 'Please select the Compounders (ROIC) layout to continue.'
-              }
+              Please click "Choose Layout" to see the options.
             </p>
           </div>
         ),
-        placement: isDropdownOpen ? 'top' : 'bottom',
+        placement: 'bottom',
+        disableBeacon: false, // Enable beacon to show green dot
+        spotlightClicks: true,
+      },
+      {
+        target: '[data-tour="compounders-layout"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Step 1: Find Great Companies</h3>
+            <p className="text-sm mb-2">
+              Select <strong>Compounders (ROIC)</strong> to identify exceptional businesses.
+            </p>
+            <p className="text-sm mb-2">
+              Look for companies with:
+            </p>
+            <ul className="text-sm space-y-1" style={{ listStyle: 'disc', listStylePosition: 'outside', paddingLeft: '1.5rem', marginLeft: '0' }}>
+              <li style={{ paddingLeft: '0.5rem' }}>High ROIC (Return on Invested Capital)</li>
+              <li style={{ paddingLeft: '0.5rem' }}>High ROIC Stability Score (consistency over 10 years)</li>
+            </ul>
+            <p className="text-sm mt-2 font-semibold text-emerald-600">
+              Click on Compounders (ROIC) to continue.
+            </p>
+          </div>
+        ),
+        placement: 'top',
         disableBeacon: false, // Enable beacon to show green dot
         spotlightClicks: true,
       },
@@ -215,7 +233,7 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
     ];
 
     setSteps(tourSteps);
-  }, [isDropdownOpen]);
+  }, []);
 
   // Auto-advance when user selects compounders layout on step 1
   useEffect(() => {
@@ -254,11 +272,11 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
     // Update step index when user navigates
     if (type === 'step:after') {
       if (action === 'next') {
-        // Block advancement on step 1 if layout not selected
-        if (index === 1 && selectedLayout !== 'compounders') {
-          // Reset stepIndex back to 1 to prevent advancement
+        // Block advancement on step 2 if layout not selected
+        if (index === 2 && selectedLayout !== 'compounders') {
+          // Reset stepIndex back to 2 to prevent advancement
           requestAnimationFrame(() => {
-            setStepIndex(1);
+            setStepIndex(2);
           });
           return;
         }
@@ -268,17 +286,17 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
       }
     } else if (type === 'step:before') {
       // Sync stepIndex with joyride's internal index only if not blocking
-      if (!(index === 1 && selectedLayout !== 'compounders')) {
+      if (!(index === 2 && selectedLayout !== 'compounders')) {
         setStepIndex(index);
       } else {
-        // Keep at step 1 if trying to advance without layout selection
-        setStepIndex(1);
+        // Keep at step 2 if trying to advance without layout selection
+        setStepIndex(2);
       }
     }
   };
 
-  // Hide popup when dropdown is open on step 1 to allow user to see the dropdown menu
-  const shouldHidePopup = stepIndex === 1 && isDropdownOpen;
+  // Hide popup when dropdown is open on step 2 to allow user to see the dropdown menu
+  const shouldHidePopup = stepIndex === 2 && isDropdownOpen;
 
   return (
     <Joyride
@@ -290,9 +308,9 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
       showProgress
       showSkipButton
       callback={handleJoyrideCallback}
-      spotlightClicks={stepIndex === 1}
-      disableOverlayClose={stepIndex === 1 && !isDropdownOpen}
-      disableScrolling={stepIndex === 1 && !isDropdownOpen}
+      spotlightClicks={stepIndex === 1 || stepIndex === 2}
+      disableOverlayClose={(stepIndex === 1 || stepIndex === 2) && !isDropdownOpen}
+      disableScrolling={(stepIndex === 1 || stepIndex === 2) && !isDropdownOpen}
       disableOverlay={shouldHidePopup}
       styles={{
         options: {
@@ -318,11 +336,11 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
           display: 'block',
         },
         buttonNext: {
-          backgroundColor: stepIndex === 1 && selectedLayout !== 'compounders' ? '#9ca3af' : '#10b981',
+          backgroundColor: stepIndex === 2 && selectedLayout !== 'compounders' ? '#9ca3af' : '#10b981',
           fontSize: '14px',
           padding: '8px 16px',
-          cursor: stepIndex === 1 && selectedLayout !== 'compounders' ? 'not-allowed' : 'pointer',
-          opacity: stepIndex === 1 && selectedLayout !== 'compounders' ? 0.6 : 1,
+          cursor: stepIndex === 2 && selectedLayout !== 'compounders' ? 'not-allowed' : 'pointer',
+          opacity: stepIndex === 2 && selectedLayout !== 'compounders' ? 0.6 : 1,
         },
         buttonBack: {
           color: '#6b7280',
