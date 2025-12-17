@@ -12,10 +12,25 @@ const TOUR_STORAGE_KEY = 'fgs:investment_guide_tour:completed';
 
 export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedLayoutProp, onStop }: InvestmentGuideTourProps) {
   const [steps, setSteps] = useState<Step[]>([]);
-  const [stepIndex, setStepIndex] = useState(0);
+  // Restore stepIndex from localStorage to persist across page navigations
+  const [stepIndex, setStepIndex] = useState(() => {
+    try {
+      const saved = localStorage.getItem('fgs:investment-tour:stepIndex');
+      return saved ? parseInt(saved, 10) : 0;
+    } catch {
+      return 0;
+    }
+  });
   const [selectedLayout, setSelectedLayout] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const joyrideRef = useRef<Joyride>(null);
+
+  // Save stepIndex to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('fgs:investment-tour:stepIndex', stepIndex.toString());
+    } catch {}
+  }, [stepIndex]);
 
 
   // Listen for layout selection events
@@ -294,103 +309,6 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         placement: 'top',
         disableBeacon: false,
       },
-      {
-        target: '[data-tour="layout-selector"]',
-        content: (
-          <div>
-            <h3 className="font-semibold text-lg mb-2">Check Cash Flow Quality</h3>
-            <p className="text-sm mb-2">
-              Switch to the <strong>Cashflow & Leverage</strong> layout to verify:
-            </p>
-            <ul className="text-sm space-y-1" style={{ listStyle: 'disc', listStylePosition: 'outside', paddingLeft: '1.5rem', marginLeft: '0' }}>
-              <li style={{ paddingLeft: '0.5rem' }}>High FCF Margin (Free Cash Flow / Revenue)</li>
-              <li style={{ paddingLeft: '0.5rem' }}>Stable 10-Year Median FCF Margin</li>
-              <li style={{ paddingLeft: '0.5rem' }}>Strong balance sheet (low Debt-to-Equity, high Interest Coverage)</li>
-            </ul>
-            <p className="text-sm mt-2">
-              Great companies generate reliable cash year after year.
-            </p>
-          </div>
-        ),
-        placement: 'bottom',
-      },
-      {
-        target: '[data-tour="layout-selector"]',
-        content: (
-          <div>
-            <h3 className="font-semibold text-lg mb-2">Understand What Drives Returns</h3>
-            <p className="text-sm mb-2">
-              Use the <strong>DuPont ROE Decomposition</strong> layout to see what drives a company's ROE:
-            </p>
-            <ul className="text-sm space-y-1" style={{ listStyle: 'disc', listStylePosition: 'outside', paddingLeft: '1.5rem', marginLeft: '0' }}>
-              <li style={{ paddingLeft: '0.5rem' }}>Profitability (Net Profit Margin)</li>
-              <li style={{ paddingLeft: '0.5rem' }}>Efficiency (Asset Turnover)</li>
-              <li style={{ paddingLeft: '0.5rem' }}>Leverage (Financial Leverage)</li>
-            </ul>
-            <p className="text-sm mt-2">
-              This helps distinguish genuine quality from artificially inflated returns.
-            </p>
-          </div>
-        ),
-        placement: 'bottom',
-      },
-      {
-        target: '[data-tour="layout-selector"]',
-        content: (
-          <div>
-            <h3 className="font-semibold text-lg mb-2">Evaluate Risk-Adjusted Returns</h3>
-            <p className="text-sm mb-2">
-              Check the <strong>Return on Risk</strong> layout to see how well companies perform relative to risk:
-            </p>
-            <ul className="text-sm space-y-1" style={{ listStyle: 'disc', listStylePosition: 'outside', paddingLeft: '1.5rem', marginLeft: '0' }}>
-              <li style={{ paddingLeft: '0.5rem' }}>Return-to-Risk Ratio (Annual Return / Max Drawdown)</li>
-              <li style={{ paddingLeft: '0.5rem' }}>3Y, 5Y, 10Y historical stability</li>
-            </ul>
-            <p className="text-sm mt-2">
-              Great companies grow without destroying shareholder capital.
-            </p>
-          </div>
-        ),
-        placement: 'bottom',
-      },
-      {
-        target: '[data-tour="layout-selector"]',
-        content: (
-          <div>
-            <h3 className="font-semibold text-lg mb-2">Step 2: Buy at a Good Price</h3>
-            <p className="text-sm mb-2">
-              Once you've found a great company, use the <strong>DCF Valuation</strong> layout to estimate its intrinsic value:
-            </p>
-            <ul className="text-sm space-y-1" style={{ listStyle: 'disc', listStylePosition: 'outside', paddingLeft: '1.5rem', marginLeft: '0' }}>
-              <li style={{ paddingLeft: '0.5rem' }}>Check the Margin of Safety</li>
-              <li style={{ paddingLeft: '0.5rem' }}>Positive margin = potentially undervalued</li>
-            </ul>
-            <p className="text-sm mt-2">
-              DCF values a company based on future free cash flows.
-            </p>
-          </div>
-        ),
-        placement: 'bottom',
-      },
-      {
-        target: '[data-tour="layout-selector"]',
-        content: (
-          <div>
-            <h3 className="font-semibold text-lg mb-2">Understand Market Expectations</h3>
-            <p className="text-sm mb-2">
-              Use the <strong>Reverse DCF</strong> layout to see what growth rate the current stock price implies:
-            </p>
-            <ul className="text-sm space-y-1" style={{ listStyle: 'disc', listStylePosition: 'outside', paddingLeft: '1.5rem', marginLeft: '0' }}>
-              <li style={{ paddingLeft: '0.5rem' }}>Compare DCF Implied Growth to historical growth</li>
-              <li style={{ paddingLeft: '0.5rem' }}>If implied growth is unrealistic, the stock may be overvalued</li>
-            </ul>
-            <p className="text-sm mt-2">
-              This helps you see what expectations are already priced in.
-            </p>
-          </div>
-        ),
-        placement: 'bottom',
-      },
     ];
 
     setSteps(tourSteps);
@@ -586,11 +504,11 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         if (nextIndex < currentSteps.length) {
           const nextTarget = currentSteps[nextIndex]?.target;
           if (nextTarget && typeof nextTarget === 'string') {
-            // Special handling for step 4 (ROIC 10Y Avg) - first step after layout selection
-            // It may need more time to render after the table updates
-            const isStep4 = nextIndex === 4;
-            const maxAttempts = isStep4 ? 30 : 20; // More attempts for step 4
-            const delay = isStep4 ? 200 : 100; // Longer delay for step 4
+        // Special handling for step 4 (ROIC 10Y Avg) - first step after layout selection
+        // It may need more time to render after the table updates
+        const isStep4 = nextIndex === 4;
+        const maxAttempts = isStep4 ? 50 : 20; // Much more attempts for step 4
+        const delay = isStep4 ? 300 : 100; // Longer delay for step 4
             
             // Check if element exists before advancing, with retries
             let attempts = 0;
@@ -650,9 +568,13 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
       // Do NOT call onStop or onComplete here - that would end the tour prematurely
       const targetSelector = currentSteps[index]?.target;
       if (targetSelector && typeof targetSelector === 'string') {
+        // Special handling for step 4 (ROIC 10Y Avg) - needs more time after layout change
+        const isStep4 = index === 4;
+        const maxAttempts = isStep4 ? 50 : 15; // Much more attempts for step 4
+        const delay = isStep4 ? 300 : 150; // Longer delay for step 4
+        
         // Try multiple times to find the element (it might be loading or in a scrollable area)
         let attempts = 0;
-        const maxAttempts = 15; // Increased attempts
         const findElement = () => {
           const element = document.querySelector(targetSelector);
           if (element) {
@@ -667,7 +589,7 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
           } else if (attempts < maxAttempts) {
             // Element not found yet, try again after a short delay
             attempts++;
-            setTimeout(findElement, 150);
+            setTimeout(findElement, delay);
           } else {
             // Element not found after multiple attempts, skip to next step
             console.warn('Element not found after', maxAttempts, 'attempts, skipping to next step:', index + 1);
@@ -680,7 +602,8 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
             }
           }
         };
-        findElement();
+        // Start with initial delay for step 4
+        setTimeout(findElement, isStep4 ? 500 : 0);
       } else {
         // No valid target, just continue to next step
         console.warn('No valid target selector, continuing to next step:', index + 1);
@@ -766,14 +689,30 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
 }
 
 export function useInvestmentGuideTour() {
-  const [shouldRun, setShouldRun] = useState(false);
+  // Restore shouldRun from localStorage to persist across page navigations
+  const [shouldRun, setShouldRun] = useState(() => {
+    try {
+      const saved = localStorage.getItem('fgs:investment-tour:shouldRun');
+      return saved === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   const startTour = () => {
     setShouldRun(true);
+    try {
+      localStorage.setItem('fgs:investment-tour:shouldRun', 'true');
+    } catch {}
   };
 
   const stopTour = () => {
     setShouldRun(false);
+    try {
+      localStorage.setItem('fgs:investment-tour:shouldRun', 'false');
+      // Clear stepIndex when tour stops
+      localStorage.removeItem('fgs:investment-tour:stepIndex');
+    } catch {}
   };
 
   return { shouldRun, startTour, stopTour };
