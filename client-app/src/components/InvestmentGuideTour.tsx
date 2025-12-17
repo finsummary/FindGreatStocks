@@ -12,8 +12,9 @@ const TOUR_STORAGE_KEY = 'fgs:investment_guide_tour:completed';
 
 export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedLayoutProp, onStop }: InvestmentGuideTourProps) {
   const [steps, setSteps] = useState<Step[]>([]);
-  // Restore stepIndex from localStorage to persist across page navigations
+  // Restore stepIndex from localStorage ONLY if tour is running (to persist across page navigations)
   const [stepIndex, setStepIndex] = useState(() => {
+    if (!run) return 0; // Don't restore if tour is not running
     try {
       const saved = localStorage.getItem('fgs:investment-tour:stepIndex');
       return saved ? parseInt(saved, 10) : 0;
@@ -25,12 +26,14 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const joyrideRef = useRef<Joyride>(null);
 
-  // Save stepIndex to localStorage whenever it changes
+  // Save stepIndex to localStorage whenever it changes (only if tour is running)
   useEffect(() => {
-    try {
-      localStorage.setItem('fgs:investment-tour:stepIndex', stepIndex.toString());
-    } catch {}
-  }, [stepIndex]);
+    if (run) {
+      try {
+        localStorage.setItem('fgs:investment-tour:stepIndex', stepIndex.toString());
+      } catch {}
+    }
+  }, [stepIndex, run]);
 
 
   // Listen for layout selection events
