@@ -444,31 +444,26 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
           return;
         }
         // Allow normal navigation for all other steps
-        // Add a delay and check if element exists before advancing
         const nextIndex = index + 1;
         if (nextIndex < currentSteps.length) {
           const nextTarget = currentSteps[nextIndex]?.target;
           if (nextTarget && typeof nextTarget === 'string') {
-            // Try to find the element, with retries
-            let attempts = 0;
-            const maxAttempts = 10;
-            const tryAdvance = () => {
+            // Check if element exists before advancing
+            const checkAndAdvance = () => {
               const element = document.querySelector(nextTarget);
               if (element) {
-                // Element found, advance to next step
+                // Element found, advance immediately
+                console.log('Element found, advancing to step:', nextIndex, 'Target:', nextTarget);
                 setStepIndex(nextIndex);
-              } else if (attempts < maxAttempts) {
-                // Element not found yet, try again
-                attempts++;
-                setTimeout(tryAdvance, 200);
               } else {
-                // Element not found after attempts, but still advance
-                console.warn('Element not found after attempts, advancing anyway:', nextTarget);
+                // Element not found, but advance anyway - react-joyride will handle it
+                // We'll catch the error in error:target_not_found handler
+                console.warn('Element not found before advance, but continuing. Target:', nextTarget);
                 setStepIndex(nextIndex);
               }
             };
-            // Start trying after a short delay
-            setTimeout(tryAdvance, 100);
+            // Small delay to ensure DOM is ready
+            setTimeout(checkAndAdvance, 50);
           } else {
             // No target or invalid target, just advance
             setStepIndex(nextIndex);
