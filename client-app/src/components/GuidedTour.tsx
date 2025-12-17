@@ -11,7 +11,8 @@ interface GuidedTourProps {
 const TOUR_STORAGE_KEY = 'fgs:guided_tour:completed';
 
 export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
-  const introInstanceRef = useRef<ReturnType<typeof introJs> | null>(null);
+  // Use any type to avoid TypeScript issues with LegacyIntroJs vs IntroJs
+  const introInstanceRef = useRef<any>(null);
 
   useEffect(() => {
     if (run) {
