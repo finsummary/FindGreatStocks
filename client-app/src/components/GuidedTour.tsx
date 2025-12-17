@@ -127,6 +127,16 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
     setSteps(tourSteps);
   }, []);
 
+  // Reset stepIndex when tour starts
+  useEffect(() => {
+    if (run && steps.length > 0) {
+      // Ensure stepIndex is valid
+      if (stepIndex >= steps.length) {
+        setStepIndex(0);
+      }
+    }
+  }, [run, steps.length, stepIndex]);
+
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status, action, type, index } = data;
     const currentSteps = steps;
