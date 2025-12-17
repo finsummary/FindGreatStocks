@@ -348,8 +348,16 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status, index, action, type } = data;
     
+    // Get current steps for this callback
+    const currentSteps = steps;
+    
+    // Log callback for debugging
+    if (type === 'step:after' || type === 'error:target_not_found') {
+      console.log('Tour callback:', { type, index, action, status, stepIndex, target: currentSteps[index]?.target, stepsLength: currentSteps.length });
+    }
+    
     // Handle close button click
-    if (action === 'close' || status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+    if (action === 'close' || status === STATUS.SKIPPED) {
       // Mark tour as completed
       try {
         localStorage.setItem(TOUR_STORAGE_KEY, '1');
@@ -367,6 +375,36 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         onComplete();
       }
       return;
+    }
+    
+    // Handle tour finished - only if we're actually on the last step
+    if (status === STATUS.FINISHED) {
+      // Only mark as completed if we're on the last step
+      if (index === currentSteps.length - 1) {
+        try {
+          localStorage.setItem(TOUR_STORAGE_KEY, '1');
+        } catch {}
+        
+        // Dispatch event that tour is no longer active
+        window.dispatchEvent(new CustomEvent('fgs:investment-tour-step1-inactive'));
+        
+        // Stop the tour
+        if (onStop) {
+          onStop();
+        }
+        
+        if (onComplete) {
+          onComplete();
+        }
+        return;
+      } else {
+        // If FINISHED but not on last step, it's likely an error - continue to next step
+        console.warn('Tour marked as FINISHED but not on last step. Continuing...', { index, totalSteps: currentSteps.length });
+        if (index < currentSteps.length - 1) {
+          setStepIndex(index + 1);
+        }
+        return;
+      }
     }
 
     // Update step index when user navigates
@@ -395,10 +433,31 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
       }
     } else if (type === 'error:target_not_found') {
       // If target not found, try to continue anyway (element might be in scrollable area)
-      console.warn('Tour target not found for step:', index, 'Continuing to next step...');
-      // Continue to next step if target not found
-      if (action === 'next') {
-        setStepIndex(index + 1);
+      console.warn('Tour target not found for step:', index, 'Target:', currentSteps[index]?.target);
+      // Try to scroll to find the element, then continue
+      const targetSelector = currentSteps[index]?.target;
+      if (targetSelector && typeof targetSelector === 'string') {
+        const element = document.querySelector(targetSelector);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Wait a bit for scroll, then continue
+          setTimeout(() => {
+            if (index < currentSteps.length - 1) {
+              setStepIndex(index + 1);
+            }
+          }, 500);
+        } else {
+          // Element not found, skip to next step
+          console.warn('Element not found, skipping step:', index);
+          if (index < currentSteps.length - 1) {
+            setStepIndex(index + 1);
+          }
+        }
+      } else {
+        // No valid target, just continue
+        if (index < currentSteps.length - 1) {
+          setStepIndex(index + 1);
+        }
       }
     }
   };
