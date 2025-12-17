@@ -492,25 +492,43 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         if (nextIndex < currentSteps.length) {
           const nextTarget = currentSteps[nextIndex]?.target;
           if (nextTarget && typeof nextTarget === 'string') {
-            // Check if element exists before advancing
+            // Special handling for step 4 (ROIC 10Y Avg) - first step after layout selection
+            // It may need more time to render after the table updates
+            const isStep4 = nextIndex === 4;
+            const maxAttempts = isStep4 ? 30 : 20; // More attempts for step 4
+            const delay = isStep4 ? 200 : 100; // Longer delay for step 4
+            
+            // Check if element exists before advancing, with retries
+            let attempts = 0;
             const checkAndAdvance = () => {
               const element = document.querySelector(nextTarget);
               if (element) {
                 // Element found, advance immediately
-                console.log('Element found, advancing to step:', nextIndex, 'Target:', nextTarget);
-                setStepIndex(nextIndex);
+                console.log('Element found, advancing to step:', nextIndex, 'Target:', nextTarget, 'Attempts:', attempts);
+                // Use requestAnimationFrame to ensure DOM is ready
+                requestAnimationFrame(() => {
+                  setStepIndex(nextIndex);
+                });
+              } else if (attempts < maxAttempts) {
+                // Element not found yet, try again
+                attempts++;
+                setTimeout(checkAndAdvance, delay);
               } else {
-                // Element not found, but advance anyway - react-joyride will handle it
+                // Element not found after attempts, but advance anyway
                 // We'll catch the error in error:target_not_found handler
-                console.warn('Element not found before advance, but continuing. Target:', nextTarget);
-                setStepIndex(nextIndex);
+                console.warn('Element not found after', maxAttempts, 'attempts, advancing anyway. Target:', nextTarget);
+                requestAnimationFrame(() => {
+                  setStepIndex(nextIndex);
+                });
               }
             };
-            // Small delay to ensure DOM is ready
-            setTimeout(checkAndAdvance, 50);
+            // Start checking with initial delay for step 4
+            setTimeout(checkAndAdvance, isStep4 ? 300 : 50);
           } else {
             // No target or invalid target, just advance
-            setStepIndex(nextIndex);
+            requestAnimationFrame(() => {
+              setStepIndex(nextIndex);
+            });
           }
         } else {
           // Last step, don't advance
