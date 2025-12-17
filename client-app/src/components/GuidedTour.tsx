@@ -17,7 +17,8 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
   useEffect(() => {
     if (run) {
       // Initialize Intro.js
-      const intro = introJs();
+      // Use 'as any' to avoid TypeScript issues with LegacyIntroJs vs IntroJs
+      const intro = introJs() as any;
       introInstanceRef.current = intro;
 
       // Configure Intro.js
