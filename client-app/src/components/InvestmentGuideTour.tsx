@@ -380,6 +380,7 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
           });
           return;
         }
+        // Allow normal navigation for all other steps
         setStepIndex(index + 1);
       } else if (action === 'prev') {
         setStepIndex(index - 1);
@@ -391,6 +392,13 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
       } else {
         // Keep at step 2 if trying to advance without layout selection
         setStepIndex(2);
+      }
+    } else if (type === 'error:target_not_found') {
+      // If target not found, try to continue anyway (element might be in scrollable area)
+      console.warn('Tour target not found for step:', index, 'Continuing to next step...');
+      // Continue to next step if target not found
+      if (action === 'next') {
+        setStepIndex(index + 1);
       }
     }
   };
@@ -410,8 +418,10 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
       callback={handleJoyrideCallback}
       spotlightClicks={stepIndex === 1 || stepIndex === 2}
       disableOverlayClose={(stepIndex === 1 || stepIndex === 2) && !isDropdownOpen}
-      disableScrolling={(stepIndex === 1 || stepIndex === 2) && !isDropdownOpen}
+      disableScrolling={false}
       disableOverlay={shouldHidePopup}
+      scrollToFirstStep={true}
+      scrollOffset={20}
       hideCloseButton={false}
       styles={{
         options: {
