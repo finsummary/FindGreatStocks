@@ -178,15 +178,18 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
           <div>
             <h3 className="font-semibold text-lg mb-2">ROIC Stability Score</h3>
             <p className="text-sm mb-2">
-              This score combines both average ROIC and volatility: <strong>ROIC Stability Ratio × 30</strong> (capped at 100).
+              This score measures how <strong>stable</strong> ROIC values are year over year, regardless of whether they're high or low.
             </p>
             <p className="text-sm mb-2">
-              <strong>Green (≥70):</strong> Excellent - high returns with low volatility<br/>
-              <strong>Yellow (30-69):</strong> Good - decent returns<br/>
-              <strong>Red (&lt;30):</strong> Weak - low returns or high volatility
+              It's calculated as <strong>ROIC Stability Ratio × 30</strong> (capped at 100). A score of 100 means very stable, predictable ROIC values.
+            </p>
+            <p className="text-sm mb-2">
+              For example, a company with consistently low ROIC around 5% can have a Stability Score of 100 if those values don't fluctuate much year to year.
             </p>
             <p className="text-sm">
-              This is one of the most important metrics for finding great compounders!
+              <strong>Green (≥70):</strong> Very stable ROIC<br/>
+              <strong>Yellow (30-69):</strong> Moderately stable<br/>
+              <strong>Red (&lt;30):</strong> High volatility in ROIC values
             </p>
           </div>
         ),
