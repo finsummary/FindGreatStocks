@@ -490,33 +490,37 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
       // If target not found, try to continue anyway (element might be in scrollable area)
       console.warn('Tour target not found for step:', index, 'Target:', currentSteps[index]?.target);
       
-      // IMPORTANT: Don't stop the tour - just try to find the element or continue to next step
+      // CRITICAL: Don't stop the tour - just try to find the element or continue to next step
       // Do NOT call onStop or onComplete here - that would end the tour prematurely
       const targetSelector = currentSteps[index]?.target;
       if (targetSelector && typeof targetSelector === 'string') {
         // Try multiple times to find the element (it might be loading or in a scrollable area)
         let attempts = 0;
-        const maxAttempts = 10;
+        const maxAttempts = 15; // Increased attempts
         const findElement = () => {
           const element = document.querySelector(targetSelector);
           if (element) {
-            // Element found! Scroll to it and continue to next step
+            // Element found! Scroll to it and stay on current step (react-joyride will retry)
+            console.log('Element found after', attempts, 'attempts, scrolling to it');
             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            setTimeout(() => {
-              if (index < currentSteps.length - 1) {
-                console.log('Element found, advancing to next step:', index + 1);
-                setStepIndex(index + 1);
-              }
-            }, 500);
+            // Don't advance - let react-joyride retry showing this step
+            // Just ensure we're on the correct step index
+            if (stepIndex !== index) {
+              setStepIndex(index);
+            }
           } else if (attempts < maxAttempts) {
             // Element not found yet, try again after a short delay
             attempts++;
-            setTimeout(findElement, 200);
+            setTimeout(findElement, 150);
           } else {
-            // Element not found after multiple attempts, but continue to next step anyway
-            console.warn('Element not found after', maxAttempts, 'attempts, continuing to next step:', index + 1);
+            // Element not found after multiple attempts, skip to next step
+            console.warn('Element not found after', maxAttempts, 'attempts, skipping to next step:', index + 1);
             if (index < currentSteps.length - 1) {
+              // Skip this step and go to next
               setStepIndex(index + 1);
+            } else {
+              // Last step, but element not found - don't end tour, just log
+              console.warn('Last step element not found, but not ending tour');
             }
           }
         };
