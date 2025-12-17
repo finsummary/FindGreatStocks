@@ -10,29 +10,9 @@ interface GuidedTourProps {
 const TOUR_STORAGE_KEY = 'fgs:guided_tour:completed';
 
 export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
-  const [steps, setSteps] = useState<Step[]>([]);
-  const [stepIndex, setStepIndex] = useState(() => {
-    if (!run) return 0;
-    try {
-      const saved = localStorage.getItem('fgs:guided-tour:stepIndex');
-      return saved ? parseInt(saved, 10) : 0;
-    } catch {
-      return 0;
-    }
-  });
-
-  // Save stepIndex to localStorage
-  useEffect(() => {
-    if (run) {
-      try {
-        localStorage.setItem('fgs:guided-tour:stepIndex', stepIndex.toString());
-      } catch {}
-    }
-  }, [stepIndex, run]);
-
-  useEffect(() => {
-    // Define tour steps
-    const tourSteps: Step[] = [
+  // CRITICAL: Use useMemo to keep steps stable during tour
+  // This prevents the steps array from changing mid-tour, which causes premature termination
+  const steps = useMemo<Step[]>(() => [
       {
         target: '[data-tour="market-selector"]',
         content: (
@@ -122,7 +102,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
         ),
         placement: 'left',
       },
-    ], []);
+    ], []); // Empty dependency array - steps never change
 
   const [stepIndex, setStepIndex] = useState(() => {
     if (!run) return 0;
