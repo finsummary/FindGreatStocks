@@ -363,26 +363,31 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
     // Log callback for debugging - log all callbacks to understand what's happening
     console.log('Tour callback:', { type, index, action, status, stepIndex, target: currentSteps[index]?.target, stepsLength: currentSteps.length, run });
     
-    // Handle close button click - but only if it's actually the close button, not a navigation issue
+    // Handle close button click - ONLY if it's a real user-initiated close
+    // react-joyride may call 'close' action when it can't find elements, but that's not a real close
     if (action === 'close') {
-      // Check if this is a premature close (not on last step)
-      // If we're in the middle of the tour and this is not the last step, it's likely an error
-      const isLastStep = index === currentSteps.length - 1;
+      // Real user close happens when:
+      // 1. type is 'tour:status' (tour status change)
+      // 2. OR type is 'step:after' AND it's the last step (user clicked X on last step)
+      // 3. OR type is something that indicates explicit user action
       
-      // If this is a close action but we're not on the last step, it's likely an error
-      // Try to continue to next step instead of closing
-      if (!isLastStep && index < currentSteps.length - 1) {
-        console.warn('Premature close detected on step', index, ', continuing to next step instead:', index + 1);
-        // CRITICAL: Don't call onStop or onComplete - that would stop the tour!
-        // Just continue to next step
+      // If it's 'step:after' with 'close' action and NOT the last step, it's likely an error
+      // Don't treat it as a real close - just continue to next step
+      const isLastStep = index === currentSteps.length - 1;
+      const isRealClose = type === 'tour:status' || (type === 'step:after' && isLastStep);
+      
+      if (!isRealClose && !isLastStep) {
+        // This is likely an error - react-joyride couldn't find the element
+        // Don't close the tour, just continue to next step
+        console.warn('False close detected (likely element not found), continuing to next step:', index + 1);
         setTimeout(() => {
           setStepIndex(index + 1);
         }, 100);
-        return; // Return early, don't stop the tour
+        return; // Don't stop the tour
       }
       
-      // Only close if it's the last step or explicitly user-initiated close on last step
-      console.log('Tour closing on step', index, 'of', currentSteps.length - 1);
+      // This is a real close - user clicked X or tour finished
+      console.log('Real tour close detected on step', index);
       // Mark tour as completed
       try {
         localStorage.setItem(TOUR_STORAGE_KEY, '1');
