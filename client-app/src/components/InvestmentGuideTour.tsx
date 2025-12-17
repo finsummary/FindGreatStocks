@@ -24,6 +24,9 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
   });
   const [selectedLayout, setSelectedLayout] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [watchlistAdded, setWatchlistAdded] = useState(false);
+  const [watchlistCreated, setWatchlistCreated] = useState(false);
+  const [companyCopied, setCompanyCopied] = useState(false);
   const joyrideRef = useRef<Joyride>(null);
 
   // Save stepIndex to localStorage whenever it changes (only if tour is running)
@@ -34,7 +37,6 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
       } catch {}
     }
   }, [stepIndex, run]);
-
 
   // Listen for layout selection events
   useEffect(() => {
@@ -50,14 +52,35 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
       setIsDropdownOpen(false);
     };
 
+    // Listen for watchlist add event
+    const handleWatchlistAdded = () => {
+      setWatchlistAdded(true);
+    };
+
+    // Listen for watchlist creation event
+    const handleWatchlistCreated = () => {
+      setWatchlistCreated(true);
+    };
+
+    // Listen for company copy event
+    const handleCompanyCopied = () => {
+      setCompanyCopied(true);
+    };
+
     window.addEventListener('fgs:layout-selected', handleLayoutSelected as EventListener);
     window.addEventListener('fgs:layout-dropdown-opened', handleDropdownOpened as EventListener);
     window.addEventListener('fgs:layout-dropdown-closed', handleDropdownClosed as EventListener);
+    window.addEventListener('fgs:watchlist-added', handleWatchlistAdded as EventListener);
+    window.addEventListener('fgs:watchlist-created', handleWatchlistCreated as EventListener);
+    window.addEventListener('fgs:company-copied', handleCompanyCopied as EventListener);
     
     return () => {
       window.removeEventListener('fgs:layout-selected', handleLayoutSelected as EventListener);
       window.removeEventListener('fgs:layout-dropdown-opened', handleDropdownOpened as EventListener);
       window.removeEventListener('fgs:layout-dropdown-closed', handleDropdownClosed as EventListener);
+      window.removeEventListener('fgs:watchlist-added', handleWatchlistAdded as EventListener);
+      window.removeEventListener('fgs:watchlist-created', handleWatchlistCreated as EventListener);
+      window.removeEventListener('fgs:company-copied', handleCompanyCopied as EventListener);
     };
   }, []);
 
@@ -69,25 +92,26 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
   }, [selectedLayoutProp]);
 
   useEffect(() => {
-    // Define tour steps based on Landing Page content
+    // Define all 28 tour steps
     const tourSteps: Step[] = [
+      // Step 1: Intro
       {
         target: 'body',
         content: (
           <div>
             <h3 className="font-semibold text-lg mb-2">How to Find Great Stocks at a Good Price</h3>
-            <p className="text-sm">
-              This guide will walk you through the two-step process professional investors use:
+            <p className="text-sm mb-2">
+              This comprehensive guide will walk you through the complete investment analysis process used by professional investors.
             </p>
-            <ul className="text-sm mt-2 space-y-1" style={{ listStyle: 'disc', listStylePosition: 'outside', paddingLeft: '1.5rem', marginLeft: '0' }}>
-              <li style={{ paddingLeft: '0.5rem' }}><strong>Find Great Companies</strong> - identify exceptional businesses</li>
-              <li style={{ paddingLeft: '0.5rem' }}><strong>Buy at a Good Price</strong> - determine if the stock is undervalued</li>
-            </ul>
+            <p className="text-sm">
+              We'll cover everything from identifying great companies to determining if they're trading at a good price.
+            </p>
           </div>
         ),
         placement: 'center',
         disableBeacon: true,
       },
+      // Step 2: Choose Layout -> Compounders (ROIC)
       {
         target: '[data-tour="layout-selector"]',
         content: (
@@ -96,21 +120,13 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
             <p className="text-sm mb-2">
               Click on <strong>"Choose Layout"</strong> and select <strong>Compounders (ROIC)</strong> to identify exceptional businesses.
             </p>
-            <p className="text-sm mb-2">
-              Look for companies with:
-            </p>
-            <ul className="text-sm space-y-1" style={{ listStyle: 'disc', listStylePosition: 'outside', paddingLeft: '1.5rem', marginLeft: '0' }}>
-              <li style={{ paddingLeft: '0.5rem' }}>High ROIC (Return on Invested Capital)</li>
-              <li style={{ paddingLeft: '0.5rem' }}>High ROIC Stability Score (consistency over 10 years)</li>
-            </ul>
-            <p className="text-sm mt-2 font-semibold text-emerald-600">
+            <p className="text-sm font-semibold text-emerald-600">
               Please click "Choose Layout" to see the options.
             </p>
           </div>
         ),
         placement: 'bottom',
-        disableBeacon: false, // Enable beacon to show green dot
-        spotlightClicks: true,
+        disableBeacon: false,
       },
       {
         target: '[data-tour="compounders-layout"]',
@@ -118,24 +134,17 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
           <div>
             <h3 className="font-semibold text-lg mb-2">Step 1: Find Great Companies</h3>
             <p className="text-sm mb-2">
-              Select <strong>Compounders (ROIC)</strong> to identify exceptional businesses.
+              Select <strong>Compounders (ROIC)</strong> to analyze companies based on their Return on Invested Capital.
             </p>
-            <p className="text-sm mb-2">
-              Look for companies with:
-            </p>
-            <ul className="text-sm space-y-1" style={{ listStyle: 'disc', listStylePosition: 'outside', paddingLeft: '1.5rem', marginLeft: '0' }}>
-              <li style={{ paddingLeft: '0.5rem' }}>High ROIC (Return on Invested Capital)</li>
-              <li style={{ paddingLeft: '0.5rem' }}>High ROIC Stability Score (consistency over 10 years)</li>
-            </ul>
-            <p className="text-sm mt-2 font-semibold text-emerald-600">
+            <p className="text-sm font-semibold text-emerald-600">
               Click on Compounders (ROIC) to continue.
             </p>
           </div>
         ),
         placement: 'top',
-        disableBeacon: false, // Enable beacon to show green dot
-        spotlightClicks: true,
+        disableBeacon: false,
       },
+      // Step 3: ROIC % (Latest)
       {
         target: '[data-tour="tour-roic-latest"]',
         content: (
@@ -154,6 +163,7 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         ),
         placement: 'bottom',
       },
+      // Step 4: ROIC 10Y Avg %
       {
         target: '[data-tour="tour-roic-10y-avg"]',
         content: (
@@ -172,6 +182,7 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         ),
         placement: 'bottom',
       },
+      // Step 5: ROIC Volatility %
       {
         target: '[data-tour="tour-roic-volatility"]',
         content: (
@@ -190,6 +201,7 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         ),
         placement: 'bottom',
       },
+      // Step 6: ROIC Stability Score
       {
         target: '[data-tour="tour-roic-stability-score"]',
         content: (
@@ -201,9 +213,6 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
             <p className="text-sm mb-2">
               It's calculated as <strong>ROIC Stability Ratio × 30</strong> (capped at 100). A score of 100 means very stable, predictable ROIC values.
             </p>
-            <p className="text-sm mb-2">
-              For example, a company with consistently low ROIC around 5% can have a Stability Score of 100 if those values don't fluctuate much year to year.
-            </p>
             <p className="text-sm">
               <strong>Green (≥70):</strong> Very stable ROIC<br/>
               <strong>Yellow (30-69):</strong> Moderately stable<br/>
@@ -213,6 +222,7 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         ),
         placement: 'bottom',
       },
+      // Step 7: ROIC History (10Y)
       {
         target: '[data-tour="tour-roic-history"]',
         content: (
@@ -233,6 +243,7 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         ),
         placement: 'bottom',
       },
+      // Step 8: Add to Watchlist
       {
         target: '[data-tour="tour-watchlist-msft"]',
         content: (
@@ -244,43 +255,40 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
             <p className="text-sm mb-2">
               For example, <strong>Microsoft (MSFT)</strong> has excellent ROIC metrics - try adding it to your watchlist!
             </p>
-            <p className="text-sm">
-              Your watchlist helps you track companies you're interested in analyzing further.
+            <p className="text-sm font-semibold text-emerald-600">
+              Please click the star icon to add a company to your watchlist.
             </p>
           </div>
         ),
         placement: 'right',
       },
+      // Step 9: Click Watchlist button
       {
         target: '[data-tour="watchlist-nav-button"]',
         content: (
           <div>
-            <h3 className="font-semibold text-lg mb-2">Step 2: Buy at a Good Price</h3>
+            <h3 className="font-semibold text-lg mb-2">View Your Watchlist</h3>
             <p className="text-sm mb-2">
-              Now let's check the cash flow quality of companies in your watchlist. Click on <strong>"Watchlist"</strong> in the top navigation to view your saved companies.
+              Now let's check the cash flow quality of companies in your watchlist. Click on <strong>"Watchlist"</strong> in the top navigation.
             </p>
             <p className="text-sm">
-              Once you're on the watchlist page, we'll switch to the <strong>Cashflow & Leverage</strong> layout to verify financial health.
+              Once you're on the watchlist page, we'll analyze their financial health.
             </p>
           </div>
         ),
         placement: 'bottom',
         disableBeacon: false,
       },
+      // Step 10: Choose Layout -> Cashflow & Leverage
       {
         target: '[data-tour="layout-selector"]',
         content: (
           <div>
             <h3 className="font-semibold text-lg mb-2">Step 2: Buy at a Good Price</h3>
             <p className="text-sm mb-2">
-              Now that you're on your watchlist, click on <strong>"Choose Layout"</strong> and select <strong>Cashflow & Leverage</strong> to verify:
+              Now that you're on your watchlist, click on <strong>"Choose Layout"</strong> and select <strong>Cashflow & Leverage</strong> to verify financial health.
             </p>
-            <ul className="text-sm space-y-1" style={{ listStyle: 'disc', listStylePosition: 'outside', paddingLeft: '1.5rem', marginLeft: '0' }}>
-              <li style={{ paddingLeft: '0.5rem' }}>High FCF Margin (Free Cash Flow / Revenue)</li>
-              <li style={{ paddingLeft: '0.5rem' }}>Stable 10-Year Median FCF Margin</li>
-              <li style={{ paddingLeft: '0.5rem' }}>Strong balance sheet (low Debt-to-Equity, high Interest Coverage)</li>
-            </ul>
-            <p className="text-sm mt-2 font-semibold text-emerald-600">
+            <p className="text-sm font-semibold text-emerald-600">
               Please click "Choose Layout" to see the options.
             </p>
           </div>
@@ -296,15 +304,7 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
             <p className="text-sm mb-2">
               Select <strong>Cashflow & Leverage</strong> to verify the financial health of companies in your watchlist.
             </p>
-            <p className="text-sm mb-2">
-              This layout shows:
-            </p>
-            <ul className="text-sm space-y-1" style={{ listStyle: 'disc', listStylePosition: 'outside', paddingLeft: '1.5rem', marginLeft: '0' }}>
-              <li style={{ paddingLeft: '0.5rem' }}>High FCF Margin (Free Cash Flow / Revenue)</li>
-              <li style={{ paddingLeft: '0.5rem' }}>Stable 10-Year Median FCF Margin</li>
-              <li style={{ paddingLeft: '0.5rem' }}>Strong balance sheet (low Debt-to-Equity, high Interest Coverage)</li>
-            </ul>
-            <p className="text-sm mt-2 font-semibold text-emerald-600">
+            <p className="text-sm font-semibold text-emerald-600">
               Click on Cashflow & Leverage to continue.
             </p>
           </div>
@@ -312,152 +312,582 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         placement: 'top',
         disableBeacon: false,
       },
+      // Step 11: FCF Margin %
+      {
+        target: '[data-tour="tour-fcf-margin"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">FCF Margin %</h3>
+            <p className="text-sm mb-2">
+              <strong>Free Cash Flow Margin</strong> = Free Cash Flow ÷ Revenue. Shows how much cash is generated from each dollar of sales.
+            </p>
+            <p className="text-sm mb-2">
+              <strong>Green (≥15%):</strong> Excellent cash generation<br/>
+              <strong>Yellow (5-15%):</strong> Good cash generation<br/>
+              <strong>Red (&lt;5%):</strong> Weak cash generation
+            </p>
+            <p className="text-sm">
+              Great companies convert a high percentage of revenue into free cash flow.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+      },
+      // Step 12: FCF Margin 10Y Median %
+      {
+        target: '[data-tour="tour-fcf-margin-10y-median"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">FCF Margin 10Y Median %</h3>
+            <p className="text-sm mb-2">
+              This is the median FCF margin over the last 10 fiscal years (FCF ÷ Revenue each year).
+            </p>
+            <p className="text-sm mb-2">
+              A <strong>higher median</strong> indicates consistently strong cash conversion over time.
+            </p>
+            <p className="text-sm">
+              Look for companies with stable, high median FCF margins - they're reliable cash generators.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+      },
+      // Step 13: FCF Margin History (10Y)
+      {
+        target: '[data-tour="tour-fcf-margin-history"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">FCF Margin History (10Y)</h3>
+            <p className="text-sm mb-2">
+              This bar chart shows annual FCF margin values for the last 10 fiscal years. Each bar represents one year.
+            </p>
+            <p className="text-sm mb-2">
+              <strong>Green bars (≥15%):</strong> Excellent FCF margin<br/>
+              <strong>Yellow bars (5-15%):</strong> Good FCF margin<br/>
+              <strong>Red bars (&lt;5%):</strong> Weak FCF margin
+            </p>
+            <p className="text-sm">
+              Look for companies with mostly green bars - they consistently generate strong cash flow.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+      },
+      // Step 14: Debt-to-Equity
+      {
+        target: '[data-tour="tour-debt-to-equity"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Debt-to-Equity</h3>
+            <p className="text-sm mb-2">
+              <strong>Debt-to-Equity Ratio</strong> = Total Debt ÷ Total Equity. Measures a company's financial leverage.
+            </p>
+            <p className="text-sm mb-2">
+              <strong>Green (&lt;0.5):</strong> Low leverage, conservative<br/>
+              <strong>Yellow (0.5-1.0):</strong> Moderate leverage<br/>
+              <strong>Red (&gt;1.0):</strong> High leverage, risky
+            </p>
+            <p className="text-sm">
+              Lower is generally better - companies with less debt are more resilient during downturns.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+      },
+      // Step 15: Interest Coverage
+      {
+        target: '[data-tour="tour-interest-coverage"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Interest Coverage</h3>
+            <p className="text-sm mb-2">
+              <strong>Interest Coverage Ratio</strong> = EBIT ÷ Interest Expense. Measures a company's ability to pay interest on its debt.
+            </p>
+            <p className="text-sm mb-2">
+              <strong>Green (≥5):</strong> Strong ability to cover interest<br/>
+              <strong>Yellow (2-5):</strong> Adequate coverage<br/>
+              <strong>Red (&lt;2):</strong> Weak coverage, risky
+            </p>
+            <p className="text-sm">
+              Higher is better - companies with high interest coverage can easily service their debt.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+      },
+      // Step 16: Cash Flow to Debt
+      {
+        target: '[data-tour="tour-cash-flow-to-debt"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Cash Flow to Debt</h3>
+            <p className="text-sm mb-2">
+              <strong>Cash Flow to Debt Ratio</strong> = Operating Cash Flow ÷ Total Debt. Measures a company's ability to pay off its debt with operating cash flow.
+            </p>
+            <p className="text-sm mb-2">
+              <strong>Green (≥0.5):</strong> Strong ability to pay off debt<br/>
+              <strong>Yellow (0.2-0.5):</strong> Moderate ability<br/>
+              <strong>Red (&lt;0.2):</strong> Weak ability
+            </p>
+            <p className="text-sm">
+              Higher is better - companies with high ratios can pay off debt quickly if needed.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+      },
+      // Step 17: Choose Layout -> DuPont ROE Decomposition
+      {
+        target: '[data-tour="layout-selector"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Understand What Drives Returns</h3>
+            <p className="text-sm mb-2">
+              Click on <strong>"Choose Layout"</strong> and select <strong>DuPont ROE Decomposition</strong> to see what drives a company's ROE.
+            </p>
+            <p className="text-sm font-semibold text-emerald-600">
+              Please click "Choose Layout" to see the options.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+        disableBeacon: false,
+      },
+      {
+        target: '[data-tour="dupont-roe-layout"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">DuPont ROE Decomposition</h3>
+            <p className="text-sm mb-2">
+              Select <strong>DuPont ROE Decomposition</strong> to understand what drives a company's Return on Equity.
+            </p>
+            <p className="text-sm font-semibold text-emerald-600">
+              Click on DuPont ROE Decomposition to continue.
+            </p>
+          </div>
+        ),
+        placement: 'top',
+        disableBeacon: false,
+      },
+      // Step 18: ROE % explanation
+      {
+        target: '[data-tour="tour-roe"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">ROE % (Return on Equity)</h3>
+            <p className="text-sm mb-2">
+              <strong>ROE</strong> measures a company's profitability in relation to stockholders' equity.
+            </p>
+            <p className="text-sm mb-2">
+              <strong>ROE = Net Profit Margin × Asset Turnover × Financial Leverage</strong>
+            </p>
+            <p className="text-sm mb-2">
+              This DuPont formula breaks down ROE into three components:
+            </p>
+            <ul className="text-sm space-y-1" style={{ listStyle: 'disc', listStylePosition: 'outside', paddingLeft: '1.5rem', marginLeft: '0' }}>
+              <li style={{ paddingLeft: '0.5rem' }}><strong>Net Profit Margin:</strong> How profitable (Net Income ÷ Revenue)</li>
+              <li style={{ paddingLeft: '0.5rem' }}><strong>Asset Turnover:</strong> How efficient (Revenue ÷ Total Assets)</li>
+              <li style={{ paddingLeft: '0.5rem' }}><strong>Financial Leverage:</strong> How much debt (Total Assets ÷ Total Equity)</li>
+            </ul>
+            <p className="text-sm mt-2">
+              This helps distinguish genuine quality from artificially inflated returns through high leverage.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+      },
+      // Step 19: Choose Layout -> Return on Risk
+      {
+        target: '[data-tour="layout-selector"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Evaluate Risk-Adjusted Returns</h3>
+            <p className="text-sm mb-2">
+              Click on <strong>"Choose Layout"</strong> and select <strong>Return on Risk</strong> to see how well companies perform relative to risk.
+            </p>
+            <p className="text-sm font-semibold text-emerald-600">
+              Please click "Choose Layout" to see the options.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+        disableBeacon: false,
+      },
+      {
+        target: '[data-tour="return-on-risk-layout"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Return on Risk</h3>
+            <p className="text-sm mb-2">
+              Select <strong>Return on Risk</strong> to evaluate investment efficiency.
+            </p>
+            <p className="text-sm font-semibold text-emerald-600">
+              Click on Return on Risk to continue.
+            </p>
+          </div>
+        ),
+        placement: 'top',
+        disableBeacon: false,
+      },
+      // Step 20: Return/Risk ratios explanation
+      {
+        target: '[data-tour="tour-10y-return-risk"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Return/Risk Ratios</h3>
+            <p className="text-sm mb-2">
+              These ratios compare annualized returns against maximum drawdowns (the largest drop from a peak).
+            </p>
+            <p className="text-sm mb-2">
+              <strong>Return/Risk = Annualized Return ÷ Max Drawdown</strong>
+            </p>
+            <p className="text-sm mb-2">
+              The layout shows three timeframes:
+            </p>
+            <ul className="text-sm space-y-1" style={{ listStyle: 'disc', listStylePosition: 'outside', paddingLeft: '1.5rem', marginLeft: '0' }}>
+              <li style={{ paddingLeft: '0.5rem' }}><strong>10Y Return/Risk:</strong> Long-term risk-adjusted performance</li>
+              <li style={{ paddingLeft: '0.5rem' }}><strong>5Y Return/Risk:</strong> Medium-term performance</li>
+              <li style={{ paddingLeft: '0.5rem' }}><strong>3Y Return/Risk:</strong> Recent performance</li>
+            </ul>
+            <p className="text-sm mt-2">
+              <strong>Higher ratios</strong> mean better returns for the amount of risk taken. Great companies grow without destroying shareholder capital.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+      },
+      // Step 21: Choose Layout -> DCF Valuation
+      {
+        target: '[data-tour="layout-selector"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Is the Company Traded at a Good Price?</h3>
+            <p className="text-sm mb-2">
+              Click on <strong>"Choose Layout"</strong> and select <strong>DCF Valuation</strong> to estimate the company's intrinsic value.
+            </p>
+            <p className="text-sm font-semibold text-emerald-600">
+              Please click "Choose Layout" to see the options.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+        disableBeacon: false,
+      },
+      {
+        target: '[data-tour="dcf-valuation-layout"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">DCF Valuation</h3>
+            <p className="text-sm mb-2">
+              Select <strong>DCF Valuation</strong> to see if the company is trading at a good price.
+            </p>
+            <p className="text-sm font-semibold text-emerald-600">
+              Click on DCF Valuation to continue.
+            </p>
+          </div>
+        ),
+        placement: 'top',
+        disableBeacon: false,
+      },
+      // Step 22: Margin of Safety
+      {
+        target: '[data-tour="tour-margin-of-safety"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Margin of Safety</h3>
+            <p className="text-sm mb-2">
+              The <strong>Margin of Safety</strong> shows the percentage difference between the DCF Enterprise Value and the current Market Cap.
+            </p>
+            <p className="text-sm mb-2">
+              <strong>Positive margin</strong> = potentially undervalued (DCF value is higher than market price)<br/>
+              <strong>Negative margin</strong> = potentially overvalued (DCF value is lower than market price)
+            </p>
+            <p className="text-sm mb-2">
+              DCF values a company based on future free cash flows, discounted to their present value.
+            </p>
+            <p className="text-sm">
+              Look for companies with <strong>positive margins of safety</strong> - they may be trading below their intrinsic value.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+      },
+      // Step 23: Choose Layout -> Reverse DCF
+      {
+        target: '[data-tour="layout-selector"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Understand Market Expectations</h3>
+            <p className="text-sm mb-2">
+              Click on <strong>"Choose Layout"</strong> and select <strong>Reverse DCF</strong> to see what growth rate the current stock price implies.
+            </p>
+            <p className="text-sm font-semibold text-emerald-600">
+              Please click "Choose Layout" to see the options.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+        disableBeacon: false,
+      },
+      {
+        target: '[data-tour="reverse-dcf-layout"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Reverse DCF</h3>
+            <p className="text-sm mb-2">
+              Select <strong>Reverse DCF</strong> to understand what expectations are already priced in.
+            </p>
+            <p className="text-sm font-semibold text-emerald-600">
+              Click on Reverse DCF to continue.
+            </p>
+          </div>
+        ),
+        placement: 'top',
+        disableBeacon: false,
+      },
+      // Step 24: DCF Implied Growth
+      {
+        target: '[data-tour="tour-dcf-implied-growth"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">DCF Implied Growth</h3>
+            <p className="text-sm mb-2">
+              <strong>DCF Implied Growth</strong> shows the Free Cash Flow growth rate required to justify the current stock price.
+            </p>
+            <p className="text-sm mb-2">
+              Compare this to the <strong>10Y Revenue Growth</strong> shown in the same layout:
+            </p>
+            <ul className="text-sm space-y-1" style={{ listStyle: 'disc', listStylePosition: 'outside', paddingLeft: '1.5rem', marginLeft: '0' }}>
+              <li style={{ paddingLeft: '0.5rem' }}>If implied growth is <strong>much higher</strong> than historical growth, the stock may be <strong>overvalued</strong></li>
+              <li style={{ paddingLeft: '0.5rem' }}>If implied growth is <strong>similar or lower</strong> than historical growth, the stock may be <strong>reasonably valued</strong></li>
+            </ul>
+            <p className="text-sm mt-2">
+              This helps you see what expectations are already priced into the stock.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+      },
+      // Step 25: Manage Watchlists -> Create New Watchlist
+      {
+        target: '[data-tour="manage-watchlists-button"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Organize Your Research</h3>
+            <p className="text-sm mb-2">
+              Click on <strong>"Manage"</strong> to create a new watchlist for companies that are both great and undervalued.
+            </p>
+            <p className="text-sm font-semibold text-emerald-600">
+              Please click "Manage" to open the watchlist manager.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+        disableBeacon: false,
+      },
+      {
+        target: '[data-tour="create-new-watchlist-button"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Create New Watchlist</h3>
+            <p className="text-sm mb-2">
+              Click on <strong>"Create New Watchlist"</strong> and name it <strong>"Good + Undervalued"</strong>.
+            </p>
+            <p className="text-sm font-semibold text-emerald-600">
+              Please click "Create New Watchlist" and name it "Good + Undervalued".
+            </p>
+          </div>
+        ),
+        placement: 'top',
+        disableBeacon: false,
+      },
+      // Step 26: Copy to another Watchlist
+      {
+        target: '[data-tour="three-dots-menu"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Copy Company to Watchlist</h3>
+            <p className="text-sm mb-2">
+              Click on the <strong>three dots (⋮)</strong> next to a company and select <strong>"Copy to another watchlist"</strong>.
+            </p>
+            <p className="text-sm font-semibold text-emerald-600">
+              Please click the three dots menu to see the options.
+            </p>
+          </div>
+        ),
+        placement: 'left',
+        disableBeacon: false,
+      },
+      {
+        target: '[data-tour="copy-to-watchlist-menu-item"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Copy to Watchlist</h3>
+            <p className="text-sm mb-2">
+              Select <strong>"Copy to another watchlist"</strong> and choose <strong>"Good + Undervalued"</strong>.
+            </p>
+            <p className="text-sm font-semibold text-emerald-600">
+              Please click "Copy to another watchlist" and select "Good + Undervalued".
+            </p>
+          </div>
+        ),
+        placement: 'left',
+        disableBeacon: false,
+      },
+      // Step 27: Go to 'Good + Undervalued' watchlist
+      {
+        target: '[data-tour="watchlist-selector"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">View Your Curated Watchlist</h3>
+            <p className="text-sm mb-2">
+              Use the watchlist selector dropdown to navigate to your <strong>"Good + Undervalued"</strong> watchlist.
+            </p>
+            <p className="text-sm font-semibold text-emerald-600">
+              Please select "Good + Undervalued" from the dropdown.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+        disableBeacon: false,
+      },
+      // Step 28: Final message
+      {
+        target: 'body',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Congratulations!</h3>
+            <p className="text-sm mb-2">
+              You've completed the full investment analysis process! You now have a curated watchlist of companies that are both great businesses and potentially undervalued.
+            </p>
+            <p className="text-sm mb-2">
+              At this stage, you can further study each company by:
+            </p>
+            <ul className="text-sm space-y-1" style={{ listStyle: 'disc', listStylePosition: 'outside', paddingLeft: '1.5rem', marginLeft: '0' }}>
+              <li style={{ paddingLeft: '0.5rem' }}>Reading their Annual and Quarterly reports</li>
+              <li style={{ paddingLeft: '0.5rem' }}>Following company news and updates</li>
+              <li style={{ paddingLeft: '0.5rem' }}>Analyzing industry trends and competitive position</li>
+              <li style={{ paddingLeft: '0.5rem' }}>Monitoring key metrics over time</li>
+            </ul>
+            <p className="text-sm mt-2">
+              Happy investing! 🎉
+            </p>
+          </div>
+        ),
+        placement: 'center',
+        disableBeacon: true,
+      },
     ];
 
     setSteps(tourSteps);
   }, []);
 
-  // Auto-advance when dropdown opens on step 1
+  // Auto-advance when dropdown opens on layout selection steps
   useEffect(() => {
-    if (run && stepIndex === 1 && isDropdownOpen) {
+    if (run && isDropdownOpen && [2, 10, 17, 19, 21, 23].includes(stepIndex)) {
       setTimeout(() => {
-        setStepIndex(2);
-      }, 100); // Small delay to ensure dropdown is rendered
-    }
-  }, [run, stepIndex, isDropdownOpen]);
-
-  // Auto-advance when user selects compounders layout on step 2 (dropdown item)
-  useEffect(() => {
-    if (stepIndex === 2 && selectedLayout === 'compounders' && run) {
-      // User selected compounders, advance to step 3 (ROIC % Latest) after a short delay
-      setTimeout(() => {
-        setStepIndex(3);
-      }, 500);
-    }
-  }, [stepIndex, selectedLayout, run]);
-
-  // Auto-advance when user navigates to watchlist (step 9)
-  useEffect(() => {
-    if (run && stepIndex === 9) {
-      // Check if we're on watchlist page
-      const isOnWatchlistPage = window.location.pathname === '/watchlist';
-      if (isOnWatchlistPage) {
-        // Wait for page to load, then advance to step 10 (layout selector)
-        setTimeout(() => {
-          setStepIndex(10);
-        }, 1000);
-      }
-    }
-  }, [run, stepIndex]);
-
-  // Auto-advance when dropdown opens on step 10 (layout selector in watchlist)
-  useEffect(() => {
-    if (run && stepIndex === 10 && isDropdownOpen) {
-      setTimeout(() => {
-        setStepIndex(11);
+        setStepIndex(stepIndex + 1);
       }, 100);
     }
   }, [run, stepIndex, isDropdownOpen]);
 
-  // Auto-advance when user selects cashflowLeverage layout on step 11
+  // Auto-advance when user selects layouts
   useEffect(() => {
-    if (stepIndex === 11 && selectedLayout === 'cashflowLeverage' && run) {
-      // User selected cashflow & leverage, advance to next step after a short delay
-      setTimeout(() => {
-        setStepIndex(12);
-      }, 500);
+    if (run && stepIndex === 3 && selectedLayout === 'compounders') {
+      setTimeout(() => setStepIndex(4), 500);
+    } else if (run && stepIndex === 11 && selectedLayout === 'cashflowLeverage') {
+      setTimeout(() => setStepIndex(12), 500);
+    } else if (run && stepIndex === 18 && selectedLayout === 'dupontRoe') {
+      setTimeout(() => setStepIndex(19), 500);
+    } else if (run && stepIndex === 20 && selectedLayout === 'returnOnRisk') {
+      setTimeout(() => setStepIndex(21), 500);
+    } else if (run && stepIndex === 22 && selectedLayout === 'dcfValuation') {
+      setTimeout(() => setStepIndex(23), 500);
+    } else if (run && stepIndex === 24 && selectedLayout === 'reverseDcf') {
+      setTimeout(() => setStepIndex(25), 500);
     }
-  }, [stepIndex, selectedLayout, run]);
+  }, [run, stepIndex, selectedLayout]);
+
+  // Auto-advance when watchlist is added (step 8 -> 9)
+  useEffect(() => {
+    if (run && stepIndex === 8 && watchlistAdded) {
+      setTimeout(() => setStepIndex(9), 500);
+    }
+  }, [run, stepIndex, watchlistAdded]);
+
+  // Auto-advance when watchlist is created (step 25 -> 26)
+  useEffect(() => {
+    if (run && stepIndex === 25 && watchlistCreated) {
+      setTimeout(() => setStepIndex(26), 500);
+    }
+  }, [run, stepIndex, watchlistCreated]);
+
+  // Auto-advance when company is copied (step 27 -> 28)
+  useEffect(() => {
+    if (run && stepIndex === 27 && companyCopied) {
+      setTimeout(() => setStepIndex(28), 500);
+    }
+  }, [run, stepIndex, companyCopied]);
+
+  // Auto-advance when user navigates to watchlist (step 9)
+  useEffect(() => {
+    if (run && stepIndex === 9) {
+      const checkWatchlistPage = () => {
+        const isOnWatchlistPage = window.location.pathname === '/watchlist';
+        if (isOnWatchlistPage) {
+          setTimeout(() => setStepIndex(10), 1500);
+        } else {
+          setTimeout(checkWatchlistPage, 200);
+        }
+      };
+      checkWatchlistPage();
+    }
+  }, [run, stepIndex]);
 
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status, index, action, type } = data;
-    
-    // Get current steps for this callback
     const currentSteps = steps;
     
-    // Log callback for debugging - log all callbacks to understand what's happening
     console.log('Tour callback:', { type, index, action, status, stepIndex, target: currentSteps[index]?.target, stepsLength: currentSteps.length, run });
     
     // Handle close button click - user clicked X button
     if (action === 'close') {
-      // User explicitly closed the tour by clicking X
       console.log('Tour closed by user on step', index);
-      
-      // Mark tour as completed (user chose to skip it)
       try {
         localStorage.setItem(TOUR_STORAGE_KEY, '1');
       } catch {}
-      
-      // Dispatch event that tour is no longer active
       window.dispatchEvent(new CustomEvent('fgs:investment-tour-step1-inactive'));
-      
-      // Stop the tour
-      if (onStop) {
-        onStop();
-      }
-      
-      if (onComplete) {
-        onComplete();
-      }
+      if (onStop) onStop();
+      if (onComplete) onComplete();
       return;
     }
     
     // Handle skipped
     if (status === STATUS.SKIPPED) {
-      // Mark tour as completed
       try {
         localStorage.setItem(TOUR_STORAGE_KEY, '1');
       } catch {}
-      
-      // Dispatch event that tour is no longer active
       window.dispatchEvent(new CustomEvent('fgs:investment-tour-step1-inactive'));
-      
-      // Stop the tour
-      if (onStop) {
-        onStop();
-      }
-      
-      if (onComplete) {
-        onComplete();
-      }
+      if (onStop) onStop();
+      if (onComplete) onComplete();
       return;
     }
     
-    // Handle tour finished - only if we're actually on the last step
+    // Handle tour finished
     if (status === STATUS.FINISHED) {
-      // Only mark as completed if we're on the last step
       if (index === currentSteps.length - 1) {
         try {
           localStorage.setItem(TOUR_STORAGE_KEY, '1');
         } catch {}
-        
-        // Dispatch event that tour is no longer active
         window.dispatchEvent(new CustomEvent('fgs:investment-tour-step1-inactive'));
-        
-        // Stop the tour
-        if (onStop) {
-          onStop();
-        }
-        
-        if (onComplete) {
-          onComplete();
-        }
+        if (onStop) onStop();
+        if (onComplete) onComplete();
         return;
       } else {
-        // If FINISHED but not on last step, it's likely an error - continue to next step
         const lastStepIndex = currentSteps.length - 1;
-        console.warn('Tour marked as FINISHED but not on last step. Continuing...', { 
-          index, 
-          lastStepIndex, 
-          totalSteps: currentSteps.length,
-          target: currentSteps[index]?.target 
-        });
-        // Don't stop the tour, just continue to next step
+        console.warn('Tour marked as FINISHED but not on last step. Continuing...', { index, lastStepIndex });
         if (index < lastStepIndex) {
-          // Wait a bit and then try to continue
-          setTimeout(() => {
-            setStepIndex(index + 1);
-          }, 300);
+          setTimeout(() => setStepIndex(index + 1), 300);
         }
         return;
       }
@@ -466,126 +896,116 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
     // Update step index when user navigates
     if (type === 'step:after') {
       if (action === 'next') {
-        // Block advancement on step 1 if dropdown is not open
-        if (index === 1 && !isDropdownOpen) {
-          // Reset stepIndex back to 1 to prevent advancement
-          requestAnimationFrame(() => {
-            setStepIndex(1);
-          });
+        // Block advancement on interactive steps
+        if (stepIndex === 2 && !isDropdownOpen) {
+          requestAnimationFrame(() => setStepIndex(2));
           return;
         }
-        // Block advancement on step 2 if layout not selected
-        if (index === 2 && selectedLayout !== 'compounders') {
-          // Reset stepIndex back to 2 to prevent advancement
-          requestAnimationFrame(() => {
-            setStepIndex(2);
-          });
+        if (stepIndex === 3 && selectedLayout !== 'compounders') {
+          requestAnimationFrame(() => setStepIndex(3));
           return;
         }
-        // Allow normal navigation for all other steps
+        if (stepIndex === 8 && !watchlistAdded) {
+          requestAnimationFrame(() => setStepIndex(8));
+          return;
+        }
+        if (stepIndex === 10 && !isDropdownOpen) {
+          requestAnimationFrame(() => setStepIndex(10));
+          return;
+        }
+        if (stepIndex === 11 && selectedLayout !== 'cashflowLeverage') {
+          requestAnimationFrame(() => setStepIndex(11));
+          return;
+        }
+        if (stepIndex === 17 && !isDropdownOpen) {
+          requestAnimationFrame(() => setStepIndex(17));
+          return;
+        }
+        if (stepIndex === 18 && selectedLayout !== 'dupontRoe') {
+          requestAnimationFrame(() => setStepIndex(18));
+          return;
+        }
+        if (stepIndex === 19 && !isDropdownOpen) {
+          requestAnimationFrame(() => setStepIndex(19));
+          return;
+        }
+        if (stepIndex === 20 && selectedLayout !== 'returnOnRisk') {
+          requestAnimationFrame(() => setStepIndex(20));
+          return;
+        }
+        if (stepIndex === 21 && !isDropdownOpen) {
+          requestAnimationFrame(() => setStepIndex(21));
+          return;
+        }
+        if (stepIndex === 22 && selectedLayout !== 'dcfValuation') {
+          requestAnimationFrame(() => setStepIndex(22));
+          return;
+        }
+        if (stepIndex === 23 && !isDropdownOpen) {
+          requestAnimationFrame(() => setStepIndex(23));
+          return;
+        }
+        if (stepIndex === 24 && selectedLayout !== 'reverseDcf') {
+          requestAnimationFrame(() => setStepIndex(24));
+          return;
+        }
+        
+        // Allow normal navigation for other steps
         const nextIndex = index + 1;
         if (nextIndex < currentSteps.length) {
           const nextTarget = currentSteps[nextIndex]?.target;
           if (nextTarget && typeof nextTarget === 'string') {
-            // Check if element exists before advancing, with retries
-            // All steps (including step 4) are handled the same way
             const maxAttempts = 20;
             const delay = 100;
-            
             let attempts = 0;
             const checkAndAdvance = () => {
               const element = document.querySelector(nextTarget);
               if (element) {
-                // Element found, advance immediately
                 console.log('Element found, advancing to step:', nextIndex, 'Target:', nextTarget, 'Attempts:', attempts);
-                // Use requestAnimationFrame to ensure DOM is ready
-                requestAnimationFrame(() => {
-                  setStepIndex(nextIndex);
-                });
+                requestAnimationFrame(() => setStepIndex(nextIndex));
               } else if (attempts < maxAttempts) {
-                // Element not found yet, try again
                 attempts++;
                 setTimeout(checkAndAdvance, delay);
               } else {
-                // Element not found after attempts, advance anyway
-                // We'll catch the error in error:target_not_found handler
                 console.warn('Element not found after', maxAttempts, 'attempts, advancing anyway. Target:', nextTarget);
-                requestAnimationFrame(() => {
-                  setStepIndex(nextIndex);
-                });
+                requestAnimationFrame(() => setStepIndex(nextIndex));
               }
             };
-            // Start checking with small delay
             setTimeout(checkAndAdvance, 50);
           } else {
-            // No target or invalid target, just advance
-            requestAnimationFrame(() => {
-              setStepIndex(nextIndex);
-            });
+            requestAnimationFrame(() => setStepIndex(nextIndex));
           }
-        } else {
-          // Last step, don't advance
-          console.log('Reached last step');
         }
       } else if (action === 'prev') {
         setStepIndex(index - 1);
       }
-    } else if (type === 'step:before') {
-      // Sync stepIndex with joyride's internal index only if not blocking
-      if (index === 1 && !isDropdownOpen) {
-        // Keep at step 1 if trying to advance without opening dropdown
-        setStepIndex(1);
-      } else if (index === 2 && selectedLayout !== 'compounders') {
-        // Keep at step 2 if trying to advance without layout selection
-        setStepIndex(2);
-      } else {
-        setStepIndex(index);
-      }
     } else if (type === 'error:target_not_found') {
-      // If target not found, try to continue anyway (element might be in scrollable area)
       console.warn('Tour target not found for step:', index, 'Target:', currentSteps[index]?.target);
-      
-      // CRITICAL: Don't stop the tour - just try to find the element or continue to next step
-      // Do NOT call onStop or onComplete here - that would end the tour prematurely
       const targetSelector = currentSteps[index]?.target;
       if (targetSelector && typeof targetSelector === 'string') {
-        // All steps (including step 4) are handled the same way
         const maxAttempts = 15;
         const delay = 150;
-        
-        // Try multiple times to find the element (it might be loading or in a scrollable area)
         let attempts = 0;
         const findElement = () => {
           const element = document.querySelector(targetSelector);
           if (element) {
-            // Element found! Scroll to it and stay on current step (react-joyride will retry)
             console.log('Element found after', attempts, 'attempts, scrolling to it');
             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // Don't advance - let react-joyride retry showing this step
-            // Just ensure we're on the correct step index
             if (stepIndex !== index) {
               setStepIndex(index);
             }
           } else if (attempts < maxAttempts) {
-            // Element not found yet, try again after a short delay
             attempts++;
             setTimeout(findElement, delay);
           } else {
-            // Element not found after multiple attempts, skip to next step
             console.warn('Element not found after', maxAttempts, 'attempts, skipping to next step:', index + 1);
             if (index < currentSteps.length - 1) {
-              // Skip this step and go to next
               setStepIndex(index + 1);
-            } else {
-              // Last step, but element not found - don't end tour, just log
-              console.warn('Last step element not found, but not ending tour');
             }
           }
         };
-        // Start immediately
         setTimeout(findElement, 0);
       } else {
-        // No valid target, just continue to next step
         console.warn('No valid target selector, continuing to next step:', index + 1);
         if (index < currentSteps.length - 1) {
           setStepIndex(index + 1);
@@ -594,8 +1014,12 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
     }
   };
 
-  // Hide popup when dropdown is open on step 1 or 2 to allow user to see the dropdown menu
-  const shouldHidePopup = (stepIndex === 1 || stepIndex === 2) && isDropdownOpen;
+  // Hide popup when dropdown is open on layout selection steps
+  const shouldHidePopup = [2, 3, 10, 11, 17, 18, 21, 22, 23, 24, 26, 27].includes(stepIndex) && isDropdownOpen;
+
+  if (!run || steps.length === 0) {
+    return null;
+  }
 
   return (
     <Joyride
@@ -607,25 +1031,15 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
       showProgress
       showSkipButton
       callback={handleJoyrideCallback}
-      spotlightClicks={stepIndex === 1 || stepIndex === 2}
-      disableOverlayClose={(stepIndex === 1 || stepIndex === 2) && !isDropdownOpen}
-      disableScrolling={false}
-      disableOverlay={shouldHidePopup}
-      scrollToFirstStep={true}
-      scrollOffset={20}
-      hideCloseButton={false}
       styles={{
         options: {
-          primaryColor: '#10b981', // emerald-500
-          zIndex: shouldHidePopup ? 1 : 10000, // Lower z-index when dropdown is open
+          zIndex: shouldHidePopup ? 1 : 10000,
         },
         tooltip: {
-          borderRadius: '8px',
           display: shouldHidePopup ? 'none' : 'block',
           visibility: shouldHidePopup ? 'hidden' : 'visible',
         },
         tooltipContainer: {
-          textAlign: 'left',
           display: shouldHidePopup ? 'none' : 'block',
           visibility: shouldHidePopup ? 'hidden' : 'visible',
         },
@@ -634,14 +1048,48 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
           visibility: shouldHidePopup ? 'hidden' : 'visible',
         },
         spotlight: {
-          // Keep spotlight visible to highlight the Compounders option, but hide when dropdown is open
           display: shouldHidePopup ? 'none' : 'block',
-          visibility: shouldHidePopup ? 'hidden' : 'visible',
         },
         buttonNext: {
-          backgroundColor: (stepIndex === 1 && !isDropdownOpen) || (stepIndex === 2 && selectedLayout !== 'compounders') ? '#9ca3af' : '#10b981',
-          cursor: (stepIndex === 1 && !isDropdownOpen) || (stepIndex === 2 && selectedLayout !== 'compounders') ? 'not-allowed' : 'pointer',
-          opacity: (stepIndex === 1 && !isDropdownOpen) || (stepIndex === 2 && selectedLayout !== 'compounders') ? 0.6 : 1,
+          backgroundColor: 
+            (stepIndex === 2 && !isDropdownOpen) || 
+            (stepIndex === 3 && selectedLayout !== 'compounders') ||
+            (stepIndex === 8 && !watchlistAdded) ||
+            (stepIndex === 10 && !isDropdownOpen) ||
+            (stepIndex === 12 && selectedLayout !== 'cashflowLeverage') ||
+            (stepIndex === 17 && !isDropdownOpen) ||
+            (stepIndex === 19 && selectedLayout !== 'dupontRoe') ||
+            (stepIndex === 21 && !isDropdownOpen) ||
+            (stepIndex === 24 && selectedLayout !== 'dcfValuation') ||
+            (stepIndex === 23 && !isDropdownOpen) ||
+            (stepIndex === 26 && selectedLayout !== 'reverseDcf')
+              ? '#9ca3af' : '#10b981',
+          cursor: 
+            (stepIndex === 2 && !isDropdownOpen) || 
+            (stepIndex === 3 && selectedLayout !== 'compounders') ||
+            (stepIndex === 8 && !watchlistAdded) ||
+            (stepIndex === 10 && !isDropdownOpen) ||
+            (stepIndex === 12 && selectedLayout !== 'cashflowLeverage') ||
+            (stepIndex === 17 && !isDropdownOpen) ||
+            (stepIndex === 19 && selectedLayout !== 'dupontRoe') ||
+            (stepIndex === 21 && !isDropdownOpen) ||
+            (stepIndex === 24 && selectedLayout !== 'dcfValuation') ||
+            (stepIndex === 23 && !isDropdownOpen) ||
+            (stepIndex === 26 && selectedLayout !== 'reverseDcf')
+              ? 'not-allowed' : 'pointer',
+          opacity: 
+            (stepIndex === 2 && !isDropdownOpen) || 
+            (stepIndex === 3 && selectedLayout !== 'compounders') ||
+            (stepIndex === 8 && !watchlistAdded) ||
+            (stepIndex === 10 && !isDropdownOpen) ||
+            (stepIndex === 12 && selectedLayout !== 'cashflowLeverage') ||
+            (stepIndex === 17 && !isDropdownOpen) ||
+            (stepIndex === 19 && selectedLayout !== 'dupontRoe') ||
+            (stepIndex === 21 && !isDropdownOpen) ||
+            (stepIndex === 24 && selectedLayout !== 'dcfValuation') ||
+            (stepIndex === 23 && !isDropdownOpen) ||
+            (stepIndex === 26 && selectedLayout !== 'reverseDcf')
+              ? 0.6 : 1,
           fontSize: '14px',
           padding: '8px 16px',
         },
@@ -669,12 +1117,10 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
 }
 
 export function useInvestmentGuideTour() {
-  // Do NOT restore shouldRun from localStorage - tour should only start manually or after first tour
   const [shouldRun, setShouldRun] = useState(false);
 
   const startTour = () => {
     setShouldRun(true);
-    // Save stepIndex persistence for navigation between pages
     try {
       localStorage.setItem('fgs:investment-tour:shouldRun', 'true');
     } catch {}
@@ -683,7 +1129,6 @@ export function useInvestmentGuideTour() {
   const stopTour = () => {
     setShouldRun(false);
     try {
-      // Clear all tour state when tour stops
       localStorage.removeItem('fgs:investment-tour:shouldRun');
       localStorage.removeItem('fgs:investment-tour:stepIndex');
     } catch {}

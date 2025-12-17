@@ -58,6 +58,8 @@ export function WatchlistManager({
       setNewName("");
       setShowCreate(false);
       toast({ title: "Success", description: "Watchlist created" });
+      // Dispatch event for tour
+      window.dispatchEvent(new CustomEvent('fgs:watchlist-created'));
     },
     onError: (error: any) => {
       toast({ 
@@ -271,6 +273,7 @@ export function WatchlistManager({
               variant="outline" 
               className="w-full"
               onClick={() => setShowCreate(true)}
+              data-tour="create-new-watchlist-button"
             >
               <Plus className="h-4 w-4 mr-2" />
               Create New Watchlist

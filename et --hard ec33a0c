@@ -1,0 +1,50 @@
+[33m0d3e3bf[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix: Use single table structure for fixed header to prevent column misalignment
+[33maf48ce1[m Fix: Clean up sticky header - use absolute positioning for sticky columns to prevent transparency
+[33mec33a0c[m Fix: Move transform to outer container, remove pointer-events-none, use CSS classes for white background
+[33mc0bd2f9[m Hide main header with display:none and increase z-index of fixed header to 200
+[33mc1902ca[m Force solid white background on ALL fixed header elements - remove all transparency
+[33m7197e02[m Remove sticky positioning from fixed header, use fixed widths for first 3 columns with white background
+[33md0c6d39[m Add isolation and backfaceVisibility to fix transparency issue in fixed header sticky columns
+[33mb45c6e1[m Remove getStickyHeaderClass from fixed header, use inline styles with sticky positioning and white background
+[33meec4825[m Use exact same classes as main header - add bg-white dark:bg-zinc-900 directly to className
+[33m243d471[m Completely hide main header when sticky using visibility hidden
+[33m6ca1bb1[m Add CSS rule with !important for first 3 sticky columns in fixed header
+[33me8a98b2[m Use getStickyHeaderClass and force white background with !important in inline styles
+[33mf3e9784[m Use getStickyCellClass (same as table cells) for fixed header columns to match cell styling
+[33ma55e5e9[m Fix: Force white background on first 3 column headers in fixed header, use sticky positioning
+[33mcc6bcfe[m Force white background and sticky positioning for first 3 columns (watchlist, rank, name) in fixed header
+[33mda025a2[m Force white background on ALL fixed header elements using inline styles
+[33m99168dc[m Add CSS class with !important to force opaque background for fixed header
+[33mca9011e[m Use !important and explicit white background on all fixed header elements
+[33m4a3a5fd[m Force white background with inline style on fixed header container
+[33mbb83a9f[m Hide main table header when sticky and force opaque background with inline styles in fixed header
+[33m7dfb900[m Add bg-white dark:bg-zinc-900 to all fixed header columns, not just sticky ones
+[33m8cf4766[m Use same Tailwind classes as sticky columns for fixed header background
+[33m1bf8ed7[m Force opaque background with inline styles for fixed header to fix transparency issue
+[33m79c4be9[m Remove inline backgroundColor from fixed header th elements
+[33m32a102d[m Fix: Use Tailwind classes for dark mode support in fixed header instead of inline styles
+[33ma2fd5c9[m Fix: Make fixed header background fully opaque and not transparent
+[33m769bf4d[m Enhance scrollbar-hide CSS with more aggressive rules for all child elements
+[33md29703c[m Fix: Force hide horizontal scrollbar and ensure scroll arrows are always visible
+[33m2c0639a[m Trigger Vercel deployment
+[33m044b5f8[m Make scroll arrows always visible, even when header is sticky
+[33m9218d58[m Fix: Always show scroll arrows and completely hide horizontal scrollbar on all levels
+[33m8235da5[m Hide scrollbar in Table component wrapper
+[33md5145bd[m Apply scrollbar-hide class to table scroll container
+[33m5bf07f5[m Hide horizontal scrollbar and use arrows for scrolling instead
+[33m23a2205[m Fix fixed header width constraints to prevent horizontal scroll
+[33m13fad57[m Add overflow-x-hidden to main and better constraints for fixed header
+[33m8736aee[m Use clipPath and better constraints to prevent fixed header from causing horizontal scroll
+[33mcb7c4fc[m Add overflow-x-hidden to main container to prevent horizontal scroll
+[33m3fd50e2[m Add maxWidth to table scroll container and ensure fixed header doesn't exceed viewport
+[33m311e505[m Limit fixed header width to viewport to prevent horizontal scroll
+[33m5af96ec[m Add overflow-x hidden to body/html and limit fixed header width to viewport
+[33m4ee0a9c[m Replace Table component with native table element in fixed header to remove scroll
+[33mfb53578[m Remove overflow-x-auto from fixed header, use transform translateX only
+[33mebc1fa8[m Remove separate scroll from fixed header, use transform translateX instead
+[33mddef03b[m Add useEffect to continuously sync fixed header scroll with main table
+[33m55b08e3[m Add fixedHeaderScrollRef and useEffect for continuous scroll sync
+[33m886f101[m Add useEffect to sync fixed header scroll with main table scroll
+[33mac0deea[m Fix fixed header: use same scroll container structure, sync scrollLeft directly
+[33m281bd9c[m Update headerScrollLeft immediately when using scroll arrows
+[33m1c86592[m Fix fixed header: add pointer-events to allow clicks, sync with main table scroll via arrows

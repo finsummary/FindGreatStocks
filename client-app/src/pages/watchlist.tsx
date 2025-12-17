@@ -100,7 +100,7 @@ export function WatchlistPage() {
                 value={selectedWatchlistId?.toString() || ''}
                 onValueChange={(value) => setSelectedWatchlistId(parseInt(value, 10))}
               >
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-[200px]" data-tour="watchlist-selector">
                   <SelectValue placeholder="Select watchlist" />
                 </SelectTrigger>
                 <SelectContent>
@@ -115,6 +115,7 @@ export function WatchlistPage() {
                 variant="outline"
                 onClick={() => setWatchlistManagerOpen(true)}
                 className="flex items-center gap-2"
+                data-tour="manage-watchlists-button"
               >
                 <Settings2 className="h-4 w-4" />
                 Manage

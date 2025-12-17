@@ -1,0 +1,10 @@
+[33ma2a6465[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Debug: add more logging to create layout dialog
+[33m7d9a5d7[m Debug: add logging and fix create layout button - remove early return null
+[33m0833704[m Fix: replace DialogTrigger with onClick button to fix create layout dialog not opening
+[33m284298c[m Fix: make Watchlist, Rank, Company Name always required and uncheckable in custom layouts; fix create layout button
+[33m8b2554f[m Fix: make custom layout dialog background opaque (not transparent)
+[33m4688aa0[m Add custom layouts feature: users can create, edit, delete and apply custom table layouts
+[33mc39e04b[m Fix watchlist: add missing DuPont ROE fields (net_profit_margin, asset_turnover, financial_leverage, roe)
+[33m7c5d2b9[m Fix watchlist: add missing ar_mdd_ratio fields for Return on Risk layout and ensure all data matches main view
+[33mfc0d51e[m Fix watchlist: add missing revenueGrowth10Y, ROIC History, Revenue History, and FCF Margin History fields
+[33m188385b[m Change orange color to yellow for Revenue decline in sparkline

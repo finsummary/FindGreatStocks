@@ -541,6 +541,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist'] });
       queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
       toast({ title: "Success", description: `${companySymbol} added to watchlist.` });
+      // Dispatch event for tour
+      window.dispatchEvent(new CustomEvent('fgs:watchlist-added'));
     },
     onSettled: (_data, _err, { companySymbol }) => {
       if (companySymbol) setWatchlistPending(prev => ({ ...prev, [companySymbol]: false }));
@@ -656,6 +658,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       toast({ title: "Success", description: "Company copied" });
       setMoveCompanyDialogOpen(false);
       setCompanyToMove(null);
+      // Dispatch event for tour
+      window.dispatchEvent(new CustomEvent('fgs:company-copied'));
     }).catch((error: any) => {
       console.error('Copy error:', error);
       toast({ 
@@ -689,6 +693,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       } else {
         // For free users, add to default watchlist
         addToWatchlist({ companySymbol: symbol });
+        // Dispatch event for tour after adding
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('fgs:watchlist-added'));
+        }, 100);
       }
     }
   };
@@ -1035,6 +1043,18 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                     colConfig.id === 'roic10YStd' ? 'tour-roic-volatility' :
                     colConfig.id === 'roicStabilityScore' ? 'tour-roic-stability-score' :
                     colConfig.id === 'roicHistory' ? 'tour-roic-history' :
+                    colConfig.id === 'fcfMargin' ? 'tour-fcf-margin' :
+                    colConfig.id === 'fcfMarginMedian10Y' ? 'tour-fcf-margin-10y-median' :
+                    colConfig.id === 'fcfMarginHistory' ? 'tour-fcf-margin-history' :
+                    colConfig.id === 'debtToEquity' ? 'tour-debt-to-equity' :
+                    colConfig.id === 'interestCoverage' ? 'tour-interest-coverage' :
+                    colConfig.id === 'cashFlowToDebt' ? 'tour-cash-flow-to-debt' :
+                    colConfig.id === 'roe' ? 'tour-roe' :
+                    colConfig.id === 'arMddRatio10Year' ? 'tour-10y-return-risk' :
+                    colConfig.id === 'arMddRatio5Year' ? 'tour-5y-return-risk' :
+                    colConfig.id === 'arMddRatio3Year' ? 'tour-3y-return-risk' :
+                    colConfig.id === 'marginOfSafety' ? 'tour-margin-of-safety' :
+                    colConfig.id === 'dcfImpliedGrowth' ? 'tour-dcf-implied-growth' :
                     undefined
                   }
                 >
@@ -1109,6 +1129,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                           variant="ghost"
                           size="sm"
                           className="h-7 w-7 p-0 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                          data-tour="three-dots-menu"
                           onClick={(e) => {
                             e.stopPropagation();
                             console.log('Menu button clicked:', { 
@@ -2147,6 +2168,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                         data-tour={
                           key === 'compounders' ? 'compounders-layout' :
                           key === 'cashflowLeverage' ? 'cashflow-leverage-layout' :
+                          key === 'dupontRoe' ? 'dupont-roe-layout' :
+                          key === 'returnOnRisk' ? 'return-on-risk-layout' :
+                          key === 'dcfValuation' ? 'dcf-valuation-layout' :
+                          key === 'reverseDcf' ? 'reverse-dcf-layout' :
                           undefined
                         }
                         onSelect={(event) => {
