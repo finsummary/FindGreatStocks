@@ -335,6 +335,15 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
     setSteps(tourSteps);
   }, []);
 
+  // Auto-advance when dropdown opens on step 1
+  useEffect(() => {
+    if (run && stepIndex === 1 && isDropdownOpen) {
+      setTimeout(() => {
+        setStepIndex(2);
+      }, 100); // Small delay to ensure dropdown is rendered
+    }
+  }, [run, stepIndex, isDropdownOpen]);
+
   // Auto-advance when user selects compounders layout on step 2 (dropdown item)
   useEffect(() => {
     if (stepIndex === 2 && selectedLayout === 'compounders' && run) {
@@ -410,6 +419,14 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
     // Update step index when user navigates
     if (type === 'step:after') {
       if (action === 'next') {
+        // Block advancement on step 1 if dropdown is not open
+        if (index === 1 && !isDropdownOpen) {
+          // Reset stepIndex back to 1 to prevent advancement
+          requestAnimationFrame(() => {
+            setStepIndex(1);
+          });
+          return;
+        }
         // Block advancement on step 2 if layout not selected
         if (index === 2 && selectedLayout !== 'compounders') {
           // Reset stepIndex back to 2 to prevent advancement
@@ -425,11 +442,14 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
       }
     } else if (type === 'step:before') {
       // Sync stepIndex with joyride's internal index only if not blocking
-      if (!(index === 2 && selectedLayout !== 'compounders')) {
-        setStepIndex(index);
-      } else {
+      if (index === 1 && !isDropdownOpen) {
+        // Keep at step 1 if trying to advance without opening dropdown
+        setStepIndex(1);
+      } else if (index === 2 && selectedLayout !== 'compounders') {
         // Keep at step 2 if trying to advance without layout selection
         setStepIndex(2);
+      } else {
+        setStepIndex(index);
       }
     } else if (type === 'error:target_not_found') {
       // If target not found, try to continue anyway (element might be in scrollable area)
@@ -507,7 +527,9 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
           visibility: shouldHidePopup ? 'hidden' : 'visible',
         },
         buttonNext: {
-          backgroundColor: stepIndex === 2 && selectedLayout !== 'compounders' ? '#9ca3af' : '#10b981',
+          backgroundColor: (stepIndex === 1 && !isDropdownOpen) || (stepIndex === 2 && selectedLayout !== 'compounders') ? '#9ca3af' : '#10b981',
+          cursor: (stepIndex === 1 && !isDropdownOpen) || (stepIndex === 2 && selectedLayout !== 'compounders') ? 'not-allowed' : 'pointer',
+          opacity: (stepIndex === 1 && !isDropdownOpen) || (stepIndex === 2 && selectedLayout !== 'compounders') ? 0.6 : 1,
           fontSize: '14px',
           padding: '8px 16px',
           cursor: stepIndex === 2 && selectedLayout !== 'compounders' ? 'not-allowed' : 'pointer',
