@@ -1056,39 +1056,45 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
             (stepIndex === 3 && selectedLayout !== 'compounders') ||
             (stepIndex === 8 && !watchlistAdded) ||
             (stepIndex === 10 && !isDropdownOpen) ||
-            (stepIndex === 12 && selectedLayout !== 'cashflowLeverage') ||
+            (stepIndex === 11 && selectedLayout !== 'cashflowLeverage') ||
             (stepIndex === 17 && !isDropdownOpen) ||
-            (stepIndex === 19 && selectedLayout !== 'dupontRoe') ||
+            (stepIndex === 18 && selectedLayout !== 'dupontRoe') ||
+            (stepIndex === 19 && !isDropdownOpen) ||
+            (stepIndex === 20 && selectedLayout !== 'returnOnRisk') ||
             (stepIndex === 21 && !isDropdownOpen) ||
-            (stepIndex === 24 && selectedLayout !== 'dcfValuation') ||
+            (stepIndex === 22 && selectedLayout !== 'dcfValuation') ||
             (stepIndex === 23 && !isDropdownOpen) ||
-            (stepIndex === 26 && selectedLayout !== 'reverseDcf')
+            (stepIndex === 24 && selectedLayout !== 'reverseDcf')
               ? '#9ca3af' : '#10b981',
           cursor: 
             (stepIndex === 2 && !isDropdownOpen) || 
             (stepIndex === 3 && selectedLayout !== 'compounders') ||
             (stepIndex === 8 && !watchlistAdded) ||
             (stepIndex === 10 && !isDropdownOpen) ||
-            (stepIndex === 12 && selectedLayout !== 'cashflowLeverage') ||
+            (stepIndex === 11 && selectedLayout !== 'cashflowLeverage') ||
             (stepIndex === 17 && !isDropdownOpen) ||
-            (stepIndex === 19 && selectedLayout !== 'dupontRoe') ||
+            (stepIndex === 18 && selectedLayout !== 'dupontRoe') ||
+            (stepIndex === 19 && !isDropdownOpen) ||
+            (stepIndex === 20 && selectedLayout !== 'returnOnRisk') ||
             (stepIndex === 21 && !isDropdownOpen) ||
-            (stepIndex === 24 && selectedLayout !== 'dcfValuation') ||
+            (stepIndex === 22 && selectedLayout !== 'dcfValuation') ||
             (stepIndex === 23 && !isDropdownOpen) ||
-            (stepIndex === 26 && selectedLayout !== 'reverseDcf')
+            (stepIndex === 24 && selectedLayout !== 'reverseDcf')
               ? 'not-allowed' : 'pointer',
           opacity: 
             (stepIndex === 2 && !isDropdownOpen) || 
             (stepIndex === 3 && selectedLayout !== 'compounders') ||
             (stepIndex === 8 && !watchlistAdded) ||
             (stepIndex === 10 && !isDropdownOpen) ||
-            (stepIndex === 12 && selectedLayout !== 'cashflowLeverage') ||
+            (stepIndex === 11 && selectedLayout !== 'cashflowLeverage') ||
             (stepIndex === 17 && !isDropdownOpen) ||
-            (stepIndex === 19 && selectedLayout !== 'dupontRoe') ||
+            (stepIndex === 18 && selectedLayout !== 'dupontRoe') ||
+            (stepIndex === 19 && !isDropdownOpen) ||
+            (stepIndex === 20 && selectedLayout !== 'returnOnRisk') ||
             (stepIndex === 21 && !isDropdownOpen) ||
-            (stepIndex === 24 && selectedLayout !== 'dcfValuation') ||
+            (stepIndex === 22 && selectedLayout !== 'dcfValuation') ||
             (stepIndex === 23 && !isDropdownOpen) ||
-            (stepIndex === 26 && selectedLayout !== 'reverseDcf')
+            (stepIndex === 24 && selectedLayout !== 'reverseDcf')
               ? 0.6 : 1,
           fontSize: '14px',
           padding: '8px 16px',
