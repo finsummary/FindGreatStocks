@@ -2153,7 +2153,12 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                         }}
                       >
                         <div className="flex items-center justify-between w-full">
-                          <span>{layout.name}</span>
+                          <div className="flex items-center gap-2">
+                            {key === 'compounders' && (
+                              <div className="h-2 w-2 rounded-full bg-emerald-500 flex-shrink-0" />
+                            )}
+                            <span>{layout.name}</span>
+                          </div>
                           {isLocked && <Lock className="h-4 w-4 text-muted-foreground ml-2" />}
                         </div>
                       </DropdownMenuItem>
