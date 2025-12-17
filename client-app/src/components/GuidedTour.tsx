@@ -4,6 +4,7 @@ import Joyride, { CallBackProps, STATUS, Step } from 'react-joyride';
 interface GuidedTourProps {
   run: boolean;
   onComplete?: () => void;
+  onStop?: () => void;
 }
 
 const TOUR_STORAGE_KEY = 'fgs:guided_tour:completed';
