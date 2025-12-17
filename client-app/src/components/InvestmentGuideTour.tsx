@@ -534,7 +534,6 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         }
       }
     }
-    }
   };
 
   // Hide popup when dropdown is open on step 1 or 2 to allow user to see the dropdown menu
