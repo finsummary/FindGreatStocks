@@ -363,8 +363,46 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
     // Log callback for debugging - log all callbacks to understand what's happening
     console.log('Tour callback:', { type, index, action, status, stepIndex, target: currentSteps[index]?.target, stepsLength: currentSteps.length, run });
     
-    // Handle close button click
-    if (action === 'close' || status === STATUS.SKIPPED) {
+    // Handle close button click - but only if it's actually the close button, not a navigation issue
+    if (action === 'close') {
+      // Check if this is a premature close (not on last step and not user-initiated)
+      // If we're in the middle of the tour and this is not the last step, it might be an error
+      const isLastStep = index === currentSteps.length - 1;
+      const isUserClose = type === 'step:after' && action === 'close';
+      
+      // If this is a close action but we're not on the last step, it might be an error
+      // Try to continue to next step instead of closing
+      if (!isLastStep && isUserClose && index < currentSteps.length - 1) {
+        console.warn('Premature close detected, continuing to next step instead:', index + 1);
+        // Don't close, just continue to next step
+        setTimeout(() => {
+          setStepIndex(index + 1);
+        }, 100);
+        return;
+      }
+      
+      // Only close if it's the last step or explicitly user-initiated close
+      // Mark tour as completed
+      try {
+        localStorage.setItem(TOUR_STORAGE_KEY, '1');
+      } catch {}
+      
+      // Dispatch event that tour is no longer active
+      window.dispatchEvent(new CustomEvent('fgs:investment-tour-step1-inactive'));
+      
+      // Stop the tour
+      if (onStop) {
+        onStop();
+      }
+      
+      if (onComplete) {
+        onComplete();
+      }
+      return;
+    }
+    
+    // Handle skipped
+    if (status === STATUS.SKIPPED) {
       // Mark tour as completed
       try {
         localStorage.setItem(TOUR_STORAGE_KEY, '1');
