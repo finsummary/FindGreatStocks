@@ -16,6 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { InvestmentGuideTour } from "@/components/InvestmentGuideTour";
+import { useInvestmentGuideTour } from "@/components/InvestmentGuideTour";
 
 interface Watchlist {
   id: number;
