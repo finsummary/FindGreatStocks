@@ -167,9 +167,13 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
     }
     
     // Handle tour finished - only on last step
+    // IMPORTANT: react-joyride may call FINISHED when it can't find an element
+    // We need to differentiate between actual completion and error
     if (status === STATUS.FINISHED) {
-      if (index === currentSteps.length - 1) {
+      const lastStepIndex = currentSteps.length - 1;
+      if (index === lastStepIndex) {
         // This is the last step - tour is complete
+        console.log('Tour completed on last step');
         try {
           localStorage.setItem(TOUR_STORAGE_KEY, '1');
           localStorage.removeItem('fgs:guided-tour:stepIndex');
@@ -179,10 +183,34 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
         if (onComplete) onComplete();
         return;
       } else {
-        // FINISHED on non-last step is likely an error - continue to next step
-        console.warn('Tour marked as FINISHED but not on last step. Continuing...', { index, lastStepIndex: currentSteps.length - 1 });
-        if (index < currentSteps.length - 1) {
-          setTimeout(() => setStepIndex(index + 1), 300);
+        // FINISHED on non-last step is likely an error (element not found)
+        // Don't stop the tour - try to continue to next step
+        console.warn('Tour marked as FINISHED but not on last step. This is likely an error. Continuing to next step...', { 
+          index, 
+          lastStepIndex,
+          target: currentSteps[index]?.target 
+        });
+        // Check if next step target exists
+        const nextTarget = currentSteps[index + 1]?.target;
+        if (nextTarget) {
+          // Try to find next element and advance
+          const maxAttempts = 50;
+          const delay = 200;
+          let attempts = 0;
+          const checkNextAndAdvance = () => {
+            const element = typeof nextTarget === 'string' ? document.querySelector(nextTarget) : null;
+            if (element || attempts >= maxAttempts) {
+              console.log('Advancing to next step after FINISHED error', { nextIndex: index + 1, found: !!element, attempts });
+              setTimeout(() => setStepIndex(index + 1), 100);
+            } else {
+              attempts++;
+              setTimeout(checkNextAndAdvance, delay);
+            }
+          };
+          setTimeout(checkNextAndAdvance, 0);
+        } else {
+          // No target, advance immediately
+          setTimeout(() => setStepIndex(index + 1), 100);
         }
         return;
       }
