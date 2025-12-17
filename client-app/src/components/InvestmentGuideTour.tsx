@@ -266,6 +266,9 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
     }
   };
 
+  // Hide popup when dropdown is open on step 1 to allow user to see the dropdown menu
+  const shouldHidePopup = stepIndex === 1 && isDropdownOpen;
+
   return (
     <Joyride
       ref={joyrideRef}
@@ -279,16 +282,29 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
       spotlightClicks={stepIndex === 1}
       disableOverlayClose={stepIndex === 1 && !isDropdownOpen}
       disableScrolling={stepIndex === 1 && !isDropdownOpen}
+      disableOverlay={shouldHidePopup}
       styles={{
         options: {
           primaryColor: '#10b981', // emerald-500
-          zIndex: 10000,
+          zIndex: shouldHidePopup ? 1 : 10000, // Lower z-index when dropdown is open
         },
         tooltip: {
           borderRadius: '8px',
+          display: shouldHidePopup ? 'none' : 'block',
+          visibility: shouldHidePopup ? 'hidden' : 'visible',
         },
         tooltipContainer: {
           textAlign: 'left',
+          display: shouldHidePopup ? 'none' : 'block',
+          visibility: shouldHidePopup ? 'hidden' : 'visible',
+        },
+        overlay: {
+          display: shouldHidePopup ? 'none' : 'block',
+          visibility: shouldHidePopup ? 'hidden' : 'visible',
+        },
+        spotlight: {
+          // Keep spotlight visible to highlight the Compounders option
+          display: 'block',
         },
         buttonNext: {
           backgroundColor: stepIndex === 1 && selectedLayout !== 'compounders' ? '#9ca3af' : '#10b981',
