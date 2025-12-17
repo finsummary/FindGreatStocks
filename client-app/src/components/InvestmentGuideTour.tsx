@@ -532,8 +532,6 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
           opacity: (stepIndex === 1 && !isDropdownOpen) || (stepIndex === 2 && selectedLayout !== 'compounders') ? 0.6 : 1,
           fontSize: '14px',
           padding: '8px 16px',
-          cursor: stepIndex === 2 && selectedLayout !== 'compounders' ? 'not-allowed' : 'pointer',
-          opacity: stepIndex === 2 && selectedLayout !== 'compounders' ? 0.6 : 1,
         },
         buttonBack: {
           color: '#6b7280',
