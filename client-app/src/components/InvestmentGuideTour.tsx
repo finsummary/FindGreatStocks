@@ -504,13 +504,11 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         if (nextIndex < currentSteps.length) {
           const nextTarget = currentSteps[nextIndex]?.target;
           if (nextTarget && typeof nextTarget === 'string') {
-            // Special handling for step 4 (ROIC 10Y Avg) - first step after layout selection
-            // It may need more time to render after the table updates
-            const isStep4 = nextIndex === 4;
-            const maxAttempts = isStep4 ? 100 : 20; // Much more attempts for step 4
-            const delay = isStep4 ? 200 : 100; // Longer delay for step 4
-            
             // Check if element exists before advancing, with retries
+            // All steps (including step 4) are handled the same way
+            const maxAttempts = 20;
+            const delay = 100;
+            
             let attempts = 0;
             const checkAndAdvance = () => {
               const element = document.querySelector(nextTarget);
@@ -526,24 +524,16 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
                 attempts++;
                 setTimeout(checkAndAdvance, delay);
               } else {
-                // CRITICAL: For step 4, DO NOT advance if element not found
-                // Keep trying until element appears - don't skip this step!
-                if (isStep4) {
-                  console.warn('Step 4 element not found after', maxAttempts, 'attempts. Continuing to search... Target:', nextTarget);
-                  // Continue searching with longer delays
-                  attempts = 0; // Reset counter
-                  setTimeout(checkAndAdvance, 500); // Longer delay before retrying
-                } else {
-                  // For other steps, advance anyway (we'll catch error in error handler)
-                  console.warn('Element not found after', maxAttempts, 'attempts, advancing anyway. Target:', nextTarget);
-                  requestAnimationFrame(() => {
-                    setStepIndex(nextIndex);
-                  });
-                }
+                // Element not found after attempts, advance anyway
+                // We'll catch the error in error:target_not_found handler
+                console.warn('Element not found after', maxAttempts, 'attempts, advancing anyway. Target:', nextTarget);
+                requestAnimationFrame(() => {
+                  setStepIndex(nextIndex);
+                });
               }
             };
-            // Start checking with initial delay for step 4
-            setTimeout(checkAndAdvance, isStep4 ? 500 : 50);
+            // Start checking with small delay
+            setTimeout(checkAndAdvance, 50);
           } else {
             // No target or invalid target, just advance
             requestAnimationFrame(() => {
@@ -576,10 +566,9 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
       // Do NOT call onStop or onComplete here - that would end the tour prematurely
       const targetSelector = currentSteps[index]?.target;
       if (targetSelector && typeof targetSelector === 'string') {
-        // Special handling for step 4 (ROIC 10Y Avg) - needs more time after layout change
-        const isStep4 = index === 4;
-        const maxAttempts = isStep4 ? 200 : 15; // Much more attempts for step 4 - NEVER skip this step!
-        const delay = isStep4 ? 200 : 150; // Longer delay for step 4
+        // All steps (including step 4) are handled the same way
+        const maxAttempts = 15;
+        const delay = 150;
         
         // Try multiple times to find the element (it might be loading or in a scrollable area)
         let attempts = 0;
@@ -599,43 +588,24 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
             attempts++;
             setTimeout(findElement, delay);
           } else {
-            // CRITICAL: For step 4, NEVER skip - keep trying until element appears
-            if (isStep4) {
-              console.warn('Step 4 element still not found after', maxAttempts, 'attempts. Continuing to search indefinitely...');
-              // Reset counter and continue searching with longer delays
-              attempts = 0;
-              setTimeout(findElement, 1000); // Much longer delay before retrying
+            // Element not found after multiple attempts, skip to next step
+            console.warn('Element not found after', maxAttempts, 'attempts, skipping to next step:', index + 1);
+            if (index < currentSteps.length - 1) {
+              // Skip this step and go to next
+              setStepIndex(index + 1);
             } else {
-              // For other steps, skip to next step
-              console.warn('Element not found after', maxAttempts, 'attempts, skipping to next step:', index + 1);
-              if (index < currentSteps.length - 1) {
-                // Skip this step and go to next
-                setStepIndex(index + 1);
-              } else {
-                // Last step, but element not found - don't end tour, just log
-                console.warn('Last step element not found, but not ending tour');
-              }
+              // Last step, but element not found - don't end tour, just log
+              console.warn('Last step element not found, but not ending tour');
             }
           }
         };
-        // Start with initial delay for step 4
-        setTimeout(findElement, isStep4 ? 500 : 0);
+        // Start immediately
+        setTimeout(findElement, 0);
       } else {
-        // No valid target, just continue to next step (but NOT for step 4)
-        if (index === 4) {
-          // For step 4, keep trying to find the element
-          console.warn('Step 4: No valid target selector, but continuing to search...');
-          setTimeout(() => {
-            const element = document.querySelector('[data-tour="tour-roic-10y-avg"]');
-            if (element) {
-              setStepIndex(4);
-            }
-          }, 500);
-        } else {
-          console.warn('No valid target selector, continuing to next step:', index + 1);
-          if (index < currentSteps.length - 1) {
-            setStepIndex(index + 1);
-          }
+        // No valid target, just continue to next step
+        console.warn('No valid target selector, continuing to next step:', index + 1);
+        if (index < currentSteps.length - 1) {
+          setStepIndex(index + 1);
         }
       }
     }
