@@ -408,9 +408,19 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         return;
       } else {
         // If FINISHED but not on last step, it's likely an error - continue to next step
-        console.warn('Tour marked as FINISHED but not on last step. Continuing...', { index, totalSteps: currentSteps.length });
-        if (index < currentSteps.length - 1) {
-          setStepIndex(index + 1);
+        const lastStepIndex = currentSteps.length - 1;
+        console.warn('Tour marked as FINISHED but not on last step. Continuing...', { 
+          index, 
+          lastStepIndex, 
+          totalSteps: currentSteps.length,
+          target: currentSteps[index]?.target 
+        });
+        // Don't stop the tour, just continue to next step
+        if (index < lastStepIndex) {
+          // Wait a bit and then try to continue
+          setTimeout(() => {
+            setStepIndex(index + 1);
+          }, 300);
         }
         return;
       }
@@ -436,7 +446,24 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
           return;
         }
         // Allow normal navigation for all other steps
-        setStepIndex(index + 1);
+        // Add a small delay to ensure the next element is ready
+        const nextIndex = index + 1;
+        if (nextIndex < currentSteps.length) {
+          // Check if next step's target exists before advancing
+          const nextTarget = currentSteps[nextIndex]?.target;
+          if (nextTarget && typeof nextTarget === 'string') {
+            // Wait a bit to ensure DOM is ready
+            setTimeout(() => {
+              setStepIndex(nextIndex);
+            }, 100);
+          } else {
+            // No target or invalid target, just advance
+            setStepIndex(nextIndex);
+          }
+        } else {
+          // Last step, don't advance
+          console.log('Reached last step');
+        }
       } else if (action === 'prev') {
         setStepIndex(index - 1);
       }
@@ -454,27 +481,38 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
     } else if (type === 'error:target_not_found') {
       // If target not found, try to continue anyway (element might be in scrollable area)
       console.warn('Tour target not found for step:', index, 'Target:', currentSteps[index]?.target);
-      // Try to scroll to find the element, then continue
+      
+      // Don't stop the tour - try to find the element or continue to next step
       const targetSelector = currentSteps[index]?.target;
       if (targetSelector && typeof targetSelector === 'string') {
-        const element = document.querySelector(targetSelector);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          // Wait a bit for scroll, then continue
-          setTimeout(() => {
+        // Try multiple times to find the element (it might be loading)
+        let attempts = 0;
+        const maxAttempts = 5;
+        const findElement = () => {
+          const element = document.querySelector(targetSelector);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Wait a bit for scroll, then continue to next step
+            setTimeout(() => {
+              if (index < currentSteps.length - 1) {
+                setStepIndex(index + 1);
+              }
+            }, 500);
+          } else if (attempts < maxAttempts) {
+            // Element not found yet, try again after a short delay
+            attempts++;
+            setTimeout(findElement, 200);
+          } else {
+            // Element not found after multiple attempts, skip to next step
+            console.warn('Element not found after attempts, skipping step:', index);
             if (index < currentSteps.length - 1) {
               setStepIndex(index + 1);
             }
-          }, 500);
-        } else {
-          // Element not found, skip to next step
-          console.warn('Element not found, skipping step:', index);
-          if (index < currentSteps.length - 1) {
-            setStepIndex(index + 1);
           }
-        }
+        };
+        findElement();
       } else {
-        // No valid target, just continue
+        // No valid target, just continue to next step
         if (index < currentSteps.length - 1) {
           setStepIndex(index + 1);
         }
