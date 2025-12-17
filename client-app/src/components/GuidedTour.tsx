@@ -11,6 +11,24 @@ const TOUR_STORAGE_KEY = 'fgs:guided_tour:completed';
 
 export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
   const [steps, setSteps] = useState<Step[]>([]);
+  const [stepIndex, setStepIndex] = useState(() => {
+    if (!run) return 0;
+    try {
+      const saved = localStorage.getItem('fgs:guided-tour:stepIndex');
+      return saved ? parseInt(saved, 10) : 0;
+    } catch {
+      return 0;
+    }
+  });
+
+  // Save stepIndex to localStorage
+  useEffect(() => {
+    if (run) {
+      try {
+        localStorage.setItem('fgs:guided-tour:stepIndex', stepIndex.toString());
+      } catch {}
+    }
+  }, [stepIndex, run]);
 
   useEffect(() => {
     // Define tour steps
@@ -110,23 +128,119 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
   }, []);
 
   const handleJoyrideCallback = (data: CallBackProps) => {
-    const { status, action } = data;
+    const { status, action, type, index } = data;
+    const currentSteps = steps;
     
-    // Handle close button click or tour completion
-    if (action === 'close' || status === STATUS.FINISHED || status === STATUS.SKIPPED) {
-      // Mark tour as completed
+    console.log('GuidedTour callback:', { type, index, action, status, stepIndex, target: currentSteps[index]?.target, stepsLength: currentSteps.length, run });
+    
+    // Handle close button click - user explicitly closed
+    if (action === 'close') {
+      console.log('Tour closed by user on step', index);
       try {
         localStorage.setItem(TOUR_STORAGE_KEY, '1');
-        // Trigger custom event to notify that first tour is complete
-        window.dispatchEvent(new CustomEvent('fgs:first-tour-completed'));
+        localStorage.removeItem('fgs:guided-tour:stepIndex');
       } catch {}
-      
-      if (onStop) {
-        onStop();
+      if (onStop) onStop();
+      if (onComplete) onComplete();
+      return;
+    }
+    
+    // Handle skipped
+    if (status === STATUS.SKIPPED) {
+      try {
+        localStorage.setItem(TOUR_STORAGE_KEY, '1');
+        localStorage.removeItem('fgs:guided-tour:stepIndex');
+      } catch {}
+      if (onStop) onStop();
+      if (onComplete) onComplete();
+      return;
+    }
+    
+    // Handle tour finished - only on last step
+    if (status === STATUS.FINISHED) {
+      if (index === currentSteps.length - 1) {
+        // This is the last step - tour is complete
+        try {
+          localStorage.setItem(TOUR_STORAGE_KEY, '1');
+          localStorage.removeItem('fgs:guided-tour:stepIndex');
+          window.dispatchEvent(new CustomEvent('fgs:first-tour-completed'));
+        } catch {}
+        if (onStop) onStop();
+        if (onComplete) onComplete();
+        return;
+      } else {
+        // FINISHED on non-last step is likely an error - continue to next step
+        console.warn('Tour marked as FINISHED but not on last step. Continuing...', { index, lastStepIndex: currentSteps.length - 1 });
+        if (index < currentSteps.length - 1) {
+          setTimeout(() => setStepIndex(index + 1), 300);
+        }
+        return;
       }
-      
-      if (onComplete) {
-        onComplete();
+    }
+
+    // Handle step navigation
+    if (type === 'step:after') {
+      if (action === 'next') {
+        const nextIndex = index + 1;
+        if (nextIndex < currentSteps.length) {
+          const nextTarget = currentSteps[nextIndex]?.target;
+          if (nextTarget && typeof nextTarget === 'string') {
+            const maxAttempts = 30;
+            const delay = 150;
+            let attempts = 0;
+            const checkAndAdvance = () => {
+              const element = document.querySelector(nextTarget);
+              if (element) {
+                console.log('Element found, advancing to step:', nextIndex, 'Target:', nextTarget, 'Attempts:', attempts);
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                requestAnimationFrame(() => setStepIndex(nextIndex));
+              } else if (attempts < maxAttempts) {
+                attempts++;
+                setTimeout(checkAndAdvance, delay);
+              } else {
+                console.warn('Element not found after', maxAttempts, 'attempts, advancing anyway. Target:', nextTarget);
+                requestAnimationFrame(() => setStepIndex(nextIndex));
+              }
+            };
+            setTimeout(checkAndAdvance, 50);
+          } else {
+            requestAnimationFrame(() => setStepIndex(nextIndex));
+          }
+        }
+      } else if (action === 'prev') {
+        setStepIndex(index - 1);
+      }
+    } else if (type === 'error:target_not_found') {
+      console.warn('Tour target not found for step:', index, 'Target:', currentSteps[index]?.target);
+      const targetSelector = currentSteps[index]?.target;
+      if (targetSelector && typeof targetSelector === 'string') {
+        const maxAttempts = 30;
+        const delay = 200;
+        let attempts = 0;
+        const findElement = () => {
+          const element = document.querySelector(targetSelector);
+          if (element) {
+            console.log('Element found after', attempts, 'attempts, scrolling to it');
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (stepIndex !== index) {
+              setStepIndex(index);
+            }
+          } else if (attempts < maxAttempts) {
+            attempts++;
+            setTimeout(findElement, delay);
+          } else {
+            console.warn('Element not found after', maxAttempts, 'attempts, skipping to next step:', index + 1);
+            if (index < currentSteps.length - 1) {
+              setStepIndex(index + 1);
+            }
+          }
+        };
+        setTimeout(findElement, 0);
+      } else {
+        console.warn('No valid target selector, continuing to next step:', index + 1);
+        if (index < currentSteps.length - 1) {
+          setStepIndex(index + 1);
+        }
       }
     }
   };
@@ -135,6 +249,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
     <Joyride
       steps={steps}
       run={run}
+      stepIndex={stepIndex}
       continuous
       showProgress
       showSkipButton
