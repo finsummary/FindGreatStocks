@@ -365,23 +365,24 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
     
     // Handle close button click - but only if it's actually the close button, not a navigation issue
     if (action === 'close') {
-      // Check if this is a premature close (not on last step and not user-initiated)
-      // If we're in the middle of the tour and this is not the last step, it might be an error
+      // Check if this is a premature close (not on last step)
+      // If we're in the middle of the tour and this is not the last step, it's likely an error
       const isLastStep = index === currentSteps.length - 1;
-      const isUserClose = type === 'step:after' && action === 'close';
       
-      // If this is a close action but we're not on the last step, it might be an error
+      // If this is a close action but we're not on the last step, it's likely an error
       // Try to continue to next step instead of closing
-      if (!isLastStep && isUserClose && index < currentSteps.length - 1) {
-        console.warn('Premature close detected, continuing to next step instead:', index + 1);
-        // Don't close, just continue to next step
+      if (!isLastStep && index < currentSteps.length - 1) {
+        console.warn('Premature close detected on step', index, ', continuing to next step instead:', index + 1);
+        // CRITICAL: Don't call onStop or onComplete - that would stop the tour!
+        // Just continue to next step
         setTimeout(() => {
           setStepIndex(index + 1);
         }, 100);
-        return;
+        return; // Return early, don't stop the tour
       }
       
-      // Only close if it's the last step or explicitly user-initiated close
+      // Only close if it's the last step or explicitly user-initiated close on last step
+      console.log('Tour closing on step', index, 'of', currentSteps.length - 1);
       // Mark tour as completed
       try {
         localStorage.setItem(TOUR_STORAGE_KEY, '1');
