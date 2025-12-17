@@ -127,11 +127,123 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
               Now you can see companies sorted by ROIC and ROIC Stability Score. This helps identify exceptional compounders.
             </p>
             <p className="text-sm">
-              Next, let's check cash flow quality.
+              Let's explore the ROIC columns to understand what they mean.
             </p>
           </div>
         ),
         placement: 'bottom',
+      },
+      {
+        target: '[data-tour="tour-roic-latest"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">ROIC % (Latest)</h3>
+            <p className="text-sm mb-2">
+              This shows the Return on Invested Capital using the most recent fiscal year.
+            </p>
+            <p className="text-sm mb-2">
+              <strong>ROIC</strong> measures how efficiently a company generates returns on its invested capital (debt + equity).
+            </p>
+            <p className="text-sm">
+              Look for companies with <strong>ROIC ≥ 15%</strong> (green) - these are excellent compounders.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+      },
+      {
+        target: '[data-tour="tour-roic-10y-avg"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">ROIC 10Y Avg %</h3>
+            <p className="text-sm mb-2">
+              This is the average ROIC over the last 10 fiscal years (or available history).
+            </p>
+            <p className="text-sm mb-2">
+              A <strong>higher average</strong> means the company has consistently strong capital efficiency over time.
+            </p>
+            <p className="text-sm">
+              Great companies maintain high ROIC year after year, not just in one good year.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+      },
+      {
+        target: '[data-tour="tour-roic-volatility"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">ROIC Volatility %</h3>
+            <p className="text-sm mb-2">
+              This is the standard deviation of annual ROIC over the last 10 years.
+            </p>
+            <p className="text-sm mb-2">
+              <strong>Lower values</strong> mean more stable, predictable returns. High volatility suggests inconsistent performance.
+            </p>
+            <p className="text-sm">
+              Look for companies with <strong>low volatility</strong> - they're more reliable investments.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+      },
+      {
+        target: '[data-tour="tour-roic-stability-score"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">ROIC Stability Score</h3>
+            <p className="text-sm mb-2">
+              This score combines both average ROIC and volatility: <strong>ROIC Stability Ratio × 30</strong> (capped at 100).
+            </p>
+            <p className="text-sm mb-2">
+              <strong>Green (≥70):</strong> Excellent - high returns with low volatility<br/>
+              <strong>Yellow (30-69):</strong> Good - decent returns<br/>
+              <strong>Red (&lt;30):</strong> Weak - low returns or high volatility
+            </p>
+            <p className="text-sm">
+              This is one of the most important metrics for finding great compounders!
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+      },
+      {
+        target: '[data-tour="tour-roic-history"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">ROIC History (10Y)</h3>
+            <p className="text-sm mb-2">
+              This bar chart shows annual ROIC values for the last 10 fiscal years. Each bar represents one year.
+            </p>
+            <p className="text-sm mb-2">
+              <strong>Green bars (≥15%):</strong> Excellent ROIC<br/>
+              <strong>Yellow bars (5-15%):</strong> Good ROIC<br/>
+              <strong>Red bars (&lt;5%):</strong> Weak ROIC
+            </p>
+            <p className="text-sm">
+              Look for companies with mostly green bars - they consistently generate high returns on capital.
+            </p>
+          </div>
+        ),
+        placement: 'bottom',
+      },
+      {
+        target: '[data-tour="tour-watchlist-msft"]',
+        content: (
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Add to Watchlist</h3>
+            <p className="text-sm mb-2">
+              Found a great company? Click the <strong>star icon</strong> to add it to your personal watchlist.
+            </p>
+            <p className="text-sm mb-2">
+              For example, <strong>Microsoft (MSFT)</strong> has excellent ROIC metrics - try adding it to your watchlist!
+            </p>
+            <p className="text-sm">
+              Your watchlist helps you track companies you're interested in analyzing further.
+            </p>
+          </div>
+        ),
+        placement: 'right',
       },
       {
         target: '[data-tour="layout-selector"]',

@@ -1027,7 +1027,16 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               <TooltipTrigger asChild>
                 <div 
                   className={`flex items-center ${colConfig.id === 'name' ? 'justify-start' : 'justify-center'} gap-1`}
-                  data-tour={colConfig.id === 'marketCap' ? 'columns' : colConfig.id === 'watchlist' ? 'watchlist' : undefined}
+                  data-tour={
+                    colConfig.id === 'marketCap' ? 'columns' : 
+                    colConfig.id === 'watchlist' ? 'watchlist' :
+                    colConfig.id === 'roic' ? 'tour-roic-latest' :
+                    colConfig.id === 'roic10YAvg' ? 'tour-roic-10y-avg' :
+                    colConfig.id === 'roic10YStd' ? 'tour-roic-volatility' :
+                    colConfig.id === 'roicStabilityScore' ? 'tour-roic-stability-score' :
+                    colConfig.id === 'roicHistory' ? 'tour-roic-history' :
+                    undefined
+                  }
                 >
                   {colConfig.id === 'watchlist' ? <Star className="h-4 w-4" /> : colConfig.label}
                   {colConfig.id !== 'watchlist' && <SortIcon column={colConfig.id} />}
@@ -1064,6 +1073,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                                 ? 'text-muted-foreground hover:text-yellow-500'
                                 : 'text-muted-foreground opacity-60 cursor-not-allowed'
                           }`}
+                          data-tour={row.symbol === 'MSFT' ? 'tour-watchlist-msft' : undefined}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (isLoggedIn && !isWatchlistPage) {
