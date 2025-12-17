@@ -143,6 +143,36 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
     
     console.log('GuidedTour callback:', { type, index, action, status, stepIndex, target: currentSteps[index]?.target, stepsLength: currentSteps.length, run });
     
+    // CRITICAL: Handle FINISHED status FIRST, before other handlers
+    // react-joyride calls FINISHED when it can't find an element, which closes the tour
+    if (status === STATUS.FINISHED) {
+      const lastStepIndex = currentSteps.length - 1;
+      if (index === lastStepIndex) {
+        // This is the last step - tour is complete
+        console.log('Tour completed on last step');
+        try {
+          localStorage.setItem(TOUR_STORAGE_KEY, '1');
+          localStorage.removeItem('fgs:guided-tour:stepIndex');
+          window.dispatchEvent(new CustomEvent('fgs:first-tour-completed'));
+        } catch {}
+        if (onStop) onStop();
+        if (onComplete) onComplete();
+        return;
+      } else {
+        // FINISHED on non-last step = element not found error
+        // CRITICAL: Prevent tour from closing by immediately advancing to next step
+        console.error('ERROR: Tour marked as FINISHED on step', index, 'but not last step. This means element not found. Forcing continuation...');
+        const nextIndex = index + 1;
+        if (nextIndex < currentSteps.length) {
+          // Immediately set next step to prevent tour from closing
+          requestAnimationFrame(() => {
+            setStepIndex(nextIndex);
+          });
+        }
+        return; // Don't process other handlers
+      }
+    }
+    
     // Handle close button click - user explicitly closed
     if (action === 'close') {
       console.log('Tour closed by user on step', index);
@@ -164,40 +194,6 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
       if (onStop) onStop();
       if (onComplete) onComplete();
       return;
-    }
-    
-    // Handle tour finished - only on last step
-    // IMPORTANT: react-joyride may call FINISHED when it can't find an element
-    // We need to differentiate between actual completion and error
-    if (status === STATUS.FINISHED) {
-      const lastStepIndex = currentSteps.length - 1;
-      if (index === lastStepIndex) {
-        // This is the last step - tour is complete
-        console.log('Tour completed on last step');
-        try {
-          localStorage.setItem(TOUR_STORAGE_KEY, '1');
-          localStorage.removeItem('fgs:guided-tour:stepIndex');
-          window.dispatchEvent(new CustomEvent('fgs:first-tour-completed'));
-        } catch {}
-        if (onStop) onStop();
-        if (onComplete) onComplete();
-        return;
-      } else {
-        // FINISHED on non-last step is ALWAYS an error (element not found)
-        // NEVER stop the tour - always continue to next step
-        console.warn('Tour marked as FINISHED but not on last step. This is an error. Forcing continuation to next step...', { 
-          index, 
-          lastStepIndex,
-          currentTarget: currentSteps[index]?.target,
-          nextTarget: currentSteps[index + 1]?.target
-        });
-        // Force advance to next step - don't wait for element
-        setTimeout(() => {
-          console.log('Forcing stepIndex to', index + 1);
-          setStepIndex(index + 1);
-        }, 100);
-        return;
-      }
     }
 
     // Handle step navigation
