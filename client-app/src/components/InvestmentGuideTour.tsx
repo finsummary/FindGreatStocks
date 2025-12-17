@@ -375,32 +375,12 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
     // Log callback for debugging - log all callbacks to understand what's happening
     console.log('Tour callback:', { type, index, action, status, stepIndex, target: currentSteps[index]?.target, stepsLength: currentSteps.length, run });
     
-    // Handle close button click - ONLY if it's a real user-initiated close
-    // react-joyride may call 'close' action when it can't find elements, but that's not a real close
+    // Handle close button click - user clicked X button
     if (action === 'close') {
-      // Real user close happens when:
-      // 1. type is 'tour:status' (tour status change)
-      // 2. OR type is 'step:after' AND it's the last step (user clicked X on last step)
-      // 3. OR type is something that indicates explicit user action
+      // User explicitly closed the tour by clicking X
+      console.log('Tour closed by user on step', index);
       
-      // If it's 'step:after' with 'close' action and NOT the last step, it's likely an error
-      // Don't treat it as a real close - just continue to next step
-      const isLastStep = index === currentSteps.length - 1;
-      const isRealClose = type === 'tour:status' || (type === 'step:after' && isLastStep);
-      
-      if (!isRealClose && !isLastStep) {
-        // This is likely an error - react-joyride couldn't find the element
-        // Don't close the tour, just continue to next step
-        console.warn('False close detected (likely element not found), continuing to next step:', index + 1);
-        setTimeout(() => {
-          setStepIndex(index + 1);
-        }, 100);
-        return; // Don't stop the tour
-      }
-      
-      // This is a real close - user clicked X or tour finished
-      console.log('Real tour close detected on step', index);
-      // Mark tour as completed
+      // Mark tour as completed (user chose to skip it)
       try {
         localStorage.setItem(TOUR_STORAGE_KEY, '1');
       } catch {}
@@ -686,18 +666,12 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
 }
 
 export function useInvestmentGuideTour() {
-  // Restore shouldRun from localStorage to persist across page navigations
-  const [shouldRun, setShouldRun] = useState(() => {
-    try {
-      const saved = localStorage.getItem('fgs:investment-tour:shouldRun');
-      return saved === 'true';
-    } catch {
-      return false;
-    }
-  });
+  // Do NOT restore shouldRun from localStorage - tour should only start manually or after first tour
+  const [shouldRun, setShouldRun] = useState(false);
 
   const startTour = () => {
     setShouldRun(true);
+    // Save stepIndex persistence for navigation between pages
     try {
       localStorage.setItem('fgs:investment-tour:shouldRun', 'true');
     } catch {}
@@ -706,8 +680,8 @@ export function useInvestmentGuideTour() {
   const stopTour = () => {
     setShouldRun(false);
     try {
-      localStorage.setItem('fgs:investment-tour:shouldRun', 'false');
-      // Clear stepIndex when tour stops
+      // Clear all tour state when tour stops
+      localStorage.removeItem('fgs:investment-tour:shouldRun');
       localStorage.removeItem('fgs:investment-tour:stepIndex');
     } catch {}
   };
