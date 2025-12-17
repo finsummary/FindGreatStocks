@@ -113,7 +113,7 @@ export function HomePage() {
       
       <main className="container mx-auto px-4 py-8">
         <GuidedTour run={shouldRun} onComplete={stopTour} />
-        <InvestmentGuideTour run={shouldRunInvestmentGuide} onComplete={stopInvestmentGuide} />
+        <InvestmentGuideTour run={shouldRunInvestmentGuide} onComplete={stopInvestmentGuide} onStop={stopInvestmentGuide} />
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex flex-wrap items-center gap-2" data-tour="market-selector">
             <Button

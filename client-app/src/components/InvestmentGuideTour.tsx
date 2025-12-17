@@ -5,16 +5,26 @@ interface InvestmentGuideTourProps {
   run: boolean;
   onComplete?: () => void;
   selectedLayout?: string | null;
+  onStop?: () => void;
 }
 
 const TOUR_STORAGE_KEY = 'fgs:investment_guide_tour:completed';
 
-export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedLayoutProp }: InvestmentGuideTourProps) {
+export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedLayoutProp, onStop }: InvestmentGuideTourProps) {
   const [steps, setSteps] = useState<Step[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
   const [selectedLayout, setSelectedLayout] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const joyrideRef = useRef<Joyride>(null);
+
+  // Dispatch event when tour is active on step 1
+  useEffect(() => {
+    if (run && stepIndex === 1) {
+      window.dispatchEvent(new CustomEvent('fgs:investment-tour-step1-active'));
+    } else {
+      window.dispatchEvent(new CustomEvent('fgs:investment-tour-step1-inactive'));
+    }
+  }, [run, stepIndex]);
 
   // Listen for layout selection events
   useEffect(() => {
@@ -228,11 +238,20 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status, index, action, type } = data;
     
-    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+    // Handle close button click
+    if (action === 'close' || status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       // Mark tour as completed
       try {
         localStorage.setItem(TOUR_STORAGE_KEY, '1');
       } catch {}
+      
+      // Dispatch event that tour is no longer active
+      window.dispatchEvent(new CustomEvent('fgs:investment-tour-step1-inactive'));
+      
+      // Stop the tour
+      if (onStop) {
+        onStop();
+      }
       
       if (onComplete) {
         onComplete();
@@ -328,6 +347,9 @@ export function InvestmentGuideTour({ run, onComplete, selectedLayout: selectedL
         last: 'Finish',
         next: 'Next',
         skip: 'Skip',
+      }}
+      floaterProps={{
+        disableAnimation: false,
       }}
     />
   );
