@@ -25,19 +25,6 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
       const intro = introJs();
       // @ts-ignore - Type mismatch between LegacyIntroJs and IntroJs
       introInstanceRef.current = intro;
-      
-      // If tour was interrupted, restore the step
-      if (wasInterrupted) {
-        try {
-          const stepIndex = parseInt(savedStep, 10);
-          if (!isNaN(stepIndex) && stepIndex > 0) {
-            // Start from the saved step
-            intro.setOptions({
-              startStep: stepIndex,
-            });
-          }
-        } catch {}
-      }
 
       // Configure Intro.js
       intro.setOptions({
@@ -158,7 +145,8 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
         console.log('Tour step changed', targetElement);
         // Save current step to localStorage to survive page refresh
         try {
-          const currentStep = intro._currentStep || 0;
+          // @ts-ignore - currentStep exists but may not be in types
+          const currentStep = intro.currentStep || 0;
           localStorage.setItem('fgs:guided-tour:current-step', currentStep.toString());
         } catch {}
         // Scroll element into view
@@ -168,7 +156,22 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
       });
 
       // Start the tour
-      intro.start();
+      // If tour was interrupted, start from saved step
+      if (wasInterrupted) {
+        try {
+          const stepIndex = parseInt(savedStep || '0', 10);
+          if (!isNaN(stepIndex) && stepIndex > 0) {
+            // @ts-ignore - startStep parameter exists but not in types
+            intro.start(stepIndex);
+          } else {
+            intro.start();
+          }
+        } catch {
+          intro.start();
+        }
+      } else {
+        intro.start();
+      }
 
       return () => {
         // Cleanup on unmount
