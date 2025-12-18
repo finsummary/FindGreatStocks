@@ -42,6 +42,10 @@
   color: #6b7280 !important;
   background: transparent !important;
   border: none !important;
+  font-size: 11px !important;
+  padding: 2px 6px !important;
+  font-weight: 400 !important;
+  line-height: 1.2 !important;
 }
 
 .introjs-prevbutton {

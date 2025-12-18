@@ -16,11 +16,28 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
 
   useEffect(() => {
     if (run) {
+      // Check if tour was interrupted by page refresh
+      const savedStep = localStorage.getItem('fgs:guided-tour:current-step');
+      const wasInterrupted = savedStep !== null;
+      
       // Initialize Intro.js
       // @ts-ignore - introJs() returns LegacyIntroJs but we need IntroJs type
       const intro = introJs();
       // @ts-ignore - Type mismatch between LegacyIntroJs and IntroJs
       introInstanceRef.current = intro;
+      
+      // If tour was interrupted, restore the step
+      if (wasInterrupted) {
+        try {
+          const stepIndex = parseInt(savedStep, 10);
+          if (!isNaN(stepIndex) && stepIndex > 0) {
+            // Start from the saved step
+            intro.setOptions({
+              startStep: stepIndex,
+            });
+          }
+        } catch {}
+      }
 
       // Configure Intro.js
       intro.setOptions({
@@ -121,6 +138,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
         console.log('Tour completed');
         try {
           localStorage.setItem(TOUR_STORAGE_KEY, '1');
+          localStorage.removeItem('fgs:guided-tour:current-step');
           window.dispatchEvent(new CustomEvent('fgs:first-tour-completed'));
         } catch {}
         if (onComplete) onComplete();
@@ -131,12 +149,18 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
         console.log('Tour exited');
         try {
           localStorage.setItem(TOUR_STORAGE_KEY, '1');
+          localStorage.removeItem('fgs:guided-tour:current-step');
         } catch {}
         if (onStop) onStop();
       });
 
       intro.onchange((targetElement) => {
         console.log('Tour step changed', targetElement);
+        // Save current step to localStorage to survive page refresh
+        try {
+          const currentStep = intro._currentStep || 0;
+          localStorage.setItem('fgs:guided-tour:current-step', currentStep.toString());
+        } catch {}
         // Scroll element into view
         if (targetElement) {
           targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
