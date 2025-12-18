@@ -17,8 +17,9 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
   useEffect(() => {
     if (run) {
       // Initialize Intro.js
-      // Use 'as any' to avoid TypeScript issues with LegacyIntroJs vs IntroJs
-      const intro = introJs() as any;
+      // @ts-ignore - introJs() returns LegacyIntroJs but we need IntroJs type
+      const intro = introJs();
+      // @ts-ignore - Type mismatch between LegacyIntroJs and IntroJs
       introInstanceRef.current = intro;
 
       // Configure Intro.js
