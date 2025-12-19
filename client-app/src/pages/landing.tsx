@@ -258,6 +258,14 @@ const LandingPage: React.FC = () => {
                   </tr>
                   <tr>
                     <td className="px-4 py-2 border-b border-slate-200">
+                      FCF Growth Rate
+                    </td>
+                    <td className="px-4 py-2 border-b border-slate-200">
+                      10-Year Revenue Growth Rate
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-2 border-b border-slate-200">
                       Terminal Growth (g)
                     </td>
                     <td className="px-4 py-2 border-b border-slate-200">2.5%</td>
@@ -273,6 +281,26 @@ const LandingPage: React.FC = () => {
               </span>{" "}
               for valuing most established companies in the current economic environment.
             </p>
+
+            <p className="text-slate-600 mb-3">
+              One might argue that different companies require different valuation assumptions.
+            </p>
+            <p className="text-slate-600 mb-3">
+              We take a different view.
+            </p>
+            <p className="text-slate-600 mb-3">
+              If a company is truly cheap, it should stand out even under simple, consistent, and conservative assumptions. The goal is not to calculate an exact intrinsic value, but to identify businesses that are clearly undervalued and offer a margin of safety.
+            </p>
+            <p className="text-slate-600 mb-4">
+              As Warren Buffett puts it:
+            </p>
+            <blockquote className="border-l-4 border-emerald-600 pl-4 text-slate-800 italic mb-4">
+              &quot;I don&apos;t need to know a company&apos;s exact value to know it&apos;s cheap.&quot;
+              <br />
+              <span className="not-italic text-slate-600 text-sm">
+                — Warren Buffett
+              </span>
+            </blockquote>
             <p className="text-slate-600 mb-4">
               The DCF layout shows:
             </p>
