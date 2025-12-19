@@ -41,7 +41,7 @@ const LandingPage: React.FC = () => {
             At <span className="font-semibold">FindGreatStocks.com</span>, we built tools
             that help you do exactly that:
           </p>
-          <ul className="max-w-xl mx-auto text-slate-600 space-y-2 mb-10">
+          <ul className="max-w-xl mx-auto text-slate-600 text-sm space-y-2 mb-10">
             <li>• Identify great businesses</li>
             <li>• Verify their quality using proven fundamentals</li>
             <li>• Check whether the stock is undervalued today</li>
@@ -73,7 +73,7 @@ const LandingPage: React.FC = () => {
               To find them, choose the <span className="italic">Compounders Layout</span>{" "}
               and sort by:
             </p>
-            <ul className="text-slate-600 space-y-1 mb-3">
+            <ul className="text-slate-600 text-sm space-y-1 mb-3">
               <li>• ROIC (Return on Invested Capital)</li>
               <li>• 10-Year Average ROIC</li>
               <li>• ROIC Stability Score (0–100)</li>
@@ -99,7 +99,7 @@ const LandingPage: React.FC = () => {
               Great companies generate <span className="font-semibold">high, stable FCF margins</span> year after year.
             </p>
             <p className="text-slate-600 mb-2">Metrics to examine:</p>
-            <ul className="text-slate-600 space-y-1 mb-4">
+            <ul className="text-slate-600 text-sm space-y-1 mb-4">
               <li>• FCF Margin</li>
               <li>• 10-Year Median FCF Margin</li>
             </ul>
@@ -119,7 +119,7 @@ const LandingPage: React.FC = () => {
               enough cash to fund operations and growth.
             </p>
             <p className="text-slate-600 mb-2">Key ratios:</p>
-            <ul className="text-slate-600 space-y-1 mb-4">
+            <ul className="text-slate-600 text-sm space-y-1 mb-4">
               <li>• Debt-to-Equity</li>
               <li>• Interest Coverage</li>
               <li>• Cash-to-Debt</li>
@@ -142,11 +142,19 @@ const LandingPage: React.FC = () => {
             <p className="text-slate-600 mb-2">
               The DuPont model breaks ROE into components such as:
             </p>
-            <ul className="text-slate-600 space-y-1 mb-4">
+            <ul className="text-slate-600 text-sm space-y-1 mb-3">
               <li>• Profitability</li>
               <li>• Efficiency</li>
               <li>• Leverage</li>
             </ul>
+            <p className="text-slate-600 mb-3">
+              The formula is:
+            </p>
+            <div className="bg-white border border-slate-200 rounded-lg p-4 mb-4">
+              <p className="text-slate-800 font-mono text-sm sm:text-base text-center">
+                ROE = Net Profit Margin × Asset Turnover × Financial Leverage
+              </p>
+            </div>
             <p className="text-slate-600 mb-4">
               This helps distinguish genuine business quality from artificially inflated returns.
             </p>
@@ -163,7 +171,7 @@ const LandingPage: React.FC = () => {
               <span className="font-semibold">without destroying shareholder capital</span>.
             </p>
             <p className="text-slate-600 mb-2">Review:</p>
-            <ul className="text-slate-600 space-y-1 mb-4">
+            <ul className="text-slate-600 text-sm space-y-1 mb-4">
               <li>• Return-to-Risk (Annual Return / Max Drawdown)</li>
               <li>• 3Y, 5Y, 10Y historical stability</li>
             </ul>
@@ -184,7 +192,7 @@ const LandingPage: React.FC = () => {
             <p className="text-slate-600 mb-2">
               Check 10-year trends in:
             </p>
-            <ul className="text-slate-600 space-y-1 mb-4">
+            <ul className="text-slate-600 text-sm space-y-1 mb-4">
               <li>• Revenue</li>
               <li>• Earnings</li>
               <li>• Free Cash Flow</li>
@@ -302,7 +310,7 @@ const LandingPage: React.FC = () => {
             <p className="text-slate-600 mb-4">
               The DCF layout shows:
             </p>
-            <ul className="text-slate-600 space-y-1 mb-4">
+            <ul className="text-slate-600 text-sm space-y-1 mb-4">
               <li>• Intrinsic value</li>
               <li>• Margin of safety</li>
               <li>• Whether the stock is undervalued or overvalued</li>
@@ -325,7 +333,7 @@ const LandingPage: React.FC = () => {
             <p className="text-slate-600 mb-3">
               Instead of guessing future growth, Reverse DCF calculates:
             </p>
-            <ul className="text-slate-600 space-y-1 mb-4">
+            <ul className="text-slate-600 text-sm space-y-1 mb-4">
               <li>• What growth rate the current stock price implies</li>
               <li>• Whether that implied growth is reasonable</li>
             </ul>
