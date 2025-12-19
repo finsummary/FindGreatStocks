@@ -1492,9 +1492,32 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             case 'revenueGrowth5Y':
               cellContent = <div className="font-mono">{formatPercentage(row.revenueGrowth5Y, false, 1)}</div>;
               break;
-            case 'revenueGrowth10Y':
-              cellContent = <div className="font-mono">{formatPercentage(row.revenueGrowth10Y, false, 1)}</div>;
+            case 'revenueGrowth10Y': {
+              const growthValue = row.revenueGrowth10Y !== null && row.revenueGrowth10Y !== undefined 
+                ? parseFloat(row.revenueGrowth10Y as string) 
+                : null;
+              
+              let colorClass = '';
+              if (growthValue !== null && !isNaN(growthValue)) {
+                if (growthValue < 0) {
+                  // Negative growth - red
+                  colorClass = 'text-red-600 dark:text-red-400';
+                } else if (growthValue < 10) {
+                  // Low growth (0-10%) - yellow/orange
+                  colorClass = 'text-yellow-600 dark:text-yellow-400';
+                } else {
+                  // Good growth (>10%) - green
+                  colorClass = 'text-green-600 dark:text-green-400';
+                }
+              }
+              
+              cellContent = (
+                <div className={`font-mono ${colorClass || 'text-foreground'}`}>
+                  {formatPercentage(row.revenueGrowth10Y, false, 1)}
+                </div>
+              );
               break;
+            }
             case 'return3Year':
             case 'return5Year':
             case 'return10Year':
