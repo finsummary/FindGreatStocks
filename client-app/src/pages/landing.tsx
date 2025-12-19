@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const screenshots = {
   compounders: "/landing-screenshots/compounders-roic.png",
@@ -14,16 +14,12 @@ const screenshots = {
 };
 
 const LandingPage: React.FC = () => {
-  const navigate = useNavigate();
-
-  const handleExploreScanner = (e?: React.MouseEvent | React.TouchEvent) => {
-    e?.preventDefault();
-    e?.stopPropagation();
+  const handleExploreScanner = () => {
     // Mark that user has seen the landing page
     try {
       localStorage.setItem('fgs:landing:seen', '1');
     } catch {}
-    navigate('/');
+    // Navigation will be handled by Link
   };
 
   return (
@@ -44,12 +40,12 @@ const LandingPage: React.FC = () => {
             <li>• Compare price vs intrinsic value using DCF and Reverse DCF</li>
           </ul>
           <Button 
-            onClick={handleExploreScanner}
-            onTouchEnd={handleExploreScanner}
-            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-50 px-6 py-3 text-sm sm:text-base font-medium text-emerald-700 hover:bg-emerald-100 transition-colors touch-manipulation"
-            style={{ touchAction: 'manipulation' }}
+            asChild
+            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-50 px-6 py-3 text-sm sm:text-base font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
           >
-            Explore the Scanner
+            <Link to="/" onClick={handleExploreScanner}>
+              Explore the Scanner
+            </Link>
           </Button>
         </header>
 
@@ -373,12 +369,12 @@ const LandingPage: React.FC = () => {
             </span>
           </p>
           <Button 
-            onClick={handleExploreScanner}
-            onTouchEnd={handleExploreScanner}
-            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-50 px-6 py-3 text-sm sm:text-base font-medium text-emerald-700 hover:bg-emerald-100 transition-colors touch-manipulation"
-            style={{ touchAction: 'manipulation' }}
+            asChild
+            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-50 px-6 py-3 text-sm sm:text-base font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
           >
-            Explore the Scanner
+            <Link to="/" onClick={handleExploreScanner}>
+              Explore the Scanner
+            </Link>
           </Button>
         </section>
       </div>
