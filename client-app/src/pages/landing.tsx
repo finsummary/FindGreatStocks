@@ -335,15 +335,18 @@ const LandingPage: React.FC = () => {
               This reflects Charlie Munger&apos;s principle:
             </p>
             <blockquote className="border-l-4 border-emerald-600 pl-4 text-slate-800 italic mb-4">
-              &quot;All I want to know is where I&apos;m going to die, so I&apos;ll never go
-              there.&quot; <br />
+              &quot;Invert, always invert.&quot;
+              <br />
               <span className="not-italic text-slate-600 text-sm">
-                Invert, always invert.
+                — Charlie Munger
               </span>
             </blockquote>
-            <p className="text-slate-600 mb-4">
+            <p className="text-slate-600 mb-3">
               Reverse DCF applies this approach to valuation, helping you see what
               expectations are already priced in.
+            </p>
+            <p className="text-slate-600 mb-4">
+              Then the investor can compare it, for example, to historical rates of growth of the business (e.g., 10Y Revenue Growth rate).
             </p>
 
             <GifPlaceholder label="Reverse DCF layout demo" token={sections.gifs.reverseDcf} />
