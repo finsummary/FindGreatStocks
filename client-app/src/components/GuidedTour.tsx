@@ -153,6 +153,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
         try {
           localStorage.setItem(TOUR_STORAGE_KEY, '1');
           localStorage.removeItem('fgs:guided-tour:current-step');
+          localStorage.removeItem('fgs:guided-tour:active');
           window.dispatchEvent(new CustomEvent('fgs:first-tour-completed'));
         } catch {}
         // Remove beforeunload listener when tour completes
@@ -166,6 +167,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
         try {
           localStorage.setItem(TOUR_STORAGE_KEY, '1');
           localStorage.removeItem('fgs:guided-tour:current-step');
+          localStorage.removeItem('fgs:guided-tour:active');
         } catch {}
         // Remove beforeunload listener when tour exits
         window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -179,12 +181,19 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
           // @ts-ignore - currentStep exists but may not be in types
           const currentStep = intro.currentStep || 0;
           localStorage.setItem('fgs:guided-tour:current-step', currentStep.toString());
+          // Set explicit flag that tour is active
+          localStorage.setItem('fgs:guided-tour:active', '1');
         } catch {}
         // Scroll element into view
         if (targetElement) {
           targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       });
+
+      // Mark tour as active before starting
+      try {
+        localStorage.setItem('fgs:guided-tour:active', '1');
+      } catch {}
 
       // Start the tour
       // If tour was interrupted, start from saved step

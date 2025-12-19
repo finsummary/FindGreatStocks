@@ -65,10 +65,11 @@ function App() {
     const ping = async () => {
       try {
         // Check if tour is in progress - don't reload during tour
+        const tourActive = localStorage.getItem('fgs:guided-tour:active');
         const savedStep = localStorage.getItem('fgs:guided-tour:current-step');
         const tourCompleted = localStorage.getItem('fgs:guided_tour:completed');
-        if (savedStep !== null && !tourCompleted) {
-          // Tour is in progress - skip reload check
+        if ((tourActive === '1' || savedStep !== null) && !tourCompleted) {
+          // Tour is in progress - skip reload check completely
           return;
         }
         
@@ -80,6 +81,15 @@ function App() {
           initialCommitRef.current = commit;
         } else if (commit && initialCommitRef.current && commit !== initialCommitRef.current) {
           // New deploy detected → reload to avoid mismatched React bundles
+          // BUT: Double-check if tour is active right before reload
+          const checkActive = localStorage.getItem('fgs:guided-tour:active');
+          const checkStep = localStorage.getItem('fgs:guided-tour:current-step');
+          const checkCompleted = localStorage.getItem('fgs:guided_tour:completed');
+          if ((checkActive === '1' || checkStep !== null) && !checkCompleted) {
+            // Tour started between checks - skip reload
+            console.log('Skipping auto-reload due to active guided tour.');
+            return;
+          }
           window.location.reload();
         }
       } catch {}
