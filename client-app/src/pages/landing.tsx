@@ -245,7 +245,7 @@ const LandingPage: React.FC = () => {
                   <tr>
                     <td className="px-4 py-2 border-b border-slate-200">Start FCF</td>
                     <td className="px-4 py-2 border-b border-slate-200">
-                      Last Twelve Months (TTM)
+                      Latest Annual Value
                     </td>
                   </tr>
                   <tr>
