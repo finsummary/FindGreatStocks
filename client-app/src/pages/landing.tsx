@@ -414,12 +414,9 @@ const Screenshot: React.FC<ScreenshotProps> = ({ imagePath, alt }) => {
       <img
         src={imagePath}
         alt={alt}
-        className="w-full h-auto max-w-full"
-        style={{ maxWidth: '100%', height: 'auto' }}
-        loading="lazy"
         className="w-full h-auto max-w-full object-contain"
-        loading="lazy"
         style={{ maxWidth: '100%', height: 'auto' }}
+        loading="lazy"
       />
     </div>
   );
