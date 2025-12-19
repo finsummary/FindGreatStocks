@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const screenshots = {
   compounders: "/landing-screenshots/compounders-roic.png",
@@ -14,12 +14,23 @@ const screenshots = {
 };
 
 const LandingPage: React.FC = () => {
-  const handleExploreScanner = () => {
-    // Mark that user has seen the landing page
+  const navigate = useNavigate();
+
+  const handleExploreScanner = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Mark that user has seen the landing page and clicked "Explore the Scanner"
     try {
       localStorage.setItem('fgs:landing:seen', '1');
     } catch {}
-    // Navigation will be handled by Link
+    // Force navigation
+    navigate('/', { replace: true });
+    // Also try window.location as fallback for mobile
+    setTimeout(() => {
+      if (window.location.pathname === '/start-here' || window.location.pathname === '/') {
+        window.location.href = '/';
+      }
+    }, 100);
   };
 
   return (
@@ -43,7 +54,12 @@ const LandingPage: React.FC = () => {
             asChild
             className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-50 px-6 py-3 text-sm sm:text-base font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
           >
-            <Link to="/" onClick={handleExploreScanner}>
+            <Link 
+              to="/" 
+              onClick={handleExploreScanner}
+              onTouchEnd={handleExploreScanner}
+              style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', cursor: 'pointer' }}
+            >
               Explore the Scanner
             </Link>
           </Button>
@@ -372,7 +388,12 @@ const LandingPage: React.FC = () => {
             asChild
             className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-50 px-6 py-3 text-sm sm:text-base font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
           >
-            <Link to="/" onClick={handleExploreScanner}>
+            <Link 
+              to="/" 
+              onClick={handleExploreScanner}
+              onTouchEnd={handleExploreScanner}
+              style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', cursor: 'pointer' }}
+            >
               Explore the Scanner
             </Link>
           </Button>

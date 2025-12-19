@@ -21,7 +21,7 @@ import { useFlag } from "./providers/FeatureFlagsProvider";
 import EducationPage from "./pages/education";
 import AdminFlagsPage from "./pages/admin-flags";
 import LandingPage from "./pages/landing";
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 declare global { interface Window { posthog?: any } }
 
@@ -32,10 +32,33 @@ const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) || ''
 // Component to conditionally show LandingPage or HomePage
 function HomePageWrapper() {
   const { user } = useAuth();
+  const [shouldShowLanding, setShouldShowLanding] = React.useState<boolean | null>(null);
+
+  React.useEffect(() => {
+    // If user is logged in, always show scanner
+    if (user) {
+      setShouldShowLanding(false);
+      return;
+    }
+
+    // If user is not logged in, check if they clicked "Explore the Scanner"
+    try {
+      const hasClickedExplore = localStorage.getItem('fgs:landing:seen');
+      setShouldShowLanding(hasClickedExplore !== '1');
+    } catch {
+      setShouldShowLanding(true);
+    }
+  }, [user]);
+
+  // Show loading state while checking
+  if (shouldShowLanding === null) {
+    return <Home />; // Default to Home while checking
+  }
 
   // If user is logged in, show scanner (Home)
-  // If user is not logged in, show Landing Page
-  return user ? <Home /> : <LandingPage />;
+  // If user is not logged in and hasn't clicked "Explore", show Landing Page
+  // If user is not logged in but clicked "Explore", show scanner (Home)
+  return shouldShowLanding ? <LandingPage /> : <Home />;
 }
 
 function App() {
