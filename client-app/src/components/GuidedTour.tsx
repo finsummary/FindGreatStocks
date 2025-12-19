@@ -47,6 +47,17 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
         steps: [
           {
             intro: `
+              <h3 style="font-weight: 600; font-size: 1.125rem; margin-bottom: 0.5rem;">Learn How to Find Great Undervalued Stocks</h3>
+              <p style="font-size: 0.875rem; margin-bottom: 0.5rem;">
+                Click the <strong>"Start Here"</strong> button to access our comprehensive guide on how to quickly find great undervalued stocks.
+                This guide will walk you through the entire investment analysis process step by step.
+              </p>
+            `,
+            element: '[data-tour="start-here"]',
+            position: 'bottom',
+          },
+          {
+            intro: `
               <h3 style="font-weight: 600; font-size: 1.125rem; margin-bottom: 0.5rem;">Choose a Market</h3>
               <p style="font-size: 0.875rem; margin-bottom: 0.5rem;">
                 Start by selecting a market to analyze. <strong>Dow Jones</strong> is available for free to all users.

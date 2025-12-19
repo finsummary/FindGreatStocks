@@ -123,7 +123,7 @@ function App() {
             </Button>
           )}
           <Button asChild variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground">
-            <Link to="/start-here">Start Here</Link>
+            <Link to="/start-here" data-tour="start-here">Start Here</Link>
           </Button>
           {educationOn ? (
             <Button asChild variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground">
