@@ -16,7 +16,9 @@ const screenshots = {
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const handleExploreScanner = () => {
+  const handleExploreScanner = (e?: React.MouseEvent | React.TouchEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     // Mark that user has seen the landing page
     try {
       localStorage.setItem('fgs:landing:seen', '1');
@@ -43,7 +45,9 @@ const LandingPage: React.FC = () => {
           </ul>
           <Button 
             onClick={handleExploreScanner}
-            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-50 px-6 py-3 text-sm sm:text-base font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+            onTouchEnd={handleExploreScanner}
+            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-50 px-6 py-3 text-sm sm:text-base font-medium text-emerald-700 hover:bg-emerald-100 transition-colors touch-manipulation"
+            style={{ touchAction: 'manipulation' }}
           >
             Explore the Scanner
           </Button>
@@ -370,7 +374,9 @@ const LandingPage: React.FC = () => {
           </p>
           <Button 
             onClick={handleExploreScanner}
-            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-50 px-6 py-3 text-sm sm:text-base font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+            onTouchEnd={handleExploreScanner}
+            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-50 px-6 py-3 text-sm sm:text-base font-medium text-emerald-700 hover:bg-emerald-100 transition-colors touch-manipulation"
+            style={{ touchAction: 'manipulation' }}
           >
             Explore the Scanner
           </Button>
@@ -391,8 +397,9 @@ const Screenshot: React.FC<ScreenshotProps> = ({ imagePath, alt }) => {
       <img
         src={imagePath}
         alt={alt}
-        className="w-full h-auto object-contain"
+        className="w-full h-auto max-w-full object-contain"
         loading="lazy"
+        style={{ maxWidth: '100%', height: 'auto' }}
       />
     </div>
   );
