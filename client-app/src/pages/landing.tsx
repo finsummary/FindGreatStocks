@@ -2,17 +2,15 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
-const sections = {
-  gifs: {
-    compounders: "[COMPANION_GIF_COMPOUNDERS]",
-    fcf: "[COMPANION_GIF_FCF]",
-    balanceSheet: "[COMPANION_GIF_BALANCE_SHEET]",
-    dupont: "[COMPANION_GIF_DUPONT]",
-    risk: "[COMPANION_GIF_RISK]",
-    growth: "[COMPANION_GIF_GROWTH]",
-    dcf: "[COMPANION_GIF_DCF]",
-    reverseDcf: "[COMPANION_GIF_REVERSE_DCF]",
-  },
+const screenshots = {
+  compounders: "/landing-screenshots/compounders-roic.png",
+  fcf: "/landing-screenshots/cashflow-leverage.png",
+  balanceSheet: "/landing-screenshots/cashflow-leverage.png", // Same as FCF (shows Debt-to-Equity, Interest Coverage, Cash Flow to Debt)
+  dupont: "/landing-screenshots/dupont-roe.png",
+  risk: "/landing-screenshots/return-on-risk.png",
+  growth: "/landing-screenshots/reverse-dcf.png", // Shows Revenue History (10Y)
+  dcf: "/landing-screenshots/dcf-valuation.png",
+  reverseDcf: "/landing-screenshots/reverse-dcf.png",
 };
 
 const LandingPage: React.FC = () => {
@@ -85,7 +83,7 @@ const LandingPage: React.FC = () => {
               <span className="font-semibold">consistently high ROIC for a decade</span>,
               indicating a durable business model.
             </p>
-            <GifPlaceholder label="Compounders Layout demo" token={sections.gifs.compounders} />
+            <Screenshot imagePath={screenshots.compounders} alt="Compounders (ROIC) Layout" />
           </article>
 
           {/* 2. FCF Margins */}
@@ -108,7 +106,7 @@ const LandingPage: React.FC = () => {
             <p className="text-slate-600 mb-4">
               These reveal whether the business produces reliable long-term cash.
             </p>
-            <GifPlaceholder label="FCF layout demo" token={sections.gifs.fcf} />
+            <Screenshot imagePath={screenshots.fcf} alt="Cashflow & Leverage Layout" />
           </article>
 
           {/* 3. Balance Sheet */}
@@ -129,7 +127,7 @@ const LandingPage: React.FC = () => {
             <p className="text-slate-600 mb-4">
               Stronger balance sheets reduce risk and improve resilience.
             </p>
-            <GifPlaceholder label="Balance sheet metrics demo" token={sections.gifs.balanceSheet} />
+            <Screenshot imagePath={screenshots.balanceSheet} alt="Balance Sheet Metrics" />
           </article>
 
           {/* 4. DuPont ROE */}
@@ -152,7 +150,7 @@ const LandingPage: React.FC = () => {
             <p className="text-slate-600 mb-4">
               This helps distinguish genuine business quality from artificially inflated returns.
             </p>
-            <GifPlaceholder label="DuPont layout demo" token={sections.gifs.dupont} />
+            <Screenshot imagePath={screenshots.dupont} alt="DuPont ROE Decomposition Layout" />
           </article>
 
           {/* 5. Risk-Adjusted Returns */}
@@ -172,7 +170,7 @@ const LandingPage: React.FC = () => {
             <p className="text-slate-600 mb-4">
               This reveals how well the company compounds relative to risk.
             </p>
-            <GifPlaceholder label="AR/MDD layout demo" token={sections.gifs.risk} />
+            <Screenshot imagePath={screenshots.risk} alt="Return on Risk Layout" />
           </article>
 
           {/* 6. Growth */}
@@ -194,7 +192,7 @@ const LandingPage: React.FC = () => {
             <p className="text-slate-600 mb-4">
               Long-term growth validates the durability of the business model.
             </p>
-            <GifPlaceholder label="Long-term growth demo" token={sections.gifs.growth} />
+            <Screenshot imagePath={screenshots.growth} alt="Long-term Growth Metrics" />
           </article>
         </section>
 
@@ -310,7 +308,7 @@ const LandingPage: React.FC = () => {
               <li>• Whether the stock is undervalued or overvalued</li>
             </ul>
 
-            <GifPlaceholder label="DCF layout demo" token={sections.gifs.dcf} />
+            <Screenshot imagePath={screenshots.dcf} alt="DCF Valuation Layout" />
           </article>
 
           {/* Reverse DCF */}
@@ -349,7 +347,7 @@ const LandingPage: React.FC = () => {
               Then the investor can compare it, for example, to historical rates of growth of the business (e.g., 10Y Revenue Growth rate).
             </p>
 
-            <GifPlaceholder label="Reverse DCF layout demo" token={sections.gifs.reverseDcf} />
+            <Screenshot imagePath={screenshots.reverseDcf} alt="Reverse DCF Layout" />
           </article>
         </section>
 
@@ -379,21 +377,20 @@ const LandingPage: React.FC = () => {
   );
 };
 
-interface GifPlaceholderProps {
-  label: string;
-  token: string;
+interface ScreenshotProps {
+  imagePath: string;
+  alt: string;
 }
 
-const GifPlaceholder: React.FC<GifPlaceholderProps> = ({ label, token }) => {
+const Screenshot: React.FC<ScreenshotProps> = ({ imagePath, alt }) => {
   return (
-    <div className="mt-4 flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-100 px-4 py-6 text-center">
-      <span className="text-xs uppercase tracking-wide text-slate-500 mb-1">
-        GIF Placeholder
-      </span>
-      <p className="text-sm text-slate-700 mb-1">{label}</p>
-      <p className="text-xs text-slate-400">
-        Replace this block with actual media for {token}.
-      </p>
+    <div className="mt-4 flex flex-col items-center justify-center rounded-lg border border-slate-200 bg-white overflow-hidden">
+      <img
+        src={imagePath}
+        alt={alt}
+        className="w-full h-auto object-contain"
+        loading="lazy"
+      />
     </div>
   );
 };
