@@ -16,6 +16,22 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
 
   useEffect(() => {
     if (run) {
+      // Prevent page refresh during tour
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        // Check if tour is active
+        const savedStep = localStorage.getItem('fgs:guided-tour:current-step');
+        const tourCompleted = localStorage.getItem(TOUR_STORAGE_KEY);
+        
+        if (savedStep !== null && !tourCompleted) {
+          // Tour is in progress - warn user
+          e.preventDefault();
+          e.returnValue = 'Вы находитесь в процессе онбординга. Вы уверены, что хотите покинуть страницу?';
+          return e.returnValue;
+        }
+      };
+      
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      
       // Check if tour was interrupted by page refresh
       const savedStep = localStorage.getItem('fgs:guided-tour:current-step');
       const wasInterrupted = savedStep !== null;
@@ -128,6 +144,8 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
           localStorage.removeItem('fgs:guided-tour:current-step');
           window.dispatchEvent(new CustomEvent('fgs:first-tour-completed'));
         } catch {}
+        // Remove beforeunload listener when tour completes
+        window.removeEventListener('beforeunload', handleBeforeUnload);
         if (onComplete) onComplete();
         if (onStop) onStop();
       });
@@ -138,6 +156,8 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
           localStorage.setItem(TOUR_STORAGE_KEY, '1');
           localStorage.removeItem('fgs:guided-tour:current-step');
         } catch {}
+        // Remove beforeunload listener when tour exits
+        window.removeEventListener('beforeunload', handleBeforeUnload);
         if (onStop) onStop();
       });
 
@@ -174,6 +194,9 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
       }
 
       return () => {
+        // Remove beforeunload listener
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        
         // Cleanup on unmount
         if (introInstanceRef.current) {
           introInstanceRef.current.exit();
@@ -192,6 +215,18 @@ export function useGuidedTour() {
     // Check if user has completed the tour
     try {
       const completed = localStorage.getItem(TOUR_STORAGE_KEY);
+      const savedStep = localStorage.getItem('fgs:guided-tour:current-step');
+      
+      // If tour was interrupted (saved step exists), restore it
+      if (!completed && savedStep !== null) {
+        const stepIndex = parseInt(savedStep, 10);
+        if (!isNaN(stepIndex) && stepIndex >= 0) {
+          // Tour was interrupted - restore it
+          setShouldRun(true);
+          return;
+        }
+      }
+      
       if (!completed) {
         // Show tour after a delay to let the page and table load
         const timer = setTimeout(() => {

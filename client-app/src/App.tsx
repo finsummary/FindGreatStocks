@@ -58,11 +58,20 @@ function App() {
   const educationOn = useFlag('education');
 
   // Auto-reload tab when backend commit changes (prevents stale chunks → React #300)
+  // BUT: Don't reload if user is in the middle of onboarding tour
   const initialCommitRef = useRef<string | null>(null);
   useEffect(() => {
     let alive = true;
     const ping = async () => {
       try {
+        // Check if tour is in progress - don't reload during tour
+        const savedStep = localStorage.getItem('fgs:guided-tour:current-step');
+        const tourCompleted = localStorage.getItem('fgs:guided_tour:completed');
+        if (savedStep !== null && !tourCompleted) {
+          // Tour is in progress - skip reload check
+          return;
+        }
+        
         const r = await fetch(`${API_BASE}/api/health?_=${Date.now()}`, { cache: 'no-store' });
         if (!r.ok) return;
         const j = await r.json();
