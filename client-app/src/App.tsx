@@ -31,24 +31,11 @@ const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) || ''
 
 // Component to conditionally show LandingPage or HomePage
 function HomePageWrapper() {
-  const [hasSeenLanding, setHasSeenLanding] = useState<boolean | null>(null);
+  const { user } = useAuth();
 
-  useEffect(() => {
-    try {
-      const seen = localStorage.getItem('fgs:landing:seen');
-      setHasSeenLanding(seen === '1');
-    } catch {
-      setHasSeenLanding(false);
-    }
-  }, []);
-
-  // Show loading state while checking
-  if (hasSeenLanding === null) {
-    return <Home />; // Default to Home while checking
-  }
-
-  // Show LandingPage for new users, HomePage for returning users
-  return hasSeenLanding ? <Home /> : <LandingPage />;
+  // If user is logged in, show scanner (Home)
+  // If user is not logged in, show Landing Page
+  return user ? <Home /> : <LandingPage />;
 }
 
 function App() {
