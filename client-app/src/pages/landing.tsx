@@ -33,17 +33,13 @@ const LandingPage: React.FC = () => {
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight mb-4">
             Find High-Quality Undervalued Stocks in 60 Seconds.
           </h1>
-          <p className="text-lg sm:text-xl text-slate-700 mb-6">
-            Use our professional-grade tools to quickly identify high-quality companies trading below their intrinsic value.
-          </p>
-          <p className="max-w-2xl mx-auto text-slate-600 mb-8">
-            At <span className="font-semibold">FindGreatStocks.com</span>, we built tools
-            that help you do exactly that:
+          <p className="text-lg sm:text-xl text-slate-700 mb-8">
+            Screen global stocks using long-term fundamentals and valuation models — not predictions.
           </p>
           <ul className="max-w-xl mx-auto text-slate-600 text-sm space-y-2 mb-10">
-            <li>• Identify great businesses</li>
-            <li>• Verify their quality using proven fundamentals</li>
-            <li>• Check whether the stock is undervalued today</li>
+            <li>• Identify high-quality businesses using ROIC consistency</li>
+            <li>• Verify strength through free cash flow and balance-sheet quality</li>
+            <li>• Compare price vs intrinsic value using DCF and Reverse DCF</li>
           </ul>
           <Button 
             onClick={handleExploreScanner}
