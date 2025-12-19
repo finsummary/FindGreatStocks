@@ -31,11 +31,10 @@ const LandingPage: React.FC = () => {
         {/* HERO SECTION */}
         <header className="mb-16 text-center">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight mb-4">
-            Investing Isn&apos;t Complicated.
+            Find High-Quality Undervalued Stocks in 60 Seconds.
           </h1>
           <p className="text-lg sm:text-xl text-slate-700 mb-6">
-            You just need to <span className="font-semibold">Find Great Stocks</span>{" "}
-            and <span className="font-semibold">buy them at a Good Price</span>.
+            Use our professional-grade tools to quickly identify high-quality companies trading below their intrinsic value.
           </p>
           <p className="max-w-2xl mx-auto text-slate-600 mb-8">
             At <span className="font-semibold">FindGreatStocks.com</span>, we built tools
@@ -57,7 +56,7 @@ const LandingPage: React.FC = () => {
         {/* SECTION 1 — FIND GREAT COMPANIES */}
         <section className="mb-16">
           <h2 className="text-2xl sm:text-3xl font-semibold mb-6">
-            Find Great Companies
+            How to Find Great Stocks?
           </h2>
 
           {/* 1. Compounders */}
@@ -207,7 +206,7 @@ const LandingPage: React.FC = () => {
         {/* SECTION 2 — BUY AT A GOOD PRICE */}
         <section className="mb-16">
           <h2 className="text-2xl sm:text-3xl font-semibold mb-6">
-            Buy at a Good Price
+            How to Buy them at Good Price?
           </h2>
           <p className="text-slate-600 mb-8">
             Once you have found a great company, the next step is to determine whether it
