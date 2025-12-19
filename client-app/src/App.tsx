@@ -147,66 +147,66 @@ function App() {
                 <span className="sr-only">Open menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+            <SheetContent side="right" className="w-[300px] sm:w-[400px] bg-white">
               <SheetHeader>
-                <SheetTitle>Menu</SheetTitle>
+                <SheetTitle className="text-slate-900">Menu</SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col gap-2 mt-6">
                 {user?.email?.toLowerCase() === 'findgreatstocks@gmail.com' && (
-                  <Button asChild variant="ghost" size="sm" className="!text-muted-foreground justify-start min-h-[48px]">
+                  <Button asChild variant="ghost" size="sm" className="text-slate-700 hover:bg-slate-100 justify-start min-h-[48px]">
                     <SheetClose asChild>
-                      <Link to="/admin/flags">Flags</Link>
+                      <Link to="/admin/flags" className="w-full text-left">Flags</Link>
                     </SheetClose>
                   </Button>
                 )}
-                <Button asChild variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground justify-start min-h-[48px]">
+                <Button asChild variant="ghost" size="sm" className="text-slate-700 hover:bg-slate-100 justify-start min-h-[48px]">
                   <SheetClose asChild>
-                    <Link to="/start-here" data-tour="start-here">Start Here</Link>
+                    <Link to="/start-here" data-tour="start-here" className="w-full text-left">Start Here</Link>
                   </SheetClose>
                 </Button>
                 {educationOn ? (
-                  <Button asChild variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground justify-start min-h-[48px]">
+                  <Button asChild variant="ghost" size="sm" className="text-slate-700 hover:bg-slate-100 justify-start min-h-[48px]">
                     <SheetClose asChild>
-                      <Link to="/education">Education</Link>
+                      <Link to="/education" className="w-full text-left">Education</Link>
                     </SheetClose>
                   </Button>
                 ) : (
-                  <div className="px-3 py-2 text-sm text-muted-foreground">Education (Coming Soon)</div>
+                  <div className="px-3 py-2 text-sm text-slate-500">Education (Coming Soon)</div>
                 )}
-                <Button asChild variant="ghost" size="sm" className="justify-start min-h-[48px]">
-                  <a href="https://blog.findgreatstocks.com" target="_blank" rel="noopener noreferrer" onClick={() => { try { (window as any).phCapture?.('blog_clicked'); } catch {} }}>Blog</a>
+                <Button asChild variant="ghost" size="sm" className="text-slate-700 hover:bg-slate-100 justify-start min-h-[48px]">
+                  <a href="https://blog.findgreatstocks.com" target="_blank" rel="noopener noreferrer" onClick={() => { try { (window as any).phCapture?.('blog_clicked'); } catch {} }} className="w-full text-left">Blog</a>
                 </Button>
-                <Button asChild variant="outline" size="sm" className="justify-start min-h-[48px]">
+                <Button asChild variant="outline" size="sm" className="justify-start min-h-[48px] border-slate-300 text-slate-700 hover:bg-slate-50">
                   <SheetClose asChild>
-                    <Link to="/watchlist" data-tour="watchlist-nav-button">Watchlist</Link>
+                    <Link to="/watchlist" data-tour="watchlist-nav-button" className="w-full text-left">Watchlist</Link>
                   </SheetClose>
                 </Button>
                 {user ? (
                   <>
-                    <div className="flex items-center gap-2 px-3 py-2 border-t mt-2 pt-4">
+                    <div className="flex items-center gap-2 px-3 py-2 border-t border-slate-200 mt-2 pt-4">
                       <Avatar className="h-8 w-8">
                         <AvatarFallback>{(user.email || 'U').slice(0,1).toUpperCase()}</AvatarFallback>
                       </Avatar>
-                      <span className="text-sm truncate">{user.email}</span>
+                      <span className="text-sm truncate text-slate-700">{user.email}</span>
                     </div>
-                    <Button asChild variant="ghost" size="sm" className="justify-start min-h-[48px]">
+                    <Button asChild variant="ghost" size="sm" className="text-slate-700 hover:bg-slate-100 justify-start min-h-[48px]">
                       <SheetClose asChild>
-                        <Link to="/profile">Profile</Link>
+                        <Link to="/profile" className="w-full text-left">Profile</Link>
                       </SheetClose>
                     </Button>
-                    <Button asChild variant="ghost" size="sm" className="justify-start min-h-[48px]">
+                    <Button asChild variant="ghost" size="sm" className="text-slate-700 hover:bg-slate-100 justify-start min-h-[48px]">
                       <SheetClose asChild>
-                        <Link to="/billing">Billing</Link>
+                        <Link to="/billing" className="w-full text-left">Billing</Link>
                       </SheetClose>
                     </Button>
-                    <Button variant="ghost" size="sm" className="justify-start min-h-[48px] text-red-600" onClick={handleLogout}>
+                    <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 justify-start min-h-[48px]" onClick={handleLogout}>
                       Sign out
                     </Button>
                   </>
                 ) : (
-                  <Button asChild size="sm" className="justify-start min-h-[48px]">
+                  <Button asChild size="sm" className="justify-start min-h-[48px] bg-emerald-600 hover:bg-emerald-700 text-white">
                     <SheetClose asChild>
-                      <Link to="/login">Login</Link>
+                      <Link to="/login" className="w-full text-left">Login</Link>
                     </SheetClose>
                   </Button>
                 )}
