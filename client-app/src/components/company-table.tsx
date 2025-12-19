@@ -2387,10 +2387,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <Card ref={tableContainerRef}>
+        <Card ref={tableContainerRef} className="relative">
           <div 
             ref={tableScrollRef}
-            className="w-full overflow-x-auto -mx-4 px-4 scrollbar-hide"
+            className={`w-full overflow-x-auto -mx-4 px-4 scrollbar-hide relative ${isMobile && canScrollLeft ? 'scroll-indicator-left' : ''} ${isMobile && canScrollRight ? 'scroll-indicator-right' : ''}`}
             style={{ 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none', 
@@ -2412,6 +2412,20 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               setCanScrollLeft(canScroll && scrollLeft > 1);
               setCanScrollRight(canScroll && scrollLeft < maxScroll - 1);
               
+              // Update scroll indicator classes for mobile
+              if (isMobile) {
+                const element = e.currentTarget;
+                if (canScroll && scrollLeft > 1) {
+                  element.classList.add('scroll-indicator-left');
+                } else {
+                  element.classList.remove('scroll-indicator-left');
+                }
+                if (canScroll && scrollLeft < maxScroll - 1) {
+                  element.classList.add('scroll-indicator-right');
+                } else {
+                  element.classList.remove('scroll-indicator-right');
+                }
+              }
             }}
           >
           <div className="w-full overflow-visible">

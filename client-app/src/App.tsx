@@ -15,12 +15,15 @@ import AboutPage from './pages/about';
 import { Button } from "./components/ui/button";
 import { Avatar, AvatarFallback } from "./components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "./components/ui/sheet";
 import { supabase } from "./lib/supabaseClient";
 import Footer from "./components/footer";
 import { useFlag } from "./providers/FeatureFlagsProvider";
 import EducationPage from "./pages/education";
 import AdminFlagsPage from "./pages/admin-flags";
 import LandingPage from "./pages/landing";
+import { useIsMobile } from "./hooks/use-mobile";
+import { Menu } from "lucide-react";
 import React, { useEffect, useRef, useState } from 'react';
 
 declare global { interface Window { posthog?: any } }
@@ -66,6 +69,7 @@ function App() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const educationOn = useFlag('education');
+  const isMobile = useIsMobile();
 
   // Auto-reload tab when backend commit changes (prevents stale chunks → React #300)
   // BUT: Don't reload if user is in the middle of onboarding tour
@@ -135,66 +139,142 @@ function App() {
           />
           <span className="truncate font-semibold text-xs sm:text-lg">FindGreatStocks.com</span>
         </Link>
-        <nav className="ml-auto w-full sm:w-auto flex items-center justify-start sm:justify-end gap-2 sm:gap-4">
-          {/* Admin flags link visible only to the owner account */}
-          {user?.email?.toLowerCase() === 'findgreatstocks@gmail.com' && (
-            <Button asChild variant="ghost" size="sm" className="!text-muted-foreground">
-              <Link to="/admin/flags">Flags</Link>
-            </Button>
-          )}
-          <Button asChild variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground">
-            <Link to="/start-here" data-tour="start-here">Start Here</Link>
-          </Button>
-          {educationOn ? (
-            <Button asChild variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground">
-              <Link to="/education">Education</Link>
-            </Button>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground">
-                  Education
+        {isMobile ? (
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm" className="ml-auto min-h-[44px] min-w-[44px] p-2">
+                <Menu className="h-6 w-6" />
+                <span className="sr-only">Open menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <SheetHeader>
+                <SheetTitle>Menu</SheetTitle>
+              </SheetHeader>
+              <nav className="flex flex-col gap-2 mt-6">
+                {user?.email?.toLowerCase() === 'findgreatstocks@gmail.com' && (
+                  <Button asChild variant="ghost" size="sm" className="!text-muted-foreground justify-start min-h-[48px]">
+                    <SheetClose asChild>
+                      <Link to="/admin/flags">Flags</Link>
+                    </SheetClose>
+                  </Button>
+                )}
+                <Button asChild variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground justify-start min-h-[48px]">
+                  <SheetClose asChild>
+                    <Link to="/start-here" data-tour="start-here">Start Here</Link>
+                  </SheetClose>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem disabled className="text-muted-foreground">Coming Soon</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-          <Button asChild variant="ghost" size="sm">
-            <a href="https://blog.findgreatstocks.com" target="_blank" rel="noopener noreferrer" onClick={() => { try { (window as any).phCapture?.('blog_clicked'); } catch {} }}>Blog</a>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/watchlist" data-tour="watchlist-nav-button">Watchlist</Link>
-          </Button>
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="inline-flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 hover:bg-zinc-50">
-                  <Avatar className="h-6 w-6">
-                    <AvatarFallback>{(user.email || 'U').slice(0,1).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm hidden sm:inline max-w-[180px] truncate">{user.email}</span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Account</DropdownMenuLabel>
-                <DropdownMenuItem asChild>
-                  <Link to="/profile">Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/billing">Billing</Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>Sign out</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Button asChild size="sm">
-              <Link to="/login">Login</Link>
+                {educationOn ? (
+                  <Button asChild variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground justify-start min-h-[48px]">
+                    <SheetClose asChild>
+                      <Link to="/education">Education</Link>
+                    </SheetClose>
+                  </Button>
+                ) : (
+                  <div className="px-3 py-2 text-sm text-muted-foreground">Education (Coming Soon)</div>
+                )}
+                <Button asChild variant="ghost" size="sm" className="justify-start min-h-[48px]">
+                  <a href="https://blog.findgreatstocks.com" target="_blank" rel="noopener noreferrer" onClick={() => { try { (window as any).phCapture?.('blog_clicked'); } catch {} }}>Blog</a>
+                </Button>
+                <Button asChild variant="outline" size="sm" className="justify-start min-h-[48px]">
+                  <SheetClose asChild>
+                    <Link to="/watchlist" data-tour="watchlist-nav-button">Watchlist</Link>
+                  </SheetClose>
+                </Button>
+                {user ? (
+                  <>
+                    <div className="flex items-center gap-2 px-3 py-2 border-t mt-2 pt-4">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback>{(user.email || 'U').slice(0,1).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm truncate">{user.email}</span>
+                    </div>
+                    <Button asChild variant="ghost" size="sm" className="justify-start min-h-[48px]">
+                      <SheetClose asChild>
+                        <Link to="/profile">Profile</Link>
+                      </SheetClose>
+                    </Button>
+                    <Button asChild variant="ghost" size="sm" className="justify-start min-h-[48px]">
+                      <SheetClose asChild>
+                        <Link to="/billing">Billing</Link>
+                      </SheetClose>
+                    </Button>
+                    <Button variant="ghost" size="sm" className="justify-start min-h-[48px] text-red-600" onClick={handleLogout}>
+                      Sign out
+                    </Button>
+                  </>
+                ) : (
+                  <Button asChild size="sm" className="justify-start min-h-[48px]">
+                    <SheetClose asChild>
+                      <Link to="/login">Login</Link>
+                    </SheetClose>
+                  </Button>
+                )}
+              </nav>
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <nav className="ml-auto w-full sm:w-auto flex items-center justify-start sm:justify-end gap-2 sm:gap-4">
+            {/* Admin flags link visible only to the owner account */}
+            {user?.email?.toLowerCase() === 'findgreatstocks@gmail.com' && (
+              <Button asChild variant="ghost" size="sm" className="!text-muted-foreground">
+                <Link to="/admin/flags">Flags</Link>
+              </Button>
+            )}
+            <Button asChild variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground">
+              <Link to="/start-here" data-tour="start-here">Start Here</Link>
             </Button>
-          )}
-        </nav>
+            {educationOn ? (
+              <Button asChild variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground">
+                <Link to="/education">Education</Link>
+              </Button>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="!text-muted-foreground hover:!text-muted-foreground">
+                    Education
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem disabled className="text-muted-foreground">Coming Soon</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <Button asChild variant="ghost" size="sm">
+              <a href="https://blog.findgreatstocks.com" target="_blank" rel="noopener noreferrer" onClick={() => { try { (window as any).phCapture?.('blog_clicked'); } catch {} }}>Blog</a>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/watchlist" data-tour="watchlist-nav-button">Watchlist</Link>
+            </Button>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="inline-flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 hover:bg-zinc-50">
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback>{(user.email || 'U').slice(0,1).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm hidden sm:inline max-w-[180px] truncate">{user.email}</span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Account</DropdownMenuLabel>
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile">Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/billing">Billing</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>Sign out</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button asChild size="sm">
+                <Link to="/login">Login</Link>
+              </Button>
+            )}
+          </nav>
+        )}
       </header>
       <main className="flex-1 p-4 overflow-x-hidden">
         <Routes>

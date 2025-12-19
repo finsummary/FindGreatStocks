@@ -52,7 +52,7 @@ const LandingPage: React.FC = () => {
           </ul>
           <Button 
             asChild
-            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-50 px-6 py-3 text-sm sm:text-base font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-50 px-6 py-3 sm:px-8 sm:py-4 text-sm sm:text-base font-medium text-emerald-700 hover:bg-emerald-100 transition-colors min-h-[48px] touch-target"
           >
             <Link 
               to="/" 
@@ -161,8 +161,8 @@ const LandingPage: React.FC = () => {
             <p className="text-slate-600 mb-3">
               The formula is:
             </p>
-            <div className="bg-white border border-slate-200 rounded-lg p-4 mb-4">
-              <p className="text-slate-800 font-mono text-sm sm:text-base text-center">
+            <div className="bg-white border border-slate-200 rounded-lg p-4 mb-4 overflow-x-auto">
+              <p className="text-slate-800 font-mono text-xs sm:text-sm md:text-base text-center whitespace-nowrap">
                 ROE = Net Profit Margin × Asset Turnover × Financial Leverage
               </p>
             </div>
@@ -386,7 +386,7 @@ const LandingPage: React.FC = () => {
           </p>
           <Button 
             asChild
-            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-50 px-6 py-3 text-sm sm:text-base font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-50 px-6 py-3 sm:px-8 sm:py-4 text-sm sm:text-base font-medium text-emerald-700 hover:bg-emerald-100 transition-colors min-h-[48px] touch-target"
           >
             <Link 
               to="/" 
@@ -414,6 +414,9 @@ const Screenshot: React.FC<ScreenshotProps> = ({ imagePath, alt }) => {
       <img
         src={imagePath}
         alt={alt}
+        className="w-full h-auto max-w-full"
+        style={{ maxWidth: '100%', height: 'auto' }}
+        loading="lazy"
         className="w-full h-auto max-w-full object-contain"
         loading="lazy"
         style={{ maxWidth: '100%', height: 'auto' }}
