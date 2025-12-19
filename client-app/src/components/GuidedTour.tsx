@@ -228,7 +228,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
   return null; // Intro.js renders its own UI
 }
 
-export function useGuidedTour() {
+export function useGuidedTour(user?: { id?: string } | null) {
   const [shouldRun, setShouldRun] = React.useState(false);
 
   React.useEffect(() => {
@@ -247,7 +247,38 @@ export function useGuidedTour() {
         }
       }
       
-      if (!completed) {
+      // For new users (logged in but tour not completed), auto-start tour
+      if (!completed && user?.id) {
+        // Check if tour was already started for this user session
+        const tourStartedForUser = localStorage.getItem(`fgs:user:${user.id}:tour-started`);
+        if (!tourStartedForUser) {
+          // Mark that tour was started for this user
+          localStorage.setItem(`fgs:user:${user.id}:tour-started`, '1');
+          // Show tour after a delay to let the page and table load
+          const timer = setTimeout(() => {
+            // Check if required elements exist before starting tour
+            const marketSelector = document.querySelector('[data-tour="market-selector"]');
+            const layoutSelector = document.querySelector('[data-tour="layout-selector"]');
+            if (marketSelector && layoutSelector) {
+              setShouldRun(true);
+            } else {
+              // Retry after another delay if elements not ready
+              const retryTimer = setTimeout(() => {
+                const marketSelector2 = document.querySelector('[data-tour="market-selector"]');
+                const layoutSelector2 = document.querySelector('[data-tour="layout-selector"]');
+                if (marketSelector2 && layoutSelector2) {
+                  setShouldRun(true);
+                }
+              }, 2000);
+              return () => clearTimeout(retryTimer);
+            }
+          }, 2000);
+          return () => clearTimeout(timer);
+        }
+      }
+      
+      // For non-logged-in users or users who have seen home page before
+      if (!completed && !user?.id) {
         // Show tour after a delay to let the page and table load
         const timer = setTimeout(() => {
           // Check if required elements exist before starting tour
@@ -262,7 +293,7 @@ export function useGuidedTour() {
     } catch {
       // If localStorage is not available, don't show tour
     }
-  }, []);
+  }, [user?.id]);
 
   const startTour = () => {
     setShouldRun(true);

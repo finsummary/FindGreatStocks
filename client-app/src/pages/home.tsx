@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ChevronDown, HelpCircle, BookOpen } from "lucide-react";
 import { useFlag } from "@/providers/FeatureFlagsProvider";
+import { useAuth } from "@/providers/AuthProvider";
 import { GuidedTour, useGuidedTour } from "@/components/GuidedTour";
 import {
   DropdownMenu,
@@ -75,7 +76,8 @@ export function HomePage() {
   const hsiOn = useFlag('market:hangseng');
   const nifty50On = useFlag('market:nifty50');
   const ibovespaOn = useFlag('market:ibovespa');
-  const { shouldRun, startTour, stopTour } = useGuidedTour();
+  const { user } = useAuth();
+  const { shouldRun, startTour, stopTour } = useGuidedTour(user);
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
