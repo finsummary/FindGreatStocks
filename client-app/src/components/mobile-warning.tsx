@@ -7,7 +7,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { Smartphone, Monitor } from "lucide-react"
+import { Smartphone, Monitor, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export function MobileWarning() {
   const isMobile = useIsMobile()
@@ -48,7 +49,16 @@ export function MobileWarning() {
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogContent className="max-w-md mx-4 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+      <AlertDialogContent className="max-w-md mx-4 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 relative">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute right-4 top-4 h-8 w-8 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+          onClick={() => setOpen(false)}
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </Button>
         <AlertDialogHeader>
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
