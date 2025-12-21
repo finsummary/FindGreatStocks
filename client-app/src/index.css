@@ -287,6 +287,14 @@
   }
 }
 
+/* Mobile landscape - remove horizontal padding for full-width table */
+@media (max-width: 896px) and (orientation: landscape) {
+  main {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+
 /* Scroll indicator for mobile tables */
 .scroll-indicator-left::before {
   content: '';

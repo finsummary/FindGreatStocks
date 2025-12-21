@@ -242,6 +242,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   }, [watchlistId, dataset, activeTab]);
   
   const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [isLandscape, setIsLandscape] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<string>('none'); // Default to 'none' for placeholder
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(0);
@@ -269,6 +270,19 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const [moveCompanyDialogOpen, setMoveCompanyDialogOpen] = useState(false);
   const [companyToMove, setCompanyToMove] = useState<{ symbol: string; watchlistId?: number; mode?: 'move' | 'copy' } | null>(null);
   const { user, session, loading: authLoading } = useAuth();
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const checkOrientation = () => {
+      setIsLandscape(window.innerWidth > window.innerHeight && window.innerWidth <= 896);
+    };
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, []);
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 640px)');
     const update = () => setIsMobile(mq.matches);
@@ -2057,8 +2071,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
 
   const showSkeletons = ((!data && isLoading) || authLoading);
 
+  const isMobileLandscape = isMobile && isLandscape;
+  
   return (
-    <div className="space-y-6 overflow-x-hidden">
+    <div className={`space-y-6 overflow-x-hidden ${isMobileLandscape ? 'px-0' : ''}`}>
       {/* Controls - hide when header is sticky */}
       <div className="flex flex-col gap-3 sm:gap-4">
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-stretch sm:items-center">
@@ -2387,10 +2403,10 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <Card ref={tableContainerRef} className="relative">
+        <Card ref={tableContainerRef} className={`relative ${isLandscape ? 'mx-0 rounded-none' : ''}`}>
           <div 
             ref={tableScrollRef}
-            className={`w-full overflow-x-auto -mx-4 px-4 scrollbar-hide relative ${isMobile && canScrollLeft ? 'scroll-indicator-left' : ''} ${isMobile && canScrollRight ? 'scroll-indicator-right' : ''}`}
+            className={`w-full overflow-x-auto scrollbar-hide relative ${isLandscape ? 'mx-0 px-0' : '-mx-4 px-4'} ${isMobile && canScrollLeft ? 'scroll-indicator-left' : ''} ${isMobile && canScrollRight ? 'scroll-indicator-right' : ''}`}
             style={{ 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none', 
