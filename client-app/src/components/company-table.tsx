@@ -67,7 +67,7 @@ interface ColumnConfig {
 export const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'watchlist', label: 'Watchlist', width: 'w-[40px] sm:w-[50px]', defaultVisible: true },
   { id: 'rank', label: 'Rank', width: 'w-[24px] sm:w-[30px]', defaultVisible: true },
-  { id: 'name', label: 'Company Name', width: 'w-[140px] sm:w-[220px]', defaultVisible: true },
+  { id: 'name', label: 'Company Name', width: 'w-[120px] sm:w-[160px]', defaultVisible: true },
   { id: 'marketCap', label: 'Market Cap', width: 'w-[80px] sm:w-[110px]', defaultVisible: true },
   { id: 'price', label: 'Price', width: 'w-[60px] sm:w-[80px]', defaultVisible: true },
   { id: 'revenue', label: 'Revenue', width: 'w-[90px] sm:w-[110px]', defaultVisible: true },
