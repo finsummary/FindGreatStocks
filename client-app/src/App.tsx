@@ -25,6 +25,7 @@ import LandingPage from "./pages/landing";
 import { useIsMobile } from "./hooks/use-mobile";
 import { Menu } from "lucide-react";
 import React, { useEffect, useRef, useState } from 'react';
+import { MobileWarning } from "./components/mobile-warning";
 
 declare global { interface Window { posthog?: any } }
 
@@ -130,6 +131,7 @@ function App() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <MobileWarning />
       <header className="px-4 lg:px-6 min-h-14 h-auto flex items-center flex-wrap gap-2">
         <Link className="flex items-center justify-center gap-2 min-w-0" to="/">
           <img
