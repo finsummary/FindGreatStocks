@@ -14,6 +14,24 @@ export function MobileWarning() {
   const isMobile = useIsMobile()
   const [isPortrait, setIsPortrait] = React.useState(false)
   const [open, setOpen] = React.useState(false)
+  const [isDark, setIsDark] = React.useState(false)
+
+  React.useEffect(() => {
+    // Проверяем темную тему
+    const checkDarkMode = () => {
+      setIsDark(document.documentElement.classList.contains('dark'))
+    }
+    checkDarkMode()
+    
+    // Слушаем изменения темы
+    const observer = new MutationObserver(checkDarkMode)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    })
+    
+    return () => observer.disconnect()
+  }, [])
 
   React.useEffect(() => {
     const checkOrientation = () => {
@@ -49,11 +67,17 @@ export function MobileWarning() {
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogContent className="max-w-md mx-4 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 relative">
+      <AlertDialogContent 
+        className="max-w-md mx-4 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 !z-[100]"
+        style={{ 
+          backgroundColor: isDark ? '#18181b' : 'white',
+          zIndex: 100
+        } as React.CSSProperties}
+      >
         <Button
           variant="ghost"
           size="icon"
-          className="absolute right-4 top-4 h-8 w-8 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+          className="absolute right-4 top-4 h-8 w-8 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none z-10"
           onClick={() => setOpen(false)}
         >
           <X className="h-4 w-4" />
