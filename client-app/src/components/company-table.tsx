@@ -2438,14 +2438,14 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 <TableRow 
                   key={headerGroup.id} 
                   ref={headerRef}
-                  className="bg-muted dark:bg-zinc-900"
+                  className="bg-white dark:bg-zinc-900"
                 >
                   {headerGroup.headers.map(header => {
                     const hid = ((header.column.columnDef.meta as any)?.columnConfig.id) as string;
                     return (
                     <TableHead
                       key={header.id}
-                        className={`${hid === 'rank' || hid === 'watchlist' || hid === 'dcfVerdict' || hid === 'roicStability' || hid === 'roicStabilityScore' ? 'text-center' : hid === 'name' ? '' : 'text-right'} cursor-pointer hover:bg-muted/80 dark:hover:bg-zinc-800 transition-colors ${ getWidthClass(hid) } ${ getStickyHeaderClass(hid) } bg-muted dark:bg-zinc-900 ${
+                        className={`${hid === 'rank' || hid === 'watchlist' || hid === 'dcfVerdict' || hid === 'roicStability' || hid === 'roicStabilityScore' ? 'text-center' : hid === 'name' ? '' : 'text-right'} cursor-pointer hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors ${ getWidthClass(hid) } ${ getStickyHeaderClass(hid) } bg-white dark:bg-zinc-900 ${
                         sortBy === header.id ? 'bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300' : ''
                       }`}
                       onClick={header.column.getToggleSortingHandler()}
