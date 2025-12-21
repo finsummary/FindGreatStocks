@@ -293,6 +293,17 @@
     padding-left: 0 !important;
     padding-right: 0 !important;
   }
+  
+  /* Remove padding from all nested containers in landscape */
+  main > * {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  
+  main > * > * {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
 }
 
 /* Scroll indicator for mobile tables */

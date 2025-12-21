@@ -271,16 +271,24 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const [companyToMove, setCompanyToMove] = useState<{ symbol: string; watchlistId?: number; mode?: 'move' | 'copy' } | null>(null);
   const { user, session, loading: authLoading } = useAuth();
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 640px)');
     const checkOrientation = () => {
-      setIsLandscape(window.innerWidth > window.innerHeight && window.innerWidth <= 896);
+      // Check if device is in landscape mode (width > height) and is mobile-sized
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const isLandscapeMode = width > height && width <= 896;
+      setIsLandscape(isLandscapeMode);
     };
     checkOrientation();
     window.addEventListener('resize', checkOrientation);
     window.addEventListener('orientationchange', checkOrientation);
+    // Also check after a short delay to catch orientation changes
+    const timeoutId = setTimeout(checkOrientation, 100);
+    const timeoutId2 = setTimeout(checkOrientation, 300);
     return () => {
       window.removeEventListener('resize', checkOrientation);
       window.removeEventListener('orientationchange', checkOrientation);
+      clearTimeout(timeoutId);
+      clearTimeout(timeoutId2);
     };
   }, []);
   useEffect(() => {
@@ -2074,7 +2082,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const isMobileLandscape = isMobile && isLandscape;
   
   return (
-    <div className={`space-y-6 overflow-x-hidden ${isMobileLandscape ? 'px-0' : ''}`}>
+    <div className={`space-y-6 overflow-x-hidden ${isMobileLandscape ? '!px-0' : ''}`}>
       {/* Controls - hide when header is sticky */}
       <div className="flex flex-col gap-3 sm:gap-4">
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-stretch sm:items-center">
@@ -2403,16 +2411,21 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <Card ref={tableContainerRef} className={`relative ${isLandscape ? 'mx-0 rounded-none' : ''}`}>
+        <Card 
+          ref={tableContainerRef} 
+          className={`relative ${isLandscape ? '!mx-0 !rounded-none !p-0' : ''}`}
+          style={isLandscape ? { margin: 0, padding: 0, borderRadius: 0 } : undefined}
+        >
           <div 
             ref={tableScrollRef}
-            className={`w-full overflow-x-auto scrollbar-hide relative ${isLandscape ? 'mx-0 px-0' : '-mx-4 px-4'} ${isMobile && canScrollLeft ? 'scroll-indicator-left' : ''} ${isMobile && canScrollRight ? 'scroll-indicator-right' : ''}`}
+            className={`w-full overflow-x-auto scrollbar-hide relative ${isLandscape ? '!mx-0 !px-0' : '-mx-4 px-4'} ${isMobile && canScrollLeft ? 'scroll-indicator-left' : ''} ${isMobile && canScrollRight ? 'scroll-indicator-right' : ''}`}
             style={{ 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none', 
               WebkitOverflowScrolling: 'touch', 
               maxWidth: '100vw',
-              overflowY: 'visible'
+              overflowY: 'visible',
+              ...(isLandscape ? { marginLeft: 0, marginRight: 0, paddingLeft: 0, paddingRight: 0 } : {})
             }}
             onScroll={(e) => {
               const target = e.currentTarget;
