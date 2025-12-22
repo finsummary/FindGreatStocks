@@ -42,6 +42,9 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
       // @ts-ignore - Type mismatch between LegacyIntroJs and IntroJs
       introInstanceRef.current = intro;
 
+      // Check if mobile device
+      const isMobile = window.innerWidth <= 640;
+
       // Configure Intro.js
       intro.setOptions({
         steps: [
@@ -54,7 +57,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
               </p>
             `,
             element: '[data-tour="start-here"]',
-            position: 'bottom',
+            position: isMobile ? 'bottom' : 'bottom',
           },
           {
             intro: `
@@ -65,7 +68,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
               </p>
             `,
             element: '[data-tour="market-selector"]',
-            position: 'bottom',
+            position: isMobile ? 'bottom' : 'bottom',
           },
           {
             intro: `
@@ -83,7 +86,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
               </ul>
             `,
             element: '[data-tour="layout-selector"]',
-            position: 'bottom',
+            position: isMobile ? 'bottom' : 'bottom',
           },
           {
             intro: `
@@ -94,7 +97,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
               </p>
             `,
             element: '[data-tour="search"]',
-            position: 'bottom',
+            position: isMobile ? 'bottom' : 'bottom',
           },
           {
             intro: `
@@ -108,7 +111,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
               </p>
             `,
             element: '[data-tour="watchlist"]',
-            position: 'right',
+            position: isMobile ? 'bottom' : 'right',
           },
           {
             intro: `
@@ -119,7 +122,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
               </p>
             `,
             element: '[data-tour="columns"]',
-            position: 'bottom',
+            position: isMobile ? 'bottom' : 'bottom',
           },
           {
             intro: `
@@ -130,7 +133,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
               </p>
             `,
             element: '[data-tour="upgrade"]',
-            position: 'left',
+            position: isMobile ? 'bottom' : 'left',
           },
         ],
         showProgress: true,
@@ -184,9 +187,60 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
           // Set explicit flag that tour is active
           localStorage.setItem('fgs:guided-tour:active', '1');
         } catch {}
-        // Scroll element into view
+        
+        // Scroll element into view and ensure tooltip is visible
         if (targetElement) {
           targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          
+          // On mobile, ensure tooltip is visible after scroll
+          const isMobile = window.innerWidth <= 640;
+          if (isMobile) {
+            setTimeout(() => {
+              const tooltip = document.querySelector('.introjs-tooltip') as HTMLElement;
+              if (tooltip) {
+                // Force fixed positioning at bottom on mobile
+                tooltip.style.position = 'fixed';
+                tooltip.style.bottom = '20px';
+                tooltip.style.top = 'auto';
+                tooltip.style.left = '10px';
+                tooltip.style.right = '10px';
+                tooltip.style.width = 'auto';
+                tooltip.style.maxWidth = 'calc(100vw - 20px)';
+                tooltip.style.margin = '0';
+                tooltip.style.transform = 'none';
+                tooltip.style.zIndex = '999999';
+                
+                // Ensure tooltip content is scrollable if too tall
+                const tooltipText = tooltip.querySelector('.introjs-tooltiptext') as HTMLElement;
+                if (tooltipText) {
+                  const viewportHeight = window.innerHeight;
+                  const maxHeight = viewportHeight - 150; // Leave space for buttons and padding
+                  tooltipText.style.maxHeight = `${maxHeight}px`;
+                  tooltipText.style.overflowY = 'auto';
+                }
+                
+                // Scroll tooltip into view
+                tooltip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+              }
+            }, 100);
+            
+            // Also check after a longer delay to catch any late rendering
+            setTimeout(() => {
+              const tooltip = document.querySelector('.introjs-tooltip') as HTMLElement;
+              if (tooltip) {
+                tooltip.style.position = 'fixed';
+                tooltip.style.bottom = '20px';
+                tooltip.style.top = 'auto';
+                tooltip.style.left = '10px';
+                tooltip.style.right = '10px';
+                tooltip.style.width = 'auto';
+                tooltip.style.maxWidth = 'calc(100vw - 20px)';
+                tooltip.style.margin = '0';
+                tooltip.style.transform = 'none';
+                tooltip.style.zIndex = '999999';
+              }
+            }, 500);
+          }
         }
       });
 

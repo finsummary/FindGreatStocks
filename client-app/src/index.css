@@ -12,6 +12,85 @@
   border-radius: 8px;
 }
 
+/* Mobile-specific Intro.js styles */
+@media (max-width: 640px) {
+  .introjs-tooltip {
+    max-width: calc(100vw - 20px) !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    position: fixed !important;
+    margin: 0 !important;
+    transform: none !important;
+    top: auto !important;
+    bottom: 20px !important;
+    z-index: 999999 !important;
+  }
+  
+  .introjs-tooltipReferenceLayer {
+    position: fixed !important;
+    z-index: 999998 !important;
+  }
+  
+  .introjs-overlay {
+    z-index: 999997 !important;
+  }
+  
+  .introjs-arrow {
+    display: none !important;
+  }
+  
+  .introjs-tooltiptext {
+    font-size: 14px !important;
+    padding: 12px !important;
+    max-height: calc(100vh - 150px) !important;
+    overflow-y: auto !important;
+  }
+  
+  .introjs-tooltipbuttons {
+    padding: 8px 12px !important;
+    text-align: center !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  
+  .introjs-button {
+    min-width: 80px !important;
+    padding: 8px 12px !important;
+    font-size: 14px !important;
+    margin: 0 !important;
+  }
+  
+  .introjs-prevbutton,
+  .introjs-nextbutton {
+    flex: 1 !important;
+    min-width: 100px !important;
+  }
+}
+
+/* Landscape mobile orientation */
+@media (max-width: 896px) and (orientation: landscape) {
+  .introjs-tooltip {
+    max-width: calc(100vw - 20px) !important;
+    max-height: calc(100vh - 20px) !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    position: fixed !important;
+    margin: 0 !important;
+    transform: none !important;
+    top: auto !important;
+    bottom: 20px !important;
+    overflow-y: auto !important;
+    z-index: 999999 !important;
+  }
+  
+  .introjs-tooltiptext {
+    max-height: calc(100vh - 150px) !important;
+    overflow-y: auto !important;
+  }
+}
+
 .customIntroJSButton {
   background-color: #10b981 !important;
   color: white !important;
