@@ -1115,7 +1115,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                                 ? 'text-muted-foreground hover:text-yellow-500'
                                 : 'text-muted-foreground opacity-60 cursor-not-allowed'
                           }`}
-                          data-tour={row.symbol === 'MSFT' ? 'tour-watchlist-msft' : undefined}
+                          data-tour={row.symbol === 'MSFT' ? 'tour-watchlist-msft' : (info.row.index === 0 ? 'watchlist' : undefined)}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (isLoggedIn && !isWatchlistPage) {

@@ -86,7 +86,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
               </ul>
             `,
             element: '[data-tour="layout-selector"]',
-            position: isMobile ? 'top' : 'top',
+            position: isMobile ? 'bottom' : 'bottom',
           },
           {
             intro: `
@@ -217,7 +217,9 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
           // Get current step to check if it's layout selector step
           // @ts-ignore - currentStep exists but may not be in types
           const currentStep = (typeof intro.currentStep === 'function' ? intro.currentStep() : intro.currentStep) || 0;
-          const isLayoutStep = currentStep === 2; // Step index is 0-based
+          const isLayoutStep = currentStep === 2; // Step index is 0-based (step 3)
+          const isWatchlistStep = currentStep === 4; // Step index is 0-based (step 5)
+          const isColumnsStep = currentStep === 5; // Step index is 0-based (step 6)
           
           // On mobile and desktop, position tooltip at top for layout selector to avoid overlap
           const isMobile = window.innerWidth <= 640;
@@ -228,32 +230,19 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
               const currentStep = (typeof intro.currentStep === 'function' ? intro.currentStep() : intro.currentStep) || 0;
               
               if (tooltip) {
-                // For step 3 (layout-selector), position tooltip at top to avoid overlap
-                const isLayoutStep = currentStep === 2; // Step index is 0-based
-                
                 // Set reasonable max width for tooltip
                 const maxWidth = Math.min(400, window.innerWidth - 40);
                 tooltip.style.maxWidth = `${maxWidth}px`;
                 tooltip.style.width = 'auto';
                 tooltip.style.minWidth = '280px';
                 
-                if (isLayoutStep) {
-                  // Position at top for layout selector to avoid overlap
-                  tooltip.style.position = 'fixed';
-                  tooltip.style.top = '20px';
-                  tooltip.style.bottom = 'auto';
-                  tooltip.style.left = '50%';
-                  tooltip.style.right = 'auto';
-                  tooltip.style.transform = 'translateX(-50%)';
-                } else {
-                  // Position at bottom for other steps
-                  tooltip.style.position = 'fixed';
-                  tooltip.style.bottom = '20px';
-                  tooltip.style.top = 'auto';
-                  tooltip.style.left = '50%';
-                  tooltip.style.right = 'auto';
-                  tooltip.style.transform = 'translateX(-50%)';
-                }
+                // Position at bottom for all steps on mobile
+                tooltip.style.position = 'fixed';
+                tooltip.style.bottom = '20px';
+                tooltip.style.top = 'auto';
+                tooltip.style.left = '50%';
+                tooltip.style.right = 'auto';
+                tooltip.style.transform = 'translateX(-50%)';
                 
                 tooltip.style.margin = '0';
                 tooltip.style.zIndex = '1000000';
@@ -293,21 +282,13 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
                 tooltip.style.width = 'auto';
                 tooltip.style.minWidth = '280px';
                 
-                if (isLayoutStep) {
-                  tooltip.style.position = 'fixed';
-                  tooltip.style.top = '20px';
-                  tooltip.style.bottom = 'auto';
-                  tooltip.style.left = '50%';
-                  tooltip.style.right = 'auto';
-                  tooltip.style.transform = 'translateX(-50%)';
-                } else {
-                  tooltip.style.position = 'fixed';
-                  tooltip.style.bottom = '20px';
-                  tooltip.style.top = 'auto';
-                  tooltip.style.left = '50%';
-                  tooltip.style.right = 'auto';
-                  tooltip.style.transform = 'translateX(-50%)';
-                }
+                // Position at bottom for all steps on mobile
+                tooltip.style.position = 'fixed';
+                tooltip.style.bottom = '20px';
+                tooltip.style.top = 'auto';
+                tooltip.style.left = '50%';
+                tooltip.style.right = 'auto';
+                tooltip.style.transform = 'translateX(-50%)';
                 tooltip.style.margin = '0';
                 tooltip.style.zIndex = '1000000';
                 
@@ -320,20 +301,20 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
               }
             }, 500);
           } else {
-            // Desktop: also position tooltip at top for layout selector
+            // Desktop: position tooltip below the element for layout selector
             if (isLayoutStep) {
               setTimeout(() => {
                 const tooltip = document.querySelector('.introjs-tooltip') as HTMLElement;
-                if (tooltip) {
-                  // Position tooltip at top for layout selector to avoid overlap with button
+                if (tooltip && targetElement) {
+                  // Position tooltip below the button to avoid overlap
                   const rect = targetElement.getBoundingClientRect();
-                  const tooltipHeight = tooltip.offsetHeight || 200;
-                  tooltip.style.top = `${Math.max(20, rect.top - tooltipHeight - 20)}px`;
+                  tooltip.style.top = `${rect.bottom + 10}px`;
                   tooltip.style.bottom = 'auto';
                   tooltip.style.left = `${rect.left + (rect.width / 2)}px`;
                   tooltip.style.transform = 'translateX(-50%)';
                   tooltip.style.maxWidth = '400px';
                   tooltip.style.width = 'auto';
+                  tooltip.style.position = 'fixed';
                 }
               }, 100);
             }
