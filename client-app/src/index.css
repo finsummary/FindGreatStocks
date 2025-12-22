@@ -6,6 +6,8 @@
 .customIntroJS {
   border-radius: 8px;
   font-family: inherit;
+  max-width: 400px !important;
+  width: auto !important;
 }
 
 .customIntroJSHighlight {
@@ -42,13 +44,14 @@
 /* Mobile-specific Intro.js styles */
 @media (max-width: 640px) {
   .introjs-tooltip {
-    max-width: calc(100vw - 20px) !important;
-    left: 10px !important;
-    right: 10px !important;
+    max-width: 90% !important;
     width: auto !important;
+    min-width: 280px !important;
     position: fixed !important;
-    margin: 0 !important;
-    transform: none !important;
+    margin: 0 auto !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
     top: auto !important;
     bottom: 20px !important;
     z-index: 1000000 !important;
@@ -98,18 +101,19 @@
 /* Landscape mobile orientation */
 @media (max-width: 896px) and (orientation: landscape) {
   .introjs-tooltip {
-    max-width: calc(100vw - 20px) !important;
+    max-width: 70% !important;
     max-height: calc(100vh - 20px) !important;
-    left: 10px !important;
-    right: 10px !important;
     width: auto !important;
+    min-width: 300px !important;
     position: fixed !important;
-    margin: 0 !important;
-    transform: none !important;
+    margin: 0 auto !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
     top: auto !important;
     bottom: 20px !important;
     overflow-y: auto !important;
-    z-index: 999999 !important;
+    z-index: 1000000 !important;
   }
   
   .introjs-tooltiptext {

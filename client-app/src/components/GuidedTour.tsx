@@ -222,24 +222,31 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
                 // For step 3 (layout-selector), position tooltip at top to avoid overlap
                 const isLayoutStep = currentStep === 2; // Step index is 0-based
                 
+                // Set reasonable max width for tooltip
+                const maxWidth = Math.min(400, window.innerWidth - 40);
+                tooltip.style.maxWidth = `${maxWidth}px`;
+                tooltip.style.width = 'auto';
+                tooltip.style.minWidth = '280px';
+                
                 if (isLayoutStep) {
                   // Position at top for layout selector to avoid overlap
                   tooltip.style.position = 'fixed';
                   tooltip.style.top = '20px';
                   tooltip.style.bottom = 'auto';
+                  tooltip.style.left = '50%';
+                  tooltip.style.right = 'auto';
+                  tooltip.style.transform = 'translateX(-50%)';
                 } else {
                   // Position at bottom for other steps
                   tooltip.style.position = 'fixed';
                   tooltip.style.bottom = '20px';
                   tooltip.style.top = 'auto';
+                  tooltip.style.left = '50%';
+                  tooltip.style.right = 'auto';
+                  tooltip.style.transform = 'translateX(-50%)';
                 }
                 
-                tooltip.style.left = '10px';
-                tooltip.style.right = '10px';
-                tooltip.style.width = 'auto';
-                tooltip.style.maxWidth = 'calc(100vw - 20px)';
                 tooltip.style.margin = '0';
-                tooltip.style.transform = 'none';
                 tooltip.style.zIndex = '1000000';
                 
                 // Ensure tooltip content is scrollable if too tall
@@ -271,21 +278,28 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
               const isLayoutStep = currentStep === 2;
               
               if (tooltip) {
+                // Set reasonable max width for tooltip
+                const maxWidth = Math.min(400, window.innerWidth - 40);
+                tooltip.style.maxWidth = `${maxWidth}px`;
+                tooltip.style.width = 'auto';
+                tooltip.style.minWidth = '280px';
+                
                 if (isLayoutStep) {
                   tooltip.style.position = 'fixed';
                   tooltip.style.top = '20px';
                   tooltip.style.bottom = 'auto';
+                  tooltip.style.left = '50%';
+                  tooltip.style.right = 'auto';
+                  tooltip.style.transform = 'translateX(-50%)';
                 } else {
                   tooltip.style.position = 'fixed';
                   tooltip.style.bottom = '20px';
                   tooltip.style.top = 'auto';
+                  tooltip.style.left = '50%';
+                  tooltip.style.right = 'auto';
+                  tooltip.style.transform = 'translateX(-50%)';
                 }
-                tooltip.style.left = '10px';
-                tooltip.style.right = '10px';
-                tooltip.style.width = 'auto';
-                tooltip.style.maxWidth = 'calc(100vw - 20px)';
                 tooltip.style.margin = '0';
-                tooltip.style.transform = 'none';
                 tooltip.style.zIndex = '1000000';
                 
                 // Ensure highlighted element is visible
@@ -304,8 +318,13 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
                 if (tooltip) {
                   // Position tooltip at top for layout selector to avoid overlap with button
                   const rect = targetElement.getBoundingClientRect();
-                  tooltip.style.top = `${Math.max(20, rect.top - tooltip.offsetHeight - 20)}px`;
+                  const tooltipHeight = tooltip.offsetHeight || 200;
+                  tooltip.style.top = `${Math.max(20, rect.top - tooltipHeight - 20)}px`;
                   tooltip.style.bottom = 'auto';
+                  tooltip.style.left = `${rect.left + (rect.width / 2)}px`;
+                  tooltip.style.transform = 'translateX(-50%)';
+                  tooltip.style.maxWidth = '400px';
+                  tooltip.style.width = 'auto';
                 }
               }, 100);
             }
