@@ -16,6 +16,14 @@ export function MobileWarning() {
   const [open, setOpen] = React.useState(false)
   const [isDark, setIsDark] = React.useState(false)
 
+  // Notify when mobile warning is closed
+  React.useEffect(() => {
+    if (!open) {
+      // Mobile warning is closed - notify that onboarding can start
+      window.dispatchEvent(new CustomEvent('fgs:mobile-warning-closed'))
+    }
+  }, [open])
+
   React.useEffect(() => {
     // Проверяем темную тему
     const checkDarkMode = () => {
@@ -40,10 +48,29 @@ export function MobileWarning() {
       setIsPortrait(portrait)
       
       // Показываем предупреждение только на мобильных устройствах в портретной ориентации
+      // Но только если пользователь еще не закрыл его ранее
       if (isMobile && portrait) {
-        setOpen(true)
+        try {
+          const dismissed = localStorage.getItem('fgs:mobile-warning-dismissed')
+          if (!dismissed) {
+            setOpen(true)
+          } else {
+            setOpen(false)
+          }
+        } catch {
+          setOpen(true)
+        }
       } else {
-        setOpen(false)
+        // Device rotated to landscape - close warning
+        setOpen((prevOpen) => {
+          if (prevOpen) {
+            // Notify that warning is closed when rotating to landscape
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('fgs:mobile-warning-closed'))
+            }, 100)
+          }
+          return false
+        })
       }
     }
 
@@ -78,7 +105,13 @@ export function MobileWarning() {
           variant="ghost"
           size="icon"
           className="absolute right-4 top-4 h-8 w-8 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none z-10"
-          onClick={() => setOpen(false)}
+          onClick={() => {
+            setOpen(false)
+            // Store that user dismissed the warning
+            try {
+              localStorage.setItem('fgs:mobile-warning-dismissed', '1')
+            } catch {}
+          }}
         >
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>

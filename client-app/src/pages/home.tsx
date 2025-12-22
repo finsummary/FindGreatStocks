@@ -8,6 +8,7 @@ import { ChevronDown, HelpCircle, BookOpen } from "lucide-react";
 import { useFlag } from "@/providers/FeatureFlagsProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import { GuidedTour, useGuidedTour } from "@/components/GuidedTour";
+import { MobileWarning } from "@/components/mobile-warning";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -44,12 +45,7 @@ export function HomePage() {
     }
   });
 
-  // Mark that user has seen the landing page when they use the home page
-  useEffect(() => {
-    try {
-      localStorage.setItem('fgs:landing:seen', '1');
-    } catch {}
-  }, []);
+  // Don't automatically mark landing as seen - only when user explicitly navigates from landing page
 
   // Capture video_opened when modal opens (extra safety)
   useEffect(() => {
@@ -86,7 +82,7 @@ export function HomePage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-950">
-      
+      <MobileWarning />
       <main className="container mx-auto px-4 py-8">
         <GuidedTour run={shouldRun} onComplete={stopTour} onStop={stopTour} />
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-between gap-3 mb-4">

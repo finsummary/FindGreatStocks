@@ -247,48 +247,93 @@ export function useGuidedTour(user?: { id?: string } | null) {
         }
       }
       
+      // Check if mobile warning is open - don't start tour if it is
+      const checkMobileWarning = () => {
+        try {
+          const mobileWarningDismissed = localStorage.getItem('fgs:mobile-warning-dismissed')
+          const isMobile = window.innerWidth <= 640
+          const isPortrait = window.innerHeight > window.innerWidth
+          
+          // If mobile warning should be shown and hasn't been dismissed, wait for it to close
+          if (isMobile && isPortrait && !mobileWarningDismissed) {
+            return false
+          }
+          return true
+        } catch {
+          return true
+        }
+      }
+
+      const startTourIfReady = () => {
+        if (!checkMobileWarning()) {
+          return false
+        }
+        
+        // Check if required elements exist before starting tour
+        const marketSelector = document.querySelector('[data-tour="market-selector"]')
+        const layoutSelector = document.querySelector('[data-tour="layout-selector"]')
+        if (marketSelector && layoutSelector) {
+          setShouldRun(true)
+          return true
+        }
+        return false
+      }
+
       // For new users (logged in but tour not completed), auto-start tour
       if (!completed && user?.id) {
         // Check if tour was already started for this user session
-        const tourStartedForUser = localStorage.getItem(`fgs:user:${user.id}:tour-started`);
+        const tourStartedForUser = localStorage.getItem(`fgs:user:${user.id}:tour-started`)
         if (!tourStartedForUser) {
           // Mark that tour was started for this user
-          localStorage.setItem(`fgs:user:${user.id}:tour-started`, '1');
+          localStorage.setItem(`fgs:user:${user.id}:tour-started`, '1')
+          
+          // Listen for mobile warning close event
+          const handleMobileWarningClosed = () => {
+            setTimeout(() => {
+              if (startTourIfReady()) {
+                window.removeEventListener('fgs:mobile-warning-closed', handleMobileWarningClosed)
+              }
+            }, 500)
+          }
+          window.addEventListener('fgs:mobile-warning-closed', handleMobileWarningClosed)
+          
           // Show tour after a delay to let the page and table load
           const timer = setTimeout(() => {
-            // Check if required elements exist before starting tour
-            const marketSelector = document.querySelector('[data-tour="market-selector"]');
-            const layoutSelector = document.querySelector('[data-tour="layout-selector"]');
-            if (marketSelector && layoutSelector) {
-              setShouldRun(true);
-            } else {
-              // Retry after another delay if elements not ready
-              const retryTimer = setTimeout(() => {
-                const marketSelector2 = document.querySelector('[data-tour="market-selector"]');
-                const layoutSelector2 = document.querySelector('[data-tour="layout-selector"]');
-                if (marketSelector2 && layoutSelector2) {
-                  setShouldRun(true);
-                }
-              }, 2000);
-              return () => clearTimeout(retryTimer);
+            if (startTourIfReady()) {
+              window.removeEventListener('fgs:mobile-warning-closed', handleMobileWarningClosed)
             }
-          }, 2000);
-          return () => clearTimeout(timer);
+          }, 2000)
+          
+          return () => {
+            clearTimeout(timer)
+            window.removeEventListener('fgs:mobile-warning-closed', handleMobileWarningClosed)
+          }
         }
       }
       
       // For non-logged-in users or users who have seen home page before
       if (!completed && !user?.id) {
+        // Listen for mobile warning close event
+        const handleMobileWarningClosed = () => {
+          setTimeout(() => {
+            if (startTourIfReady()) {
+              window.removeEventListener('fgs:mobile-warning-closed', handleMobileWarningClosed)
+            }
+          }, 500)
+        }
+        window.addEventListener('fgs:mobile-warning-closed', handleMobileWarningClosed)
+        
         // Show tour after a delay to let the page and table load
         const timer = setTimeout(() => {
-          // Check if required elements exist before starting tour
-          const marketSelector = document.querySelector('[data-tour="market-selector"]');
-          const layoutSelector = document.querySelector('[data-tour="layout-selector"]');
-          if (marketSelector && layoutSelector) {
-            setShouldRun(true);
+          if (startTourIfReady()) {
+            window.removeEventListener('fgs:mobile-warning-closed', handleMobileWarningClosed)
           }
-        }, 2000);
-        return () => clearTimeout(timer);
+        }, 2000)
+        
+        return () => {
+          clearTimeout(timer)
+          window.removeEventListener('fgs:mobile-warning-closed', handleMobileWarningClosed)
+        }
       }
     } catch {
       // If localStorage is not available, don't show tour
