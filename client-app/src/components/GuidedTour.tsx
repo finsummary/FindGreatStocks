@@ -86,7 +86,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
               </ul>
             `,
             element: '[data-tour="layout-selector"]',
-            position: isMobile ? 'bottom' : 'bottom',
+            position: isMobile ? 'top' : 'top',
           },
           {
             intro: `
@@ -192,23 +192,54 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
         if (targetElement) {
           targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
           
-          // On mobile, ensure tooltip is visible after scroll
+          // Ensure highlighted element is visible above overlay
+          setTimeout(() => {
+            const highlightedElement = document.querySelector('.introjs-showElement') as HTMLElement;
+            if (highlightedElement) {
+              highlightedElement.style.zIndex = '999999';
+              highlightedElement.style.position = 'relative';
+            }
+            const helperLayer = document.querySelector('.introjs-helperLayer') as HTMLElement;
+            if (helperLayer) {
+              helperLayer.style.zIndex = '999998';
+            }
+          }, 50);
+          
+          // Get current step to check if it's layout selector step
+          // @ts-ignore - currentStep exists but may not be in types
+          const currentStep = intro.currentStep || 0;
+          const isLayoutStep = currentStep === 2; // Step index is 0-based
+          
+          // On mobile and desktop, position tooltip at top for layout selector to avoid overlap
           const isMobile = window.innerWidth <= 640;
           if (isMobile) {
             setTimeout(() => {
               const tooltip = document.querySelector('.introjs-tooltip') as HTMLElement;
+              const currentStep = intro.currentStep || 0;
+              
               if (tooltip) {
-                // Force fixed positioning at bottom on mobile
-                tooltip.style.position = 'fixed';
-                tooltip.style.bottom = '20px';
-                tooltip.style.top = 'auto';
+                // For step 3 (layout-selector), position tooltip at top to avoid overlap
+                const isLayoutStep = currentStep === 2; // Step index is 0-based
+                
+                if (isLayoutStep) {
+                  // Position at top for layout selector to avoid overlap
+                  tooltip.style.position = 'fixed';
+                  tooltip.style.top = '20px';
+                  tooltip.style.bottom = 'auto';
+                } else {
+                  // Position at bottom for other steps
+                  tooltip.style.position = 'fixed';
+                  tooltip.style.bottom = '20px';
+                  tooltip.style.top = 'auto';
+                }
+                
                 tooltip.style.left = '10px';
                 tooltip.style.right = '10px';
                 tooltip.style.width = 'auto';
                 tooltip.style.maxWidth = 'calc(100vw - 20px)';
                 tooltip.style.margin = '0';
                 tooltip.style.transform = 'none';
-                tooltip.style.zIndex = '999999';
+                tooltip.style.zIndex = '1000000';
                 
                 // Ensure tooltip content is scrollable if too tall
                 const tooltipText = tooltip.querySelector('.introjs-tooltiptext') as HTMLElement;
@@ -219,6 +250,13 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
                   tooltipText.style.overflowY = 'auto';
                 }
                 
+                // Ensure highlighted element is visible
+                const highlightedElement = document.querySelector('.introjs-showElement') as HTMLElement;
+                if (highlightedElement) {
+                  highlightedElement.style.zIndex = '999998';
+                  highlightedElement.style.position = 'relative';
+                }
+                
                 // Scroll tooltip into view
                 tooltip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
               }
@@ -227,19 +265,48 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
             // Also check after a longer delay to catch any late rendering
             setTimeout(() => {
               const tooltip = document.querySelector('.introjs-tooltip') as HTMLElement;
+              const currentStep = intro.currentStep || 0;
+              const isLayoutStep = currentStep === 2;
+              
               if (tooltip) {
-                tooltip.style.position = 'fixed';
-                tooltip.style.bottom = '20px';
-                tooltip.style.top = 'auto';
+                if (isLayoutStep) {
+                  tooltip.style.position = 'fixed';
+                  tooltip.style.top = '20px';
+                  tooltip.style.bottom = 'auto';
+                } else {
+                  tooltip.style.position = 'fixed';
+                  tooltip.style.bottom = '20px';
+                  tooltip.style.top = 'auto';
+                }
                 tooltip.style.left = '10px';
                 tooltip.style.right = '10px';
                 tooltip.style.width = 'auto';
                 tooltip.style.maxWidth = 'calc(100vw - 20px)';
                 tooltip.style.margin = '0';
                 tooltip.style.transform = 'none';
-                tooltip.style.zIndex = '999999';
+                tooltip.style.zIndex = '1000000';
+                
+                // Ensure highlighted element is visible
+                const highlightedElement = document.querySelector('.introjs-showElement') as HTMLElement;
+                if (highlightedElement) {
+                  highlightedElement.style.zIndex = '999998';
+                  highlightedElement.style.position = 'relative';
+                }
               }
             }, 500);
+          } else {
+            // Desktop: also position tooltip at top for layout selector
+            if (isLayoutStep) {
+              setTimeout(() => {
+                const tooltip = document.querySelector('.introjs-tooltip') as HTMLElement;
+                if (tooltip) {
+                  // Position tooltip at top for layout selector to avoid overlap with button
+                  const rect = targetElement.getBoundingClientRect();
+                  tooltip.style.top = `${Math.max(20, rect.top - tooltip.offsetHeight - 20)}px`;
+                  tooltip.style.bottom = 'auto';
+                }
+              }, 100);
+            }
           }
         }
       });

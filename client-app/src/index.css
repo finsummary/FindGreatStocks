@@ -10,6 +10,33 @@
 
 .customIntroJSHighlight {
   border-radius: 8px;
+  z-index: 999999 !important;
+  position: relative !important;
+}
+
+/* Ensure highlighted elements are visible above overlay */
+.introjs-showElement {
+  z-index: 999999 !important;
+  position: relative !important;
+}
+
+.introjs-helperLayer {
+  z-index: 999998 !important;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5) !important;
+  pointer-events: none !important;
+}
+
+.introjs-overlay {
+  z-index: 999997 !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure highlighted elements are always visible above overlay */
+.introjs-showElement,
+.introjs-showElement * {
+  z-index: 999999 !important;
+  position: relative !important;
 }
 
 /* Mobile-specific Intro.js styles */
@@ -24,7 +51,7 @@
     transform: none !important;
     top: auto !important;
     bottom: 20px !important;
-    z-index: 999999 !important;
+    z-index: 1000000 !important;
   }
   
   .introjs-tooltipReferenceLayer {
