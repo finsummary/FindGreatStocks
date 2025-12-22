@@ -182,7 +182,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
         // Save current step to localStorage to survive page refresh
         try {
           // @ts-ignore - currentStep exists but may not be in types
-          const currentStep = intro.currentStep || 0;
+          const currentStep = (typeof intro.currentStep === 'function' ? intro.currentStep() : intro.currentStep) || 0;
           localStorage.setItem('fgs:guided-tour:current-step', currentStep.toString());
           // Set explicit flag that tour is active
           localStorage.setItem('fgs:guided-tour:active', '1');
@@ -207,7 +207,7 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
           
           // Get current step to check if it's layout selector step
           // @ts-ignore - currentStep exists but may not be in types
-          const currentStep = intro.currentStep || 0;
+          const currentStep = (typeof intro.currentStep === 'function' ? intro.currentStep() : intro.currentStep) || 0;
           const isLayoutStep = currentStep === 2; // Step index is 0-based
           
           // On mobile and desktop, position tooltip at top for layout selector to avoid overlap
@@ -215,7 +215,8 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
           if (isMobile) {
             setTimeout(() => {
               const tooltip = document.querySelector('.introjs-tooltip') as HTMLElement;
-              const currentStep = intro.currentStep || 0;
+              // @ts-ignore - currentStep exists but may not be in types
+              const currentStep = (typeof intro.currentStep === 'function' ? intro.currentStep() : intro.currentStep) || 0;
               
               if (tooltip) {
                 // For step 3 (layout-selector), position tooltip at top to avoid overlap
@@ -265,7 +266,8 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
             // Also check after a longer delay to catch any late rendering
             setTimeout(() => {
               const tooltip = document.querySelector('.introjs-tooltip') as HTMLElement;
-              const currentStep = intro.currentStep || 0;
+              // @ts-ignore - currentStep exists but may not be in types
+              const currentStep = (typeof intro.currentStep === 'function' ? intro.currentStep() : intro.currentStep) || 0;
               const isLayoutStep = currentStep === 2;
               
               if (tooltip) {
