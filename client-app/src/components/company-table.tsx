@@ -201,7 +201,7 @@ const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlis
   marginOfSafety: 'The percentage difference between the DCF Enterprise Value and the current Market Cap. A positive value suggests undervaluation.',
   dcfImpliedGrowth: 'The Free Cash Flow growth rate required to justify the current stock price. Compared visually to the 10Y Revenue Growth.',
   // Verdict: single-word valuation by DCF (Margin of Safety)
-  dcfVerdict: 'Model verdict by DCF: Undervalued (green) or Overvalued (red).',
+  dcfVerdict: 'Model verdict by DCF: Undervalued (green) when implied growth < historical growth, Overvalued (red) when implied growth > historical growth, or Fairly Valued (yellow) when they are close (±3%).',
   assetTurnover: 'Measures how efficiently a company uses its assets to generate revenue. Calculated as Total Revenue / Total Assets.',
   financialLeverage: 'Measures the extent to which a company uses debt to finance its assets. Calculated as Total Assets / Total Equity.',
   roe: 'Return on Equity measures a company\'s profitability in relation to stockholders\' equity. Calculated as Net Income / Total Equity.',
@@ -1601,16 +1601,34 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 cellContent = <span className="text-muted-foreground">N/A</span>;
                 break;
               }
-              const isUndervalued = implied < rev10y; // market implies lower growth than historical
+              
+              // Define threshold for "Fairly Valued" (±3 percentage points)
+              const threshold = 0.03; // 3%
+              const difference = Math.abs(implied - rev10y);
+              
+              let verdict: 'Undervalued' | 'Overvalued' | 'Fairly Valued';
+              let badgeClass: string;
+              
+              if (difference <= threshold) {
+                // Close to historical growth - Fairly Valued
+                verdict = 'Fairly Valued';
+                badgeClass = 'text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950';
+              } else if (implied < rev10y) {
+                // Market implies lower growth than historical - Undervalued
+                verdict = 'Undervalued';
+                badgeClass = 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950';
+              } else {
+                // Market implies higher growth than historical - Overvalued
+                verdict = 'Overvalued';
+                badgeClass = 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950';
+              }
+              
               cellContent = (
                 <Badge
                   variant="outline"
-                  className={`font-medium ${isUndervalued
-                    ? 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950'
-                    : 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950'
-                  }`}
+                  className={`font-medium ${badgeClass}`}
                 >
-                  {isUndervalued ? 'Undervalued' : 'Overvalued'}
+                  {verdict}
                 </Badge>
               );
               break;
