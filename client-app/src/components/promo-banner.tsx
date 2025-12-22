@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Button } from './ui/button';
-import { Link } from 'react-router-dom';
 
 const TOUR_STORAGE_KEY = 'fgs:guided_tour:completed';
 
-export function PromoBanner() {
+interface PromoBannerProps {
+  onClaimNow?: () => void;
+}
+
+export function PromoBanner({ onClaimNow }: PromoBannerProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -71,9 +74,12 @@ export function PromoBanner() {
         <span className="font-semibold">
           🎉 Get Limited Time <strong>Lifetime Deal</strong> for <strong>$49</strong> (instead of $199) while in beta!
         </span>
-        <Link to="/billing" className="underline hover:no-underline font-medium ml-2">
+        <button
+          onClick={onClaimNow}
+          className="underline hover:no-underline font-medium ml-2 cursor-pointer bg-transparent border-none text-white"
+        >
           Claim Now →
-        </Link>
+        </button>
         <Button
           variant="ghost"
           size="icon"

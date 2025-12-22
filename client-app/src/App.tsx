@@ -27,6 +27,10 @@ import { Menu } from "lucide-react";
 import React, { useEffect, useRef, useState } from 'react';
 import { MobileWarning } from "./components/mobile-warning";
 import { PromoBanner } from "./components/promo-banner";
+import { UpgradeModal } from "./components/UpgradeModal";
+import { authFetch } from "./lib/authFetch";
+import { loadStripe } from '@stripe/stripe-js';
+import { useToast } from "./hooks/use-toast";
 
 declare global { interface Window { posthog?: any } }
 
@@ -72,6 +76,8 @@ function App() {
   const navigate = useNavigate();
   const educationOn = useFlag('education');
   const isMobile = useIsMobile();
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const { toast } = useToast();
 
   // Auto-reload tab when backend commit changes (prevents stale chunks → React #300)
   // BUT: Don't reload if user is in the middle of onboarding tour
@@ -130,9 +136,75 @@ function App() {
     navigate('/'); // Redirect to home after logout
   };
 
+  const handleUpgradeClick = async ({ priceId, plan }: { priceId?: string; plan: 'annual' | 'quarterly' | 'lifetime' }) => {
+    if (!user) {
+      // redirect unauthenticated users to login/signup flow
+      window.location.href = '/login';
+      return;
+    }
+
+    // Get session from Supabase
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.href = '/login';
+      return;
+    }
+
+    setIsUpgradeModalOpen(false);
+    try { (window as any).phCapture?.('upgrade_clicked', { plan, source: 'promo_banner' }); } catch {}
+
+    try {
+      const response = await authFetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ priceId, plan }),
+      }, session.access_token);
+
+      if (!response || !response.sessionId) {
+        throw new Error("Failed to create checkout session. Server response was invalid.");
+      }
+
+      try { (window as any).phCapture?.('checkout_started', { plan, priceId, sessionId: response.sessionId }); } catch {}
+
+      await new Promise((res) => setTimeout(res, 300));
+
+      const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+      const stripe = await stripePromise;
+
+      if (stripe) {
+        const result = await stripe.redirectToCheckout({
+          sessionId: response.sessionId,
+        });
+
+        if (result.error) {
+          toast({
+            title: "Payment Error",
+            description: result.error.message,
+            variant: "destructive",
+          });
+          try { (window as any).phCapture?.('api_error', { area: 'checkout_redirect', message: result.error.message }); } catch {}
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Upgrade Failed",
+        description: (error as Error).message || "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+      try { (window as any).phCapture?.('api_error', { area: 'upgrade', message: (error as any)?.message }); } catch {}
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
-      <PromoBanner />
+      <PromoBanner onClaimNow={() => setIsUpgradeModalOpen(true)} />
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        onUpgrade={handleUpgradeClick}
+      />
       <header className="px-4 lg:px-6 min-h-14 h-auto flex items-center flex-wrap gap-2">
         <Link className="flex items-center justify-center gap-2 min-w-0" to="/">
           <img
