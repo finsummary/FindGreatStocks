@@ -1577,12 +1577,22 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
               break;
             case 'dcfImpliedGrowth':
               const impliedGrowth = (row.dcfImpliedGrowth !== null && row.dcfImpliedGrowth !== undefined) ? parseFloat(row.dcfImpliedGrowth as string) : null;
+              
               const revenueGrowth10Y = (row.revenueGrowth10Y !== null && row.revenueGrowth10Y !== undefined) ? parseFloat(row.revenueGrowth10Y as string) / 100 : null;
               let badgeClass = '';
               if (impliedGrowth !== null && revenueGrowth10Y !== null) {
-                if (impliedGrowth < revenueGrowth10Y) {
+                // Define threshold for "Fairly Valued" (±3 percentage points)
+                const threshold = 0.03; // 3%
+                const difference = Math.abs(impliedGrowth - revenueGrowth10Y);
+                
+                if (difference <= threshold) {
+                  // Close to historical growth - Fairly Valued (yellow)
+                  badgeClass = 'text-yellow-600 border-yellow-200 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-800 dark:bg-yellow-950';
+                } else if (impliedGrowth < revenueGrowth10Y) {
+                  // Market implies lower growth than historical - Undervalued (green)
                   badgeClass = 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-950';
                 } else {
+                  // Market implies higher growth than historical - Overvalued (red)
                   badgeClass = 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-950';
                 }
               }
