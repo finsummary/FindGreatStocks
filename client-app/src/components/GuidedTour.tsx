@@ -188,14 +188,23 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
           localStorage.setItem('fgs:guided-tour:active', '1');
         } catch {}
         
+        // Remove highlighting from all elements first
+        const allHighlighted = document.querySelectorAll('.introjs-showElement, .introjs-relativePosition');
+        allHighlighted.forEach((el) => {
+          const htmlEl = el as HTMLElement;
+          htmlEl.style.zIndex = '';
+          htmlEl.style.position = '';
+        });
+        
         // Scroll element into view and ensure tooltip is visible
         if (targetElement) {
           targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
           
-          // Ensure highlighted element is visible above overlay
+          // Ensure only the current highlighted element is visible above overlay
           setTimeout(() => {
             const highlightedElement = document.querySelector('.introjs-showElement') as HTMLElement;
             if (highlightedElement) {
+              // Only apply styles to the current element
               highlightedElement.style.zIndex = '999999';
               highlightedElement.style.position = 'relative';
             }
@@ -258,10 +267,10 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
                   tooltipText.style.overflowY = 'auto';
                 }
                 
-                // Ensure highlighted element is visible
+                // Ensure only the current highlighted element is visible
                 const highlightedElement = document.querySelector('.introjs-showElement') as HTMLElement;
                 if (highlightedElement) {
-                  highlightedElement.style.zIndex = '999998';
+                  highlightedElement.style.zIndex = '999999';
                   highlightedElement.style.position = 'relative';
                 }
                 
@@ -302,10 +311,10 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
                 tooltip.style.margin = '0';
                 tooltip.style.zIndex = '1000000';
                 
-                // Ensure highlighted element is visible
+                // Ensure only the current highlighted element is visible
                 const highlightedElement = document.querySelector('.introjs-showElement') as HTMLElement;
                 if (highlightedElement) {
-                  highlightedElement.style.zIndex = '999998';
+                  highlightedElement.style.zIndex = '999999';
                   highlightedElement.style.position = 'relative';
                 }
               }
