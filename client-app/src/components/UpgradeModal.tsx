@@ -32,6 +32,9 @@ const features = [
   { icon: Calculator, text: 'DCF Valuation Scanner – Find stocks trading below intrinsic value' },
   { icon: BarChart3, text: 'Reverse DCF Scanner – Uncover growth expectations priced in' },
   { icon: Search, text: 'DuPont ROE Decomposition – Break down what drives return on equity' },
+  { icon: TrendingUp, text: 'Compounders (ROIC) Scanner – Identify great compounders' },
+  { icon: Calculator, text: 'Cashflow & Leverage Scanner – Assess cash generation and debt' },
+  { icon: Brain, text: 'Education Section – Access all educational content and future educational materials' },
   { icon: Zap, text: 'Full access with all future tools and updates included' },
   { icon: Brain, text: 'Discover high-quality, undervalued companies faster' },
 ];
@@ -41,6 +44,9 @@ const boldTerms = [
   'DCF Valuation Scanner',
   'Reverse DCF Scanner',
   'DuPont ROE Decomposition',
+  'Compounders (ROIC) Scanner',
+  'Cashflow & Leverage Scanner',
+  'Education Section',
   'Full access',
 ];
 
