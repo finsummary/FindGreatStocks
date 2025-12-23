@@ -70,7 +70,29 @@ export async function addCompaniesToIndex(indexKey: string, symbols: string[]) {
   }
 
   if (indexKey === 'nasdaq100') {
-    console.log('⚠️ For NASDAQ 100, please use populate-new-nasdaq100-companies.ts directly or API endpoint');
+    // Для NASDAQ 100 сначала добавляем компании в таблицу, если их там нет
+    for (const symbol of symbols) {
+      const { data: existing } = await supabase
+        .from(config.tableName)
+        .select('symbol')
+        .eq('symbol', symbol)
+        .single();
+
+      if (!existing) {
+        const { error: insertError } = await supabase
+          .from(config.tableName)
+          .insert({ symbol, name: symbol });
+
+        if (insertError) {
+          console.error(`❌ Error inserting ${symbol}:`, insertError);
+        } else {
+          console.log(`✅ Inserted ${symbol} into ${config.tableName}`);
+        }
+      } else {
+        console.log(`ℹ️ ${symbol} already exists in ${config.displayName}`);
+      }
+    }
+    console.log('⚠️ For NASDAQ 100, please use populate-new-nasdaq100-companies.ts or API endpoint to populate data');
     return;
   }
 
