@@ -2916,6 +2916,36 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Temporary endpoint for removing companies from NASDAQ 100 (no admin required, for automated use)
+  app.post('/api/nasdaq100/remove-companies-auto', async (req, res) => {
+    try {
+      const { symbols } = req.body;
+      if (!symbols || !Array.isArray(symbols) || symbols.length === 0) {
+        return res.status(400).json({ error: 'Symbols array is required' });
+      }
+
+      console.log(`🗑️ Auto-removing companies from NASDAQ 100: ${symbols.join(', ')}`);
+
+      for (const symbol of symbols) {
+        const { error } = await supabase
+          .from('nasdaq100_companies')
+          .delete()
+          .eq('symbol', symbol);
+
+        if (error) {
+          console.error(`❌ Error removing ${symbol}:`, error);
+        } else {
+          console.log(`✅ Removed ${symbol} from NASDAQ 100`);
+        }
+      }
+
+      return res.json({ status: 'completed', message: `Removed ${symbols.length} companies from NASDAQ 100` });
+    } catch (e) {
+      console.error('nasdaq100 remove-companies-auto error:', e);
+      return res.status(500).json({ message: 'Failed to remove companies', error: e.message });
+    }
+  });
+
   // Universal index management endpoint (add/remove companies from any index)
   app.post('/api/index/manage', requireAdmin, async (req, res) => {
     try {

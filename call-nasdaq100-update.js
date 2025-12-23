@@ -12,19 +12,17 @@ async function removeCompanies() {
   const symbolsToRemove = ['BIIB', 'CDW', 'GFS', 'LULU', 'ON', 'TTD'];
   
   try {
-    const response = await fetch(`${RAILWAY_URL}/api/index/manage`, {
+    const response = await fetch(`${RAILWAY_URL}/api/nasdaq100/remove-companies-auto`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        action: 'remove',
-        index: 'nasdaq100',
         symbols: symbolsToRemove,
       }),
     });
 
     if (response.ok) {
       const data = await response.json();
-      console.log('✅ Removal started:', JSON.stringify(data, null, 2));
+      console.log('✅ Removal completed:', JSON.stringify(data, null, 2));
     } else {
       console.error(`❌ Error: ${response.status}`);
       const errorText = await response.text();
@@ -39,36 +37,10 @@ async function addCompanies() {
   console.log('\n🚀 Adding companies to NASDAQ 100...\n');
   const symbolsToAdd = ['ALNY', 'FER', 'INSM', 'MPWR', 'STX', 'WDC'];
   
-  // Сначала добавляем компании в таблицу через универсальный endpoint
+  // Компании будут автоматически добавлены скриптом populate-new-nasdaq100-companies.ts
+  // Просто запускаем заполнение данных
   try {
-    console.log('📝 Step 1: Inserting companies into nasdaq100_companies table...');
-    const insertResponse = await fetch(`${RAILWAY_URL}/api/index/manage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'add',
-        index: 'nasdaq100',
-        symbols: symbolsToAdd,
-      }),
-    });
-
-    if (insertResponse.ok) {
-      const insertData = await insertResponse.json();
-      console.log('✅ Companies inserted:', JSON.stringify(insertData, null, 2));
-    } else {
-      console.error(`⚠️ Insert warning: ${insertResponse.status}`);
-      const errorText = await insertResponse.text();
-      console.error('Response:', errorText);
-    }
-  } catch (error) {
-    console.error('⚠️ Insert error (may already exist):', error.message);
-  }
-
-  // Затем запускаем заполнение данных
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  try {
-    console.log('\n📊 Step 2: Populating financial data for new companies...');
+    console.log('📊 Populating financial data for new companies...');
     const populateResponse = await fetch(`${RAILWAY_URL}/api/nasdaq100/populate-new-companies-auto`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
