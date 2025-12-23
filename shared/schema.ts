@@ -426,6 +426,8 @@ export const sp500Companies = pgTable("sp500_companies", {
 	latestFcf: numeric("latest_fcf", { precision: 20, scale:  0 }),
 	roic10YAvg: numeric("roic_10y_avg", { precision: 10, scale:  4 }),
 	roic10YStd: numeric("roic_10y_std", { precision: 10, scale:  4 }),
+	roicStability: numeric("roic_stability", { precision: 10, scale: 4 }),
+	roicStabilityScore: numeric("roic_stability_score", { precision: 10, scale: 2 }),
 	roicY1: numeric("roic_y1", { precision: 10, scale:  4 }),
 	roicY2: numeric("roic_y2", { precision: 10, scale:  4 }),
 	roicY3: numeric("roic_y3", { precision: 10, scale:  4 }),
@@ -457,6 +459,7 @@ export const sp500Companies = pgTable("sp500_companies", {
 	fcfY9: numeric("fcf_y9", { precision: 20, scale:  0 }),
 	fcfY10: numeric("fcf_y10", { precision: 20, scale:  0 }),
 	fcfMarginMedian10Y: numeric("fcf_margin_median_10y", { precision: 10, scale:  4 }),
+	fcfMargin: numeric("fcf_margin", { precision: 10, scale: 4 }),
 	debtToEquity: numeric("debt_to_equity", { precision: 10, scale:  4 }),
 	interestCoverage: numeric("interest_coverage", { precision: 10, scale:  4 }),
 }, (table) => {
