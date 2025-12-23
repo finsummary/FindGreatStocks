@@ -321,7 +321,7 @@ async function populateDuPontMetrics(symbol: string) {
     }
 
     if (netIncome && totalEquity && totalEquity > 0) {
-      roe = (netIncome / totalEquity) * 100;
+      roe = netIncome / totalEquity; // Store as decimal (0.15 for 15%), will be multiplied by 100 in UI
     }
 
     const { error } = await supabase
@@ -481,6 +481,18 @@ async function main() {
     await populateFcfMarginAndHistory(symbol);
     await new Promise(resolve => setTimeout(resolve, 500));
 
+    // 8. Populate ROIC 10Y history and metrics
+    await populateROIC10YHistory(symbol);
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // 9. Populate debt and cash flow metrics
+    await populateDebtAndCashFlowMetrics(symbol);
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // 10. Populate FCF margin (current)
+    await populateCurrentFcfMargin(symbol);
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     console.log(`\n✅ Completed processing ${symbol}`);
   }
 
@@ -582,6 +594,237 @@ async function populateFcfMarginAndHistory(symbol: string) {
     return true;
   } catch (error) {
     console.error(`❌ Error calculating FCF margin and history for ${symbol}:`, error);
+    return false;
+  }
+}
+
+async function populateROIC10YHistory(symbol: string) {
+  console.log(`\n📊 Calculating ROIC 10Y history for ${symbol}...`);
+  const financialDataService = new FinancialDataService();
+
+  try {
+    // Fetch 10 years of income statements and balance sheets
+    const incomeStatementData = await financialDataService.fetchIncomeStatement(symbol, 10);
+    
+    // Fetch balance sheets
+    let balanceSheetData = null;
+    try {
+      const balanceSheetResponse = await fetch(`https://financialmodelingprep.com/api/v3/balance-sheet-statement/${symbol}?limit=10&apikey=${FMP_API_KEY}`);
+      if (balanceSheetResponse.ok) {
+        const data = await balanceSheetResponse.json();
+        balanceSheetData = Array.isArray(data) ? data : null;
+      }
+    } catch (error) {
+      console.log(`⚠️ Could not fetch balance sheet history for ${symbol}`);
+    }
+
+    if (!incomeStatementData || incomeStatementData.length === 0 || !balanceSheetData || balanceSheetData.length === 0) {
+      console.log(`⚠️ Insufficient data for ROIC history calculation for ${symbol}`);
+      return false;
+    }
+
+    const roicSeries: (number | null)[] = [];
+
+    for (let i = 0; i < 10; i++) {
+      const inc = incomeStatementData[i] || {};
+      const bal = balanceSheetData[i] || {};
+      
+      const ebit = Number(inc.ebit ?? inc.operatingIncome ?? 0);
+      const preTax = Number(inc.incomeBeforeTax ?? 0);
+      const taxExp = Number(inc.incomeTaxExpense ?? 0);
+      const taxRate = (preTax > 0 && taxExp > 0) ? Math.max(0, Math.min(0.5, taxExp / preTax)) : 0.21;
+      const nopat = ebit * (1 - taxRate);
+      
+      const totalDebt = Number(bal.totalDebt ?? 0);
+      const equity = Number(bal.totalStockholdersEquity ?? bal.totalEquity ?? 0);
+      const cash = Number(bal.cashAndShortTermInvestments ?? bal.cashAndCashEquivalents ?? 0);
+      
+      const investedCapital = totalDebt + equity - cash;
+      
+      if (investedCapital > 0 && !isNaN(nopat) && isFinite(nopat)) {
+        let roic = nopat / investedCapital;
+        // Clamp to reasonable range
+        if (roic > 2) roic = 2;
+        if (roic < -2) roic = -2;
+        roicSeries.push(roic);
+      } else {
+        roicSeries.push(null);
+      }
+    }
+
+    // Pad to 10 years
+    while (roicSeries.length < 10) {
+      roicSeries.push(null);
+    }
+
+    // Calculate average and std
+    const roicValues = roicSeries.filter(v => v !== null).map(v => Number(v));
+    let roic10YAvg = null;
+    let roic10YStd = null;
+    let roicStability = null;
+    let roicStabilityScore = null;
+
+    if (roicValues.length >= 2) {
+      roic10YAvg = roicValues.reduce((a, b) => a + b, 0) / roicValues.length;
+      const variance = roicValues.reduce((acc, v) => acc + Math.pow(v - roic10YAvg, 2), 0) / roicValues.length;
+      roic10YStd = Math.sqrt(variance);
+      
+      // ROIC Stability = Average / Std (higher is better)
+      if (roic10YStd > 0) {
+        roicStability = roic10YAvg / roic10YStd;
+      }
+      
+      // ROIC Stability Score (0-100): based on consistency
+      if (roic10YStd > 0 && roic10YAvg > 0) {
+        const cv = roic10YStd / roic10YAvg; // Coefficient of variation
+        roicStabilityScore = Math.max(0, Math.min(100, 100 * (1 - Math.min(cv, 1))));
+      }
+    } else if (roicValues.length === 1) {
+      roic10YAvg = roicValues[0];
+    }
+
+    // Build update object
+    const assignYears = (prefix: string, series: (number | null)[]) => {
+      const obj: any = {};
+      for (let i = 0; i < 10; i++) {
+        obj[`${prefix}_y${i + 1}`] = series[i] ?? null;
+      }
+      return obj;
+    };
+
+    const updates = {
+      ...assignYears('roic', roicSeries),
+      roic_10y_avg: roic10YAvg ? roic10YAvg.toFixed(4) : null,
+      roic_10y_std: roic10YStd ? roic10YStd.toFixed(4) : null,
+      roic_stability: roicStability ? roicStability.toFixed(4) : null,
+      roic_stability_score: roicStabilityScore ? roicStabilityScore.toFixed(2) : null,
+    };
+
+    const { error } = await supabase
+      .from('sp500_companies')
+      .update(updates)
+      .eq('symbol', symbol);
+
+    if (error) {
+      console.error(`❌ Error updating ROIC history for ${symbol}:`, error);
+      return false;
+    }
+
+    console.log(`✅ Updated ROIC history for ${symbol} (avg: ${roic10YAvg?.toFixed(4) || 'N/A'}, std: ${roic10YStd?.toFixed(4) || 'N/A'})`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error calculating ROIC history for ${symbol}:`, error);
+    return false;
+  }
+}
+
+async function populateDebtAndCashFlowMetrics(symbol: string) {
+  console.log(`\n📊 Calculating debt and cash flow metrics for ${symbol}...`);
+  
+  try {
+    // Fetch ratios from FMP API
+    const ratiosResponse = await fetch(`https://financialmodelingprep.com/api/v3/ratios/${symbol}?limit=1&apikey=${FMP_API_KEY}`);
+    let debtToEquity = null;
+    let interestCoverage = null;
+
+    if (ratiosResponse.ok) {
+      const ratiosData = await ratiosResponse.json();
+      if (Array.isArray(ratiosData) && ratiosData.length > 0) {
+        const ratio = ratiosData[0];
+        debtToEquity = ratio.debtEquityRatio !== undefined && ratio.debtEquityRatio !== null ? Number(ratio.debtEquityRatio) : null;
+        interestCoverage = ratio.interestCoverage !== undefined && ratio.interestCoverage !== null ? Number(ratio.interestCoverage) : null;
+        
+        // Cap extremely high values
+        if (debtToEquity !== null && isFinite(debtToEquity) && debtToEquity > 10000) {
+          debtToEquity = 10000;
+        }
+        if (interestCoverage !== null && isFinite(interestCoverage) && interestCoverage > 100000) {
+          interestCoverage = 100000;
+        }
+      }
+    }
+
+    // Calculate Cash Flow to Debt
+    const { data: company, error: fetchError } = await supabase
+      .from('sp500_companies')
+      .select('latest_fcf, total_debt')
+      .eq('symbol', symbol)
+      .single();
+
+    let cashFlowToDebt = null;
+    if (!fetchError && company) {
+      const fcf = company.latest_fcf ? parseFloat(company.latest_fcf) : null;
+      const debt = company.total_debt ? parseFloat(company.total_debt) : null;
+      
+      if (fcf !== null && debt !== null && debt > 0) {
+        cashFlowToDebt = fcf / debt;
+      }
+    }
+
+    const { error } = await supabase
+      .from('sp500_companies')
+      .update({
+        debt_to_equity: debtToEquity !== null && isFinite(debtToEquity) ? debtToEquity.toFixed(4) : null,
+        interest_coverage: interestCoverage !== null && isFinite(interestCoverage) ? interestCoverage.toFixed(4) : null,
+        cash_flow_to_debt: cashFlowToDebt !== null && isFinite(cashFlowToDebt) ? cashFlowToDebt.toFixed(4) : null,
+      })
+      .eq('symbol', symbol);
+
+    if (error) {
+      console.error(`❌ Error updating debt/cash flow metrics for ${symbol}:`, error);
+      return false;
+    }
+
+    console.log(`✅ Updated debt/cash flow metrics for ${symbol}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error calculating debt/cash flow metrics for ${symbol}:`, error);
+    return false;
+  }
+}
+
+async function populateCurrentFcfMargin(symbol: string) {
+  console.log(`\n📊 Calculating current FCF margin for ${symbol}...`);
+  
+  try {
+    const { data: company, error: fetchError } = await supabase
+      .from('sp500_companies')
+      .select('latest_fcf, revenue')
+      .eq('symbol', symbol)
+      .single();
+
+    if (fetchError || !company) {
+      console.log(`⚠️ Could not fetch company data for ${symbol}`);
+      return false;
+    }
+
+    const fcf = company.latest_fcf ? parseFloat(company.latest_fcf) : null;
+    const revenue = company.revenue ? parseFloat(company.revenue) : null;
+
+    let fcfMargin = null;
+    if (fcf !== null && revenue !== null && revenue > 0) {
+      fcfMargin = fcf / revenue;
+      // Clamp to reasonable range
+      if (fcfMargin > 2) fcfMargin = 2;
+      if (fcfMargin < -2) fcfMargin = -2;
+    }
+
+    const { error } = await supabase
+      .from('sp500_companies')
+      .update({
+        fcf_margin: fcfMargin !== null && isFinite(fcfMargin) ? fcfMargin.toFixed(4) : null,
+      })
+      .eq('symbol', symbol);
+
+    if (error) {
+      console.error(`❌ Error updating FCF margin for ${symbol}:`, error);
+      return false;
+    }
+
+    console.log(`✅ Updated FCF margin for ${symbol}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error calculating FCF margin for ${symbol}:`, error);
     return false;
   }
 }
