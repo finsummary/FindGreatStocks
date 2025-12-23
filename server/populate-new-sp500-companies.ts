@@ -1,8 +1,23 @@
 #!/usr/bin/env tsx
 
 /**
- * Script to populate data for newly added S&P 500 companies (CVNA, CHR, FIX)
+ * Script to populate data for newly added S&P 500 companies
  * This script will fetch and populate all financial data, metrics, and calculations
+ * 
+ * Usage: Update SYMBOLS array with new company tickers, then run the script
+ * 
+ * Standardized process:
+ * 1. Base metrics (price, market cap, etc.)
+ * 2. Financial data (income statement, balance sheet, cash flow)
+ * 3. Returns and drawdowns
+ * 4. DuPont metrics (ROE, Asset Turnover, Financial Leverage)
+ * 5. Calculated metrics (Price-to-Sales, Net Profit Margin)
+ * 6. ROIC (current)
+ * 7. FCF margin and history
+ * 8. ROIC 10Y history and stability metrics
+ * 9. Debt and cash flow metrics
+ * 10. Current FCF margin
+ * 11. DCF metrics (must be last, requires latest_fcf and revenue_growth_10y)
  */
 
 import { db, supabase } from './db';
@@ -18,7 +33,7 @@ if (!FMP_API_KEY) {
   process.exit(1);
 }
 
-const SYMBOLS = ['CVNA', 'CHR', 'FIX'];
+const SYMBOLS = ['CVNA', 'CRH', 'FIX']; // Note: CRH (not CHR) - CRH plc is the correct ticker
 
 async function populateFinancialData(symbol: string) {
   console.log(`\n📊 Fetching financial data for ${symbol}...`);
@@ -168,12 +183,7 @@ async function populateBaseMetrics(symbol: string) {
 
     console.log(`✅ Updated base metrics for ${symbol}`);
     
-    // Update DCF metrics if we have market cap
-    if (marketCap && marketCap > 0) {
-      await updateDcfMetricsForCompany(schema.sp500Companies, symbol, marketCap);
-      console.log(`✅ Updated DCF metrics for ${symbol}`);
-    }
-
+    // DCF metrics will be updated at the end after all financial data is populated
     return true;
   } catch (error) {
     console.error(`❌ Error fetching base metrics for ${symbol}:`, error);
@@ -324,12 +334,20 @@ async function populateDuPontMetrics(symbol: string) {
       roe = netIncome / totalEquity; // Store as decimal (0.15 for 15%), will be multiplied by 100 in UI
     }
 
+    // Calculate DuPont ROE = Net Profit Margin × Asset Turnover × Financial Leverage
+    let dupontRoe = null;
+    if (netIncome && revenue && revenue > 0 && assetTurnover && financialLeverage) {
+      const netProfitMargin = netIncome / revenue;
+      dupontRoe = netProfitMargin * assetTurnover * financialLeverage;
+    }
+
     const { error } = await supabase
       .from('sp500_companies')
       .update({
         asset_turnover: assetTurnover ? assetTurnover.toFixed(4) : null,
         financial_leverage: financialLeverage ? financialLeverage.toFixed(4) : null,
         roe: roe ? roe.toFixed(4) : null,
+        dupont_roe: dupontRoe ? dupontRoe.toFixed(4) : null,
       })
       .eq('symbol', symbol);
 
@@ -421,7 +439,7 @@ async function populateROIC(symbol: string) {
     if (operatingIncome && totalAssets && totalAssets > 0) {
       const investedCapital = totalAssets - (cash || 0) + (debt || 0);
       if (investedCapital > 0) {
-        roic = (operatingIncome / investedCapital) * 100;
+        roic = operatingIncome / investedCapital; // Store as decimal (0.15 for 15%), will be multiplied by 100 in UI
       }
     }
 
@@ -492,6 +510,21 @@ async function main() {
     // 10. Populate FCF margin (current)
     await populateCurrentFcfMargin(symbol);
     await new Promise(resolve => setTimeout(resolve, 500));
+
+    // 11. Update DCF metrics (must be last, after all financial data is populated)
+    const { data: companyData } = await supabase
+      .from('sp500_companies')
+      .select('market_cap')
+      .eq('symbol', symbol)
+      .single();
+    
+    if (companyData && companyData.market_cap) {
+      const marketCap = parseFloat(companyData.market_cap);
+      if (marketCap && marketCap > 0) {
+        await updateDcfMetricsForCompany(schema.sp500Companies, symbol, marketCap);
+        console.log(`✅ Updated DCF metrics for ${symbol}`);
+      }
+    }
 
     console.log(`\n✅ Completed processing ${symbol}`);
   }
