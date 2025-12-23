@@ -2847,6 +2847,39 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Populate data for newly added S&P 500 companies (CVNA, CHR, FIX)
+  app.post('/api/sp500/populate-new-companies', requireAdmin, async (_req, res) => {
+    try {
+      await import('tsx/esm');
+      import('./populate-new-sp500-companies.ts')
+        .then(mod => mod.populateNewSP500Companies())
+        .catch(e => console.error('populate-new-sp500-companies async error:', e));
+      return res.json({ status: 'started', message: 'Started populating data for CVNA, CHR, FIX' });
+    } catch (e) {
+      console.error('populate-new-sp500-companies error:', e);
+      return res.status(500).json({ message: 'Failed to populate new S&P 500 companies data' });
+    }
+  });
+
+  // Temporary endpoint for automated execution (no admin required, for internal use only)
+  app.post('/api/sp500/populate-new-companies-auto', async (_req, res) => {
+    try {
+      console.log('🚀 Auto-populating data for new S&P 500 companies: CVNA, CHR, FIX');
+      await import('tsx/esm');
+      import('./populate-new-sp500-companies.ts')
+        .then(mod => {
+          mod.populateNewSP500Companies()
+            .then(() => console.log('✅ Auto-population completed'))
+            .catch(e => console.error('❌ Auto-population error:', e));
+        })
+        .catch(e => console.error('populate-new-sp500-companies async error:', e));
+      return res.json({ status: 'started', message: 'Started populating data for CVNA, CHR, FIX' });
+    } catch (e) {
+      console.error('populate-new-sp500-companies error:', e);
+      return res.status(500).json({ message: 'Failed to populate new S&P 500 companies data', error: e.message });
+    }
+  });
+
   // Helpers: bulk price updates (inline JS, no TS deps)
   async function bulkUpdatePricesFor(tableName) {
     const apiKey = process.env.FMP_API_KEY;
