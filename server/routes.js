@@ -400,6 +400,8 @@ function mapDbRowToCompany(row) {
     roic: row.roic,
     roic10YAvg: row.roic_10y_avg,
     roic10YStd: row.roic_10y_std,
+    roicStability: row.roic_stability,
+    roicStabilityScore: row.roic_stability_score,
     roicY1: row.roic_y1,
     roicY2: row.roic_y2,
     roicY3: row.roic_y3,
@@ -430,6 +432,7 @@ function mapDbRowToCompany(row) {
     fcfY8: row.fcf_y8,
     fcfY9: row.fcf_y9,
     fcfY10: row.fcf_y10,
+    fcfMargin: row.fcf_margin,
     fcfMarginMedian10Y: row.fcf_margin_median_10y,
     debtToEquity: row.debt_to_equity,
     interestCoverage: row.interest_coverage,
@@ -2492,7 +2495,7 @@ export function setupRoutes(app, supabase) {
       } catch (e) { console.warn('age-based nulls (companies) error', e?.message || e); }
       const symbols = rows.map(r => r.symbol).filter(Boolean);
       if (symbols.length) {
-        const selectCols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std, fcf_margin_median_10y, debt_to_equity, interest_coverage, cash_flow_to_debt';
+        const selectCols = 'symbol, price, market_cap, pe_ratio, price_to_sales_ratio, dividend_yield, return_3_year, return_5_year, return_10_year, max_drawdown_3_year, max_drawdown_5_year, max_drawdown_10_year, dcf_enterprise_value, margin_of_safety, dcf_implied_growth, roic, roic_10y_avg, roic_10y_std, roic_stability, roic_stability_score, fcf_margin, fcf_margin_median_10y, debt_to_equity, interest_coverage, cash_flow_to_debt, roic_y1, roic_y2, roic_y3, roic_y4, roic_y5, roic_y6, roic_y7, roic_y8, roic_y9, roic_y10';
         const [sp500, ndx, dji] = await Promise.all([
           supabase.from('sp500_companies').select(selectCols).in('symbol', symbols),
           supabase.from('nasdaq100_companies').select(selectCols).in('symbol', symbols),
