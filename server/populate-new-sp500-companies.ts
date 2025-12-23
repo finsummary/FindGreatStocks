@@ -706,8 +706,8 @@ async function populateROIC10YHistory(symbol: string) {
     }
 
     if (!incomeStatementData || incomeStatementData.length === 0 || !balanceSheetData || balanceSheetData.length === 0) {
-      console.log(`⚠️ Insufficient data for ROIC history calculation for ${symbol}`);
-      return false;
+      console.log(`⚠️ Insufficient data for ROIC history calculation for ${symbol} - will try to calculate with available data`);
+      // Don't return false - try to calculate with whatever data we have
     }
 
     const roicSeries: (number | null)[] = [];
@@ -744,30 +744,31 @@ async function populateROIC10YHistory(symbol: string) {
       roicSeries.push(null);
     }
 
-    // Calculate average and std
+    // Calculate average and std (even with just 1 year of data)
     const roicValues = roicSeries.filter(v => v !== null).map(v => Number(v));
     let roic10YAvg = null;
     let roic10YStd = null;
     let roicStability = null;
     let roicStabilityScore = null;
 
-    if (roicValues.length >= 2) {
+    if (roicValues.length >= 1) {
       roic10YAvg = roicValues.reduce((a, b) => a + b, 0) / roicValues.length;
-      const variance = roicValues.reduce((acc, v) => acc + Math.pow(v - roic10YAvg, 2), 0) / roicValues.length;
-      roic10YStd = Math.sqrt(variance);
       
-      // ROIC Stability = Average / Std (higher is better)
-      if (roic10YStd > 0) {
-        roicStability = roic10YAvg / roic10YStd;
+      if (roicValues.length >= 2) {
+        const variance = roicValues.reduce((acc, v) => acc + Math.pow(v - roic10YAvg, 2), 0) / roicValues.length;
+        roic10YStd = Math.sqrt(variance);
+        
+        // ROIC Stability = Average / Std (higher is better)
+        if (roic10YStd > 0) {
+          roicStability = roic10YAvg / roic10YStd;
+        }
+        
+        // ROIC Stability Score (0-100): based on consistency
+        if (roic10YStd > 0 && roic10YAvg > 0) {
+          const cv = roic10YStd / roic10YAvg; // Coefficient of variation
+          roicStabilityScore = Math.max(0, Math.min(100, 100 * (1 - Math.min(cv, 1))));
+        }
       }
-      
-      // ROIC Stability Score (0-100): based on consistency
-      if (roic10YStd > 0 && roic10YAvg > 0) {
-        const cv = roic10YStd / roic10YAvg; // Coefficient of variation
-        roicStabilityScore = Math.max(0, Math.min(100, 100 * (1 - Math.min(cv, 1))));
-      }
-    } else if (roicValues.length === 1) {
-      roic10YAvg = roicValues[0];
     }
 
     // Build update object
