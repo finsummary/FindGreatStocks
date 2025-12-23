@@ -104,7 +104,7 @@ async function populateFinancialData(symbol: string) {
       return false;
     }
 
-    console.log(`✅ Updated financial data for ${symbol}`);
+    console.log(`✅ Updated financial data for ${symbol} (FCF: ${latestFcf ? latestFcf.toLocaleString() : 'N/A'}, Revenue: ${revenue ? revenue.toLocaleString() : 'N/A'})`);
     return true;
   } catch (error) {
     console.error(`❌ Error fetching financial data for ${symbol}:`, error);
