@@ -814,7 +814,12 @@ async function populateROIC10YHistory(symbol: string) {
       return false;
     }
 
-    console.log(`✅ Updated ROIC history for ${symbol} (avg: ${roic10YAvg?.toFixed(4) || 'N/A'}, std: ${roic10YStd?.toFixed(4) || 'N/A'})`);
+    const yearsWithData = roicValues.length;
+    const roicValuesStr = roicSeries.slice(0, yearsWithData).map(v => v !== null ? (Number(v) * 100).toFixed(2) + '%' : 'null').join(', ');
+    console.log(`✅ Updated ROIC history for ${symbol} (${yearsWithData} years: avg: ${roic10YAvg?.toFixed(4) || 'N/A'}, std: ${roic10YStd?.toFixed(4) || 'N/A'}, stability: ${roicStability?.toFixed(4) || 'N/A'})`);
+    if (yearsWithData > 0) {
+      console.log(`   ROIC values: ${roicValuesStr}`);
+    }
     return true;
   } catch (error) {
     console.error(`❌ Error calculating ROIC history for ${symbol}:`, error);
