@@ -419,34 +419,88 @@ async function populateROIC(symbol: string) {
   console.log(`\n📊 Calculating ROIC for ${symbol}...`);
   
   try {
-    const { data: company, error: fetchError } = await supabase
-      .from('sp500_companies')
-      .select('operating_income, total_assets, cash_and_equivalents, total_debt')
-      .eq('symbol', symbol)
-      .single();
-
-    if (fetchError || !company) {
-      console.log(`⚠️ Could not fetch company data for ${symbol}`);
-      return false;
+    // Try to get ROIC directly from FMP API (most reliable)
+    let roic = null;
+    
+    try {
+      // Try annual key-metrics first
+      const kmResponse = await fetch(`https://financialmodelingprep.com/api/v3/key-metrics/${symbol}?period=annual&limit=1&apikey=${FMP_API_KEY}`);
+      if (kmResponse.ok) {
+        const kmData = await kmResponse.json();
+        if (Array.isArray(kmData) && kmData.length > 0 && kmData[0].roic !== undefined && kmData[0].roic !== null) {
+          roic = Number(kmData[0].roic);
+          // Normalize: if > 1.5, it's likely a percentage (15% = 15), convert to decimal
+          if (isFinite(roic) && roic > 1.5) {
+            roic = roic / 100;
+          }
+        }
+      }
+    } catch (error) {
+      console.log(`⚠️ Could not fetch key-metrics for ${symbol}, trying TTM...`);
     }
 
-    const operatingIncome = company.operating_income ? parseFloat(company.operating_income) : null;
-    const totalAssets = company.total_assets ? parseFloat(company.total_assets) : null;
-    const cash = company.cash_and_equivalents ? parseFloat(company.cash_and_equivalents) : null;
-    const debt = company.total_debt ? parseFloat(company.total_debt) : null;
+    // Fallback to TTM if annual not available
+    if (!roic || !isFinite(roic)) {
+      try {
+        const ttmResponse = await fetch(`https://financialmodelingprep.com/api/v3/key-metrics-ttm/${symbol}?apikey=${FMP_API_KEY}`);
+        if (ttmResponse.ok) {
+          const ttmData = await ttmResponse.json();
+          if (Array.isArray(ttmData) && ttmData.length > 0 && ttmData[0].roicTTM !== undefined && ttmData[0].roicTTM !== null) {
+            roic = Number(ttmData[0].roicTTM);
+            // Normalize: if > 1.5, it's likely a percentage, convert to decimal
+            if (isFinite(roic) && roic > 1.5) {
+              roic = roic / 100;
+            }
+          }
+        }
+      } catch (error) {
+        console.log(`⚠️ Could not fetch key-metrics-ttm for ${symbol}, calculating manually...`);
+      }
+    }
 
-    let roic = null;
-    if (operatingIncome && totalAssets && totalAssets > 0) {
-      const investedCapital = totalAssets - (cash || 0) + (debt || 0);
-      if (investedCapital > 0) {
-        roic = operatingIncome / investedCapital; // Store as decimal (0.15 for 15%), will be multiplied by 100 in UI
+    // Fallback: Calculate manually using NOPAT (if FMP API doesn't have ROIC)
+    if (!roic || !isFinite(roic)) {
+      const { data: company, error: fetchError } = await supabase
+        .from('sp500_companies')
+        .select('operating_income, net_income, income_before_tax, total_assets, cash_and_equivalents, total_debt')
+        .eq('symbol', symbol)
+        .single();
+
+      if (!fetchError && company) {
+        const operatingIncome = company.operating_income ? parseFloat(company.operating_income) : null;
+        const netIncome = company.net_income ? parseFloat(company.net_income) : null;
+        const incomeBeforeTax = company.income_before_tax ? parseFloat(company.income_before_tax) : null;
+        const totalAssets = company.total_assets ? parseFloat(company.total_assets) : null;
+        const cash = company.cash_and_equivalents ? parseFloat(company.cash_and_equivalents) : null;
+        const debt = company.total_debt ? parseFloat(company.total_debt) : null;
+
+        if (operatingIncome && totalAssets && totalAssets > 0) {
+          // Calculate NOPAT (Net Operating Profit After Tax)
+          let nopat = operatingIncome;
+          if (incomeBeforeTax && incomeBeforeTax > 0 && netIncome) {
+            // Estimate tax rate from income statement
+            const taxRate = Math.max(0, Math.min(0.5, (incomeBeforeTax - netIncome) / incomeBeforeTax));
+            nopat = operatingIncome * (1 - taxRate);
+          } else {
+            // Use standard tax rate if can't calculate
+            nopat = operatingIncome * 0.79; // Assume 21% tax rate
+          }
+
+          const investedCapital = totalAssets - (cash || 0) + (debt || 0);
+          if (investedCapital > 0) {
+            roic = nopat / investedCapital; // Store as decimal (0.15 for 15%), will be multiplied by 100 in UI
+            // Clamp to reasonable range
+            if (roic > 2) roic = 2;
+            if (roic < -2) roic = -2;
+          }
+        }
       }
     }
 
     const { error } = await supabase
       .from('sp500_companies')
       .update({
-        roic: roic ? roic.toFixed(4) : null,
+        roic: roic !== null && isFinite(roic) ? roic.toFixed(4) : null,
       })
       .eq('symbol', symbol);
 
@@ -455,7 +509,7 @@ async function populateROIC(symbol: string) {
       return false;
     }
 
-    console.log(`✅ Updated ROIC for ${symbol}`);
+    console.log(`✅ Updated ROIC for ${symbol}: ${roic !== null && isFinite(roic) ? (roic * 100).toFixed(2) + '%' : 'N/A'}`);
     return true;
   } catch (error) {
     console.error(`❌ Error calculating ROIC for ${symbol}:`, error);
