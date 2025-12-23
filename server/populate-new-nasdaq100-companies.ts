@@ -893,6 +893,28 @@ async function main() {
     console.log(`Processing ${symbol}`);
     console.log('='.repeat(60));
 
+    // Проверяем, существует ли компания в таблице, если нет - добавляем
+    const { data: existing } = await supabase
+      .from('nasdaq100_companies')
+      .select('symbol')
+      .eq('symbol', symbol)
+      .single();
+
+    if (!existing) {
+      console.log(`📝 Inserting ${symbol} into nasdaq100_companies table...`);
+      const { error: insertError } = await supabase
+        .from('nasdaq100_companies')
+        .insert({ symbol, name: symbol });
+
+      if (insertError) {
+        console.error(`❌ Error inserting ${symbol}:`, insertError);
+        continue;
+      }
+      console.log(`✅ Inserted ${symbol} into nasdaq100_companies`);
+    } else {
+      console.log(`ℹ️ ${symbol} already exists in nasdaq100_companies, proceeding with data population...`);
+    }
+
     // 1. Populate base metrics (price, market cap, etc.)
     await populateBaseMetrics(symbol);
     await new Promise(resolve => setTimeout(resolve, 500));
