@@ -4,6 +4,8 @@
 
 Эта система позволяет добавлять и удалять компании из любых индексов (S&P 500, NASDAQ 100, Dow Jones, FTSE 100) стандартизированным способом.
 
+**ВАЖНО:** В настоящее время полностью реализован только процесс для S&P 500. Для других индексов используется тот же процесс, но нужно адаптировать `populate-new-sp500-companies.ts` для работы с другими таблицами.
+
 ## Доступные индексы
 
 - `sp500` - S&P 500
@@ -55,9 +57,16 @@ Content-Type: application/json
 10. **Current FCF Margin** - Текущий FCF margin
 11. **DCF Metrics** - DCF Enterprise Value, Margin of Safety, DCF Implied Growth
 
+## Текущий статус реализации
+
+- ✅ **S&P 500**: Полностью реализован (используйте `populate-new-sp500-companies.ts`)
+- ⚠️ **NASDAQ 100**: Базовая структура готова, нужна адаптация функций populate
+- ⚠️ **Dow Jones**: Базовая структура готова, нужна адаптация функций populate
+- ⚠️ **FTSE 100**: Базовая структура готова, нужна адаптация функций populate
+
 ## Примеры использования
 
-### Добавление компаний в NASDAQ 100
+### Добавление компаний в NASDAQ 100 (после полной реализации)
 
 ```javascript
 // Через fetch
@@ -71,6 +80,16 @@ const response = await fetch('https://your-railway-app.railway.app/api/index/man
   })
 });
 ```
+
+### Временное решение для NASDAQ 100
+
+Пока полная реализация не готова, можно использовать процесс для S&P 500 как шаблон:
+
+1. Скопируйте `server/populate-new-sp500-companies.ts` в `server/populate-new-nasdaq100-companies.ts`
+2. Замените все `'sp500_companies'` на `'nasdaq100_companies'`
+3. Замените `schema.sp500Companies` на `schema.nasdaq100Companies`
+4. Обновите `SYMBOLS` массив
+5. Создайте аналогичный API endpoint в `routes.js`
 
 ### Удаление компаний из NASDAQ 100
 
