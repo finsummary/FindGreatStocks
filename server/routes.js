@@ -2883,6 +2883,46 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Universal index management endpoint (add/remove companies from any index)
+  app.post('/api/index/manage', requireAdmin, async (req, res) => {
+    try {
+      const { action, index, symbols } = req.body;
+
+      if (!action || !['add', 'remove'].includes(action)) {
+        return res.status(400).json({ error: 'Invalid action. Use "add" or "remove"' });
+      }
+
+      if (!index) {
+        return res.status(400).json({ error: 'Index is required' });
+      }
+
+      if (!symbols || !Array.isArray(symbols) || symbols.length === 0) {
+        return res.status(400).json({ error: 'Symbols array is required' });
+      }
+
+      console.log(`🚀 ${action === 'add' ? 'Adding' : 'Removing'} companies ${action === 'add' ? 'to' : 'from'} ${index}: ${symbols.join(', ')}`);
+
+      await import('tsx/esm');
+      const { manageIndex } = await import('./index-management.ts');
+      
+      // Запускаем в фоновом режиме
+      manageIndex(action, index, symbols)
+        .then(() => console.log(`✅ Index management completed for ${index}`))
+        .catch(e => console.error(`❌ Index management error for ${index}:`, e));
+
+      return res.json({
+        status: 'started',
+        message: `${action === 'add' ? 'Adding' : 'Removing'} ${symbols.length} companies ${action === 'add' ? 'to' : 'from'} ${index}`,
+        action,
+        index,
+        symbols,
+      });
+    } catch (e) {
+      console.error('Index management error:', e);
+      return res.status(500).json({ error: 'Failed to manage index', message: e.message });
+    }
+  });
+
   // Populate derived metrics (roic_stability, roic_stability_score, fcf_margin) for ALL companies
   app.post('/api/metrics/populate-derived-all', requireAdmin, async (_req, res) => {
     try {
