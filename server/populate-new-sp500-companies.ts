@@ -691,7 +691,12 @@ async function populateROIC10YHistory(symbol: string) {
 
   try {
     // Fetch 10 years of income statements and balance sheets
-    const incomeStatementData = await financialDataService.fetchIncomeStatement(symbol, 10);
+    let incomeStatementData = null;
+    try {
+      incomeStatementData = await financialDataService.fetchIncomeStatement(symbol, 10);
+    } catch (error) {
+      console.log(`⚠️ Could not fetch income statement history for ${symbol}`);
+    }
     
     // Fetch balance sheets
     let balanceSheetData = null;
@@ -705,9 +710,20 @@ async function populateROIC10YHistory(symbol: string) {
       console.log(`⚠️ Could not fetch balance sheet history for ${symbol}`);
     }
 
-    if (!incomeStatementData || incomeStatementData.length === 0 || !balanceSheetData || balanceSheetData.length === 0) {
-      console.log(`⚠️ Insufficient data for ROIC history calculation for ${symbol} - will try to calculate with available data`);
-      // Don't return false - try to calculate with whatever data we have
+    // If we have no data at all, try to use current year data
+    if ((!incomeStatementData || incomeStatementData.length === 0) && (!balanceSheetData || balanceSheetData.length === 0)) {
+      console.log(`⚠️ No historical data for ROIC calculation for ${symbol} - will use current year data if available`);
+      // Try to get at least current year data
+      try {
+        incomeStatementData = await financialDataService.fetchIncomeStatement(symbol, 1);
+        const balanceSheetResponse = await fetch(`https://financialmodelingprep.com/api/v3/balance-sheet-statement/${symbol}?limit=1&apikey=${FMP_API_KEY}`);
+        if (balanceSheetResponse.ok) {
+          const data = await balanceSheetResponse.json();
+          balanceSheetData = Array.isArray(data) ? data : null;
+        }
+      } catch (error) {
+        console.log(`⚠️ Could not fetch even current year data for ${symbol}`);
+      }
     }
 
     const roicSeries: (number | null)[] = [];
