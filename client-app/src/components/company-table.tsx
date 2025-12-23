@@ -797,15 +797,30 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
         const allJson = await allRes.json();
         const allBySym = new Map((allJson?.companies || []).map((c: any) => [c.symbol, c]));
         let rows = wlSymbols.map(sym => allBySym.get(sym)).filter(Boolean).map((c: any) => {
-          const avg = (c.roic10YAvg != null) ? Number(c.roic10YAvg) : (c.roic_10y_avg != null ? Number(c.roic_10y_avg) : null);
-          const std = (c.roic10YStd != null) ? Number(c.roic10YStd) : (c.roic_10y_std != null ? Number(c.roic_10y_std) : null);
-          const ratio = (avg != null && std != null && isFinite(std) && std > 0) ? (avg / std) : null;
-          const score = (ratio != null) ? Math.min(100, Math.max(0, ratio * 30)) : null;
-          const revenue = c.revenue != null ? Number(c.revenue) : (c.revenue_ttm != null ? Number(c.revenue_ttm) : null);
-          const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : (c.free_cash_flow != null ? Number(c.free_cash_flow) : null);
-          const fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+          // Use values from DB if available, otherwise calculate dynamically
+          let roicStability = (c as any).roic_stability ? parseFloat((c as any).roic_stability) : null;
+          let roicStabilityScore = (c as any).roic_stability_score ? parseFloat((c as any).roic_stability_score) : null;
+          let fcfMargin = (c as any).fcf_margin ? parseFloat((c as any).fcf_margin) : null;
+
+          // Fallback to dynamic calculation if not in DB
+          if (roicStability === null || roicStabilityScore === null) {
+            const avg = (c.roic10YAvg != null) ? Number(c.roic10YAvg) : (c.roic_10y_avg != null ? Number(c.roic_10y_avg) : null);
+            const std = (c.roic10YStd != null) ? Number(c.roic10YStd) : (c.roic_10y_std != null ? Number(c.roic_10y_std) : null);
+            const ratio = (avg != null && std != null && isFinite(std) && std > 0) ? (avg / std) : null;
+            const score = (ratio != null) ? Math.min(100, Math.max(0, ratio * 30)) : null;
+            if (roicStability === null) roicStability = ratio;
+            if (roicStabilityScore === null) roicStabilityScore = score;
+          }
+
+          // Fallback to dynamic calculation for fcfMargin if not in DB
+          if (fcfMargin === null) {
+            const revenue = c.revenue != null ? Number(c.revenue) : (c.revenue_ttm != null ? Number(c.revenue_ttm) : null);
+            const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : (c.free_cash_flow != null ? Number(c.free_cash_flow) : null);
+            fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+          }
+
           const median = (c.fcf_margin_median_10y != null) ? Number(c.fcf_margin_median_10y) : (c.fcfMarginMedian10Y != null ? Number(c.fcfMarginMedian10Y) : null);
-          return { ...c, roicStability: ratio, roicStabilityScore: score, fcfMargin, fcfMarginMedian10Y: median };
+          return { ...c, roicStability, roicStabilityScore, fcfMargin, fcfMarginMedian10Y: median };
         });
         // Фильтрация по поиску (если задан)
         if (search) {
@@ -919,15 +934,30 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
           financialLeverage: row.financial_leverage,
         });
         const companies = (rows || []).map(mapRow).map((c) => {
-          const avg = c.roic10YAvg != null ? Number(c.roic10YAvg) : null;
-          const std = c.roic10YStd != null ? Number(c.roic10YStd) : null;
-          const ratio = (avg !== null && std !== null && isFinite(std) && std > 0) ? (avg / std) : null;
-          const score = (ratio != null) ? Math.min(100, Math.max(0, ratio * 30)) : null;
-          const revenue = c.revenue != null ? Number(c.revenue) : null;
-          const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : null;
-          const fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+          // Use values from DB if available, otherwise calculate dynamically
+          let roicStability = (c as any).roic_stability ? parseFloat((c as any).roic_stability) : null;
+          let roicStabilityScore = (c as any).roic_stability_score ? parseFloat((c as any).roic_stability_score) : null;
+          let fcfMargin = (c as any).fcf_margin ? parseFloat((c as any).fcf_margin) : null;
+
+          // Fallback to dynamic calculation if not in DB
+          if (roicStability === null || roicStabilityScore === null) {
+            const avg = c.roic10YAvg != null ? Number(c.roic10YAvg) : null;
+            const std = c.roic10YStd != null ? Number(c.roic10YStd) : null;
+            const ratio = (avg !== null && std !== null && isFinite(std) && std > 0) ? (avg / std) : null;
+            const score = (ratio != null) ? Math.min(100, Math.max(0, ratio * 30)) : null;
+            if (roicStability === null) roicStability = ratio;
+            if (roicStabilityScore === null) roicStabilityScore = score;
+          }
+
+          // Fallback to dynamic calculation for fcfMargin if not in DB
+          if (fcfMargin === null) {
+            const revenue = c.revenue != null ? Number(c.revenue) : null;
+            const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : null;
+            fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+          }
+
           const median = c.fcfMarginMedian10Y != null ? Number(c.fcfMarginMedian10Y) : null;
-          return { ...c, roicStability: ratio, roicStabilityScore: score, fcfMargin, fcfMarginMedian10Y: median };
+          return { ...c, roicStability, roicStabilityScore, fcfMargin, fcfMarginMedian10Y: median };
         });
         // Client-side sort, same as below
         if (currentSortBy && currentSortBy !== 'none') {
@@ -986,15 +1016,30 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
         // Derive runtime fields needed for client-side sorting (e.g., stability/score)
         if (json?.companies) {
           json.companies = json.companies.map((c: any) => {
-            const avg = (c.roic10YAvg != null) ? Number(c.roic10YAvg) : (c.roic_10y_avg != null ? Number(c.roic_10y_avg) : null);
-            const std = (c.roic10YStd != null) ? Number(c.roic10YStd) : (c.roic_10y_std != null ? Number(c.roic_10y_std) : null);
-            const ratio = (avg != null && std != null && isFinite(std) && std > 0) ? (avg / std) : null;
-            const score = (ratio != null) ? Math.min(100, Math.max(0, ratio * 30)) : null;
-            const revenue = c.revenue != null ? Number(c.revenue) : (c.revenue_ttm != null ? Number(c.revenue_ttm) : null);
-            const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : (c.free_cash_flow != null ? Number(c.free_cash_flow) : null);
-            const fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+            // Use values from DB if available, otherwise calculate dynamically
+            let roicStability = (c as any).roic_stability ? parseFloat((c as any).roic_stability) : null;
+            let roicStabilityScore = (c as any).roic_stability_score ? parseFloat((c as any).roic_stability_score) : null;
+            let fcfMargin = (c as any).fcf_margin ? parseFloat((c as any).fcf_margin) : null;
+
+            // Fallback to dynamic calculation if not in DB
+            if (roicStability === null || roicStabilityScore === null) {
+              const avg = (c.roic10YAvg != null) ? Number(c.roic10YAvg) : (c.roic_10y_avg != null ? Number(c.roic_10y_avg) : null);
+              const std = (c.roic10YStd != null) ? Number(c.roic10YStd) : (c.roic_10y_std != null ? Number(c.roic_10y_std) : null);
+              const ratio = (avg != null && std != null && isFinite(std) && std > 0) ? (avg / std) : null;
+              const score = (ratio != null) ? Math.min(100, Math.max(0, ratio * 30)) : null;
+              if (roicStability === null) roicStability = ratio;
+              if (roicStabilityScore === null) roicStabilityScore = score;
+            }
+
+            // Fallback to dynamic calculation for fcfMargin if not in DB
+            if (fcfMargin === null) {
+              const revenue = c.revenue != null ? Number(c.revenue) : (c.revenue_ttm != null ? Number(c.revenue_ttm) : null);
+              const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : (c.free_cash_flow != null ? Number(c.free_cash_flow) : null);
+              fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+            }
+
             const median = (c.fcf_margin_median_10y != null) ? Number(c.fcf_margin_median_10y) : (c.fcfMarginMedian10Y != null ? Number(c.fcfMarginMedian10Y) : null);
-            return { ...c, roicStability: ratio, roicStabilityScore: score, fcfMargin, fcfMarginMedian10Y: median };
+            return { ...c, roicStability, roicStabilityScore, fcfMargin, fcfMarginMedian10Y: median };
           });
         }
         if (json?.companies && currentSortBy && currentSortBy !== 'none') {
@@ -1037,15 +1082,30 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
         const explicit = (company as any).isWatched;
         const base = typeof explicit === 'boolean' ? explicit : watchlistSymbols.has(company.symbol);
         const isWatched = typeof override === 'boolean' ? override : base;
-        const avg = (company.roic10YAvg != null) ? Number(company.roic10YAvg) : null;
-        const std = (company.roic10YStd != null) ? Number(company.roic10YStd) : null;
-        const ratio = (avg != null && std != null && isFinite(std) && std > 0) ? (avg / std) : null;
-        const score = (ratio != null) ? Math.min(100, Math.max(0, ratio * 30)) : null;
-        const revenue = company.revenue != null ? Number(company.revenue) : null;
-        const fcf = company.freeCashFlow != null ? Number(company.freeCashFlow) : null;
-        const fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+        // Use values from DB if available, otherwise calculate dynamically
+        let roicStability = (company as any).roic_stability ? parseFloat((company as any).roic_stability) : null;
+        let roicStabilityScore = (company as any).roic_stability_score ? parseFloat((company as any).roic_stability_score) : null;
+        let fcfMargin = (company as any).fcf_margin ? parseFloat((company as any).fcf_margin) : null;
+
+        // Fallback to dynamic calculation if not in DB
+        if (roicStability === null || roicStabilityScore === null) {
+          const avg = (company.roic10YAvg != null) ? Number(company.roic10YAvg) : null;
+          const std = (company.roic10YStd != null) ? Number(company.roic10YStd) : null;
+          const ratio = (avg != null && std != null && isFinite(std) && std > 0) ? (avg / std) : null;
+          const score = (ratio != null) ? Math.min(100, Math.max(0, ratio * 30)) : null;
+          if (roicStability === null) roicStability = ratio;
+          if (roicStabilityScore === null) roicStabilityScore = score;
+        }
+
+        // Fallback to dynamic calculation for fcfMargin if not in DB
+        if (fcfMargin === null) {
+          const revenue = company.revenue != null ? Number(company.revenue) : null;
+          const fcf = company.freeCashFlow != null ? Number(company.freeCashFlow) : null;
+          fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+        }
+
         const fcfMarginMedian10Y = (company as any).fcfMarginMedian10Y ?? (company as any).fcf_margin_median_10y ?? null;
-        return { ...company, isWatched, roicStability: ratio, roicStabilityScore: score, fcfMargin, fcfMarginMedian10Y } as any;
+        return { ...company, isWatched, roicStability, roicStabilityScore, fcfMargin, fcfMarginMedian10Y } as any;
       });
     }
     return [];

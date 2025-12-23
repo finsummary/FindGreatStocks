@@ -1,4 +1,5 @@
 import { supabase } from './db';
+import { calculateDerivedMetrics, formatDerivedMetricsForDB } from './utils/derived-metrics';
 
 const BASE_URL = 'https://financialmodelingprep.com/api/v3';
 const API_KEY = process.env.FMP_API_KEY || '';
@@ -45,6 +46,27 @@ export async function updateFTSE100Prices() {
         if (q.change != null) patch.daily_change = Number(q.change);
         if (q.changesPercentage != null) patch.daily_change_percent = Number(q.changesPercentage);
         if (q.marketCap != null) patch.market_cap = Number(q.marketCap);
+        
+        // Fetch company data for derived metrics calculation
+        const { data: companyData } = await supabase
+          .from('ftse100_companies')
+          .select('roic_10y_avg, roic_10y_std, latest_fcf, free_cash_flow, revenue')
+          .eq('symbol', sym)
+          .single();
+
+        // Calculate derived metrics if we have the data
+        if (companyData) {
+          const derivedMetrics = calculateDerivedMetrics({
+            roic10YAvg: companyData.roic_10y_avg,
+            roic10YStd: companyData.roic_10y_std,
+            latestFcf: companyData.latest_fcf,
+            freeCashFlow: companyData.free_cash_flow,
+            revenue: companyData.revenue,
+          });
+          const derivedUpdates = formatDerivedMetricsForDB(derivedMetrics);
+          Object.assign(patch, derivedUpdates);
+        }
+        
         const { error: upErr } = await supabase.from('ftse100_companies').update(patch).eq('symbol', sym);
         if (upErr) { failed++; } else { updated++; }
       } catch {
