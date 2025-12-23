@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { batcher } from "./utils/batcher";
 import { FinancialDataService } from "./financial-data.ts";
 import { updateDcfMetricsForCompany } from "./dcf-daily-updater";
+import { calculateDerivedMetrics, formatDerivedMetricsForDB } from "./utils/derived-metrics";
 
 const BATCH_SIZE = 100; // FMP API is more stable with batches of 100
 
@@ -67,6 +68,26 @@ export async function updateSp500Prices() {
                                             updateData.dividendYield = String(Number(dy) * 100); // percentage
                                         }
                                     } catch {}
+                                }
+
+                                // Fetch company data for derived metrics calculation
+                                const { data: companyData } = await supabase
+                                  .from('sp500_companies')
+                                  .select('roic_10y_avg, roic_10y_std, latest_fcf, free_cash_flow, revenue')
+                                  .eq('symbol', quote.symbol)
+                                  .single();
+
+                                // Calculate derived metrics if we have the data
+                                if (companyData) {
+                                  const derivedMetrics = calculateDerivedMetrics({
+                                    roic10YAvg: companyData.roic_10y_avg,
+                                    roic10YStd: companyData.roic_10y_std,
+                                    latestFcf: companyData.latest_fcf,
+                                    freeCashFlow: companyData.free_cash_flow,
+                                    revenue: companyData.revenue,
+                                  });
+                                  const derivedUpdates = formatDerivedMetricsForDB(derivedMetrics);
+                                  Object.assign(updateData, derivedUpdates);
                                 }
 
                                 await supabase

@@ -2880,6 +2880,28 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Populate derived metrics (roic_stability, roic_stability_score, fcf_margin) for ALL companies
+  app.post('/api/metrics/populate-derived-all', requireAdmin, async (_req, res) => {
+    try {
+      console.log('🚀 Starting population of derived metrics for ALL companies...');
+      await import('tsx/esm');
+      import('./populate-derived-metrics-all.ts')
+        .then(mod => {
+          mod.calculateAndUpdateDerivedMetrics('sp500_companies')
+            .then(() => mod.calculateAndUpdateDerivedMetrics('nasdaq100_companies'))
+            .then(() => mod.calculateAndUpdateDerivedMetrics('dow_jones_companies'))
+            .then(() => mod.calculateAndUpdateDerivedMetrics('ftse100_companies'))
+            .then(() => console.log('✅ Derived metrics population completed'))
+            .catch(e => console.error('❌ Derived metrics population error:', e));
+        })
+        .catch(e => console.error('populate-derived-metrics-all async error:', e));
+      return res.json({ status: 'started', message: 'Started populating derived metrics for all companies' });
+    } catch (e) {
+      console.error('populate-derived-metrics-all error:', e);
+      return res.status(500).json({ message: 'Failed to populate derived metrics', error: e.message });
+    }
+  });
+
   // Helpers: bulk price updates (inline JS, no TS deps)
   async function bulkUpdatePricesFor(tableName) {
     const apiKey = process.env.FMP_API_KEY;
