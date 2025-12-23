@@ -2883,6 +2883,39 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Populate data for newly added NASDAQ 100 companies
+  app.post('/api/nasdaq100/populate-new-companies', requireAdmin, async (_req, res) => {
+    try {
+      await import('tsx/esm');
+      import('./populate-new-nasdaq100-companies.ts')
+        .then(mod => mod.populateNewNasdaq100Companies())
+        .catch(e => console.error('populate-new-nasdaq100-companies async error:', e));
+      return res.json({ status: 'started', message: 'Started populating data for new NASDAQ 100 companies' });
+    } catch (e) {
+      console.error('populate-new-nasdaq100-companies error:', e);
+      return res.status(500).json({ message: 'Failed to populate new NASDAQ 100 companies data' });
+    }
+  });
+
+  // Temporary endpoint for automated execution (no admin required, for internal use only)
+  app.post('/api/nasdaq100/populate-new-companies-auto', async (_req, res) => {
+    try {
+      console.log('🚀 Auto-populating data for new NASDAQ 100 companies: ALNY, FER, INSM, MPWR, STX, WDC');
+      await import('tsx/esm');
+      import('./populate-new-nasdaq100-companies.ts')
+        .then(mod => {
+          mod.populateNewNasdaq100Companies()
+            .then(() => console.log('✅ Auto-population completed'))
+            .catch(e => console.error('❌ Auto-population error:', e));
+        })
+        .catch(e => console.error('populate-new-nasdaq100-companies async error:', e));
+      return res.json({ status: 'started', message: 'Started populating data for ALNY, FER, INSM, MPWR, STX, WDC' });
+    } catch (e) {
+      console.error('populate-new-nasdaq100-companies error:', e);
+      return res.status(500).json({ message: 'Failed to populate new NASDAQ 100 companies data', error: e.message });
+    }
+  });
+
   // Universal index management endpoint (add/remove companies from any index)
   app.post('/api/index/manage', requireAdmin, async (req, res) => {
     try {

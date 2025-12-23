@@ -63,12 +63,14 @@ export async function addCompaniesToIndex(indexKey: string, symbols: string[]) {
 
   console.log(`\n🚀 Adding companies to ${config.displayName}: ${symbols.join(', ')}\n`);
 
-  // Для S&P 500 используем существующий скрипт напрямую
+  // Для S&P 500 и NASDAQ 100 используем специализированные скрипты
   if (indexKey === 'sp500') {
-    // Временно обновляем SYMBOLS в populate-new-sp500-companies.ts
-    // Но лучше создать универсальную версию
-    console.log('⚠️ For S&P 500, please use populate-new-sp500-companies.ts directly');
-    console.log('⚠️ For other indices, this will be implemented soon');
+    console.log('⚠️ For S&P 500, please use populate-new-sp500-companies.ts directly or API endpoint');
+    return;
+  }
+
+  if (indexKey === 'nasdaq100') {
+    console.log('⚠️ For NASDAQ 100, please use populate-new-nasdaq100-companies.ts directly or API endpoint');
     return;
   }
 
@@ -104,7 +106,7 @@ export async function addCompaniesToIndex(indexKey: string, symbols: string[]) {
       // Заполняем все данные используя универсальные функции
       // TODO: Создать универсальные версии всех функций populate
       console.log(`⚠️ Universal population functions not yet implemented for ${indexKey}`);
-      console.log(`⚠️ Please use populate-new-sp500-companies.ts as a template`);
+      console.log(`⚠️ Please use populate-new-sp500-companies.ts or populate-new-nasdaq100-companies.ts as a template`);
       
     } catch (error) {
       console.error(`\n❌ Failed to process ${symbol}:`, error);
