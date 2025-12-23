@@ -86,6 +86,7 @@ async function populateFinancialData(symbol: string) {
       .from('sp500_companies')
       .update({
         latest_fcf: latestFcf ? latestFcf.toString() : null,
+        free_cash_flow: latestFcf ? latestFcf.toString() : null, // Also populate free_cash_flow for API mapping
         revenue: revenue ? revenue.toString() : null,
         net_income: netIncome ? netIncome.toString() : null,
         gross_profit: grossProfit ? grossProfit.toString() : null,
