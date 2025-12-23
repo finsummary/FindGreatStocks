@@ -6,7 +6,7 @@
  */
 
 const RAILWAY_URL = process.argv[2] || process.env.RAILWAY_URL || 'https://findgreatstocks-production.up.railway.app';
-const ENDPOINT = `${RAILWAY_URL}/api/metrics/populate-derived-all`;
+const ENDPOINT = `${RAILWAY_URL}/api/metrics/populate-derived-all-auto`;
 
 async function callEndpoint() {
   console.log('🚀 Calling populate derived metrics endpoint for ALL companies...');
