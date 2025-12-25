@@ -4455,6 +4455,60 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Clear all companies from a watchlist
+  app.delete('/api/watchlist/clear', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const watchlistIdParam = req.query.watchlistId;
+      
+      console.log('[CLEAR] Request:', { userId, watchlistIdParam, query: req.query });
+      
+      // Convert watchlistId to number if provided
+      const watchlistId = watchlistIdParam ? (typeof watchlistIdParam === 'string' ? parseInt(watchlistIdParam, 10) : watchlistIdParam) : null;
+      
+      if (!watchlistId || isNaN(watchlistId) || watchlistId <= 0) {
+        console.log('[CLEAR] No watchlistId provided');
+        return res.status(400).json({ message: 'watchlistId is required' });
+      }
+      
+      // Verify the watchlist belongs to the user
+      const { data: watchlist } = await supabase
+        .from('watchlists')
+        .select('id')
+        .eq('id', watchlistId)
+        .eq('user_id', userId)
+        .single();
+      
+      if (!watchlist) {
+        console.log('[CLEAR] Watchlist not found or not owned by user:', { watchlistId, userId });
+        return res.status(403).json({ message: 'Invalid watchlist ownership' });
+      }
+      
+      // Delete all companies from this watchlist
+      const { data: deleted, error } = await supabase
+        .from('watchlist')
+        .delete()
+        .eq('user_id', userId)
+        .eq('watchlist_id', watchlistId)
+        .select('id');
+      
+      console.log('[CLEAR] Delete result:', { deletedCount: deleted?.length || 0, error });
+      
+      if (error) {
+        console.error('[CLEAR] Delete error:', error);
+        return res.status(500).json({ message: 'Failed to clear watchlist', error: error.message });
+      }
+      
+      return res.json({ 
+        message: 'Watchlist cleared', 
+        deletedCount: deleted?.length || 0 
+      });
+    } catch (e) {
+      console.error('[CLEAR] Exception:', e);
+      return res.status(500).json({ message: 'Failed to clear watchlist', error: e.message });
+    }
+  });
+
 
   // Create new watchlist
   app.post('/api/watchlists', isAuthenticated, async (req, res) => {
