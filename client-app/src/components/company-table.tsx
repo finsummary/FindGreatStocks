@@ -813,10 +813,20 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
           }
 
           // Fallback to dynamic calculation for fcfMargin if not in DB
+          // Use fcfY1 / revenueY1 (latest full year) instead of freeCashFlow / revenue (which may be from different periods)
           if (fcfMargin === null) {
-            const revenue = c.revenue != null ? Number(c.revenue) : (c.revenue_ttm != null ? Number(c.revenue_ttm) : null);
-            const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : (c.free_cash_flow != null ? Number(c.free_cash_flow) : null);
-            fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+            // Try to use the latest full year data (fcfY1 / revenueY1) for consistency with fcfMarginHistory
+            const fcfY1 = (c as any).fcfY1 ?? (c as any).fcf_y1;
+            const revenueY1 = (c as any).revenueY1 ?? (c as any).revenue_y1;
+            
+            if (fcfY1 != null && revenueY1 != null && revenueY1 !== 0) {
+              fcfMargin = Number(fcfY1) / Number(revenueY1);
+            } else {
+              // Fallback to freeCashFlow / revenue if Y1 data is not available
+              const revenue = c.revenue != null ? Number(c.revenue) : (c.revenue_ttm != null ? Number(c.revenue_ttm) : null);
+              const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : (c.free_cash_flow != null ? Number(c.free_cash_flow) : null);
+              fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+            }
           }
 
           const median = (c.fcf_margin_median_10y != null) ? Number(c.fcf_margin_median_10y) : (c.fcfMarginMedian10Y != null ? Number(c.fcfMarginMedian10Y) : null);
@@ -953,10 +963,20 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
           }
 
           // Fallback to dynamic calculation for fcfMargin if not in DB
+          // Use fcfY1 / revenueY1 (latest full year) instead of freeCashFlow / revenue (which may be from different periods)
           if (fcfMargin === null) {
-            const revenue = c.revenue != null ? Number(c.revenue) : null;
-            const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : null;
-            fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+            // Try to use the latest full year data (fcfY1 / revenueY1) for consistency with fcfMarginHistory
+            const fcfY1 = (c as any).fcfY1 ?? (c as any).fcf_y1;
+            const revenueY1 = (c as any).revenueY1 ?? (c as any).revenue_y1;
+            
+            if (fcfY1 != null && revenueY1 != null && revenueY1 !== 0) {
+              fcfMargin = Number(fcfY1) / Number(revenueY1);
+            } else {
+              // Fallback to freeCashFlow / revenue if Y1 data is not available
+              const revenue = c.revenue != null ? Number(c.revenue) : null;
+              const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : null;
+              fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+            }
           }
 
           const median = c.fcfMarginMedian10Y != null ? Number(c.fcfMarginMedian10Y) : null;
@@ -1035,10 +1055,20 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             }
 
             // Fallback to dynamic calculation for fcfMargin if not in DB
+            // Use fcfY1 / revenueY1 (latest full year) instead of freeCashFlow / revenue (which may be from different periods)
             if (fcfMargin === null) {
-              const revenue = c.revenue != null ? Number(c.revenue) : (c.revenue_ttm != null ? Number(c.revenue_ttm) : null);
-              const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : (c.free_cash_flow != null ? Number(c.free_cash_flow) : null);
-              fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+              // Try to use the latest full year data (fcfY1 / revenueY1) for consistency with fcfMarginHistory
+              const fcfY1 = (c as any).fcfY1 ?? (c as any).fcf_y1;
+              const revenueY1 = (c as any).revenueY1 ?? (c as any).revenue_y1;
+              
+              if (fcfY1 != null && revenueY1 != null && revenueY1 !== 0) {
+                fcfMargin = Number(fcfY1) / Number(revenueY1);
+              } else {
+                // Fallback to freeCashFlow / revenue if Y1 data is not available
+                const revenue = c.revenue != null ? Number(c.revenue) : (c.revenue_ttm != null ? Number(c.revenue_ttm) : null);
+                const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : (c.free_cash_flow != null ? Number(c.free_cash_flow) : null);
+                fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+              }
             }
 
             const median = (c.fcf_margin_median_10y != null) ? Number(c.fcf_margin_median_10y) : (c.fcfMarginMedian10Y != null ? Number(c.fcfMarginMedian10Y) : null);
@@ -1101,10 +1131,20 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
         }
 
         // Fallback to dynamic calculation for fcfMargin if not in DB
+        // Use fcfY1 / revenueY1 (latest full year) instead of freeCashFlow / revenue (which may be from different periods)
         if (fcfMargin === null) {
-          const revenue = company.revenue != null ? Number(company.revenue) : null;
-          const fcf = company.freeCashFlow != null ? Number(company.freeCashFlow) : null;
-          fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+          // Try to use the latest full year data (fcfY1 / revenueY1) for consistency with fcfMarginHistory
+          const fcfY1 = (company as any).fcfY1 ?? (company as any).fcf_y1;
+          const revenueY1 = (company as any).revenueY1 ?? (company as any).revenue_y1;
+          
+          if (fcfY1 != null && revenueY1 != null && revenueY1 !== 0) {
+            fcfMargin = Number(fcfY1) / Number(revenueY1);
+          } else {
+            // Fallback to freeCashFlow / revenue if Y1 data is not available
+            const revenue = company.revenue != null ? Number(company.revenue) : null;
+            const fcf = company.freeCashFlow != null ? Number(company.freeCashFlow) : null;
+            fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
+          }
         }
 
         const fcfMarginMedian10Y = (company as any).fcfMarginMedian10Y ?? (company as any).fcf_margin_median_10y ?? null;
