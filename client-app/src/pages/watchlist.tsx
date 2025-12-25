@@ -1,13 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Settings2, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Settings2, Plus } from "lucide-react";
 import { useAuth } from "@/providers/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { CompanyTable } from "@/components/company-table";
 import { WatchlistManager } from "@/components/WatchlistManager";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { authFetch } from "@/lib/authFetch";
 import {
   Select,
@@ -16,17 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 interface Watchlist {
   id: number;
@@ -44,36 +33,10 @@ export function WatchlistPage() {
   const [selectedWatchlistId, setSelectedWatchlistId] = useState<number | null>(null);
   const [watchlistManagerOpen, setWatchlistManagerOpen] = useState(false);
 
-  const queryClient = useQueryClient();
   const { data: watchlists = [], isLoading: watchlistsLoading } = useQuery<Watchlist[]>({
     queryKey: ['/api/watchlists'],
     queryFn: () => authFetch('/api/watchlists'),
     enabled: !!session,
-  });
-
-  const clearWatchlistMutation = useMutation({
-    mutationFn: async (watchlistId: number) => {
-      const response = await authFetch(`/api/watchlist/clear?watchlistId=${watchlistId}`, {
-        method: 'DELETE',
-      });
-      return response;
-    },
-    onSuccess: () => {
-      // Invalidate all watchlist-related queries to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['/api/watchlist/companies'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/watchlists'] });
-      toast({
-        title: "Success",
-        description: "All companies have been removed from the watchlist.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to clear watchlist. Please try again.",
-        variant: "destructive",
-      });
-    },
   });
 
   useEffect(() => {
@@ -151,43 +114,6 @@ export function WatchlistPage() {
                 <Settings2 className="h-4 w-4" />
                 Manage
               </Button>
-              {selectedWatchlistId !== null && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="destructive"
-                      className="flex items-center gap-2"
-                      disabled={clearWatchlistMutation.isPending}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Clear All
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Clear Watchlist</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to remove all companies from "{selectedWatchlist?.name}"? 
-                        This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => {
-                          if (selectedWatchlistId !== null) {
-                            clearWatchlistMutation.mutate(selectedWatchlistId);
-                          }
-                        }}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        disabled={clearWatchlistMutation.isPending}
-                      >
-                        {clearWatchlistMutation.isPending ? 'Clearing...' : 'Clear All'}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
             </>
           )}
         </div>
