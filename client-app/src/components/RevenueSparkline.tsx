@@ -19,10 +19,11 @@ export function RevenueSparkline({ revenueData }: RevenueSparklineProps) {
       // index 9 -> revenueY10 (старый, 2016) -> yearIndex должен быть 10 (Y10)
       const yearIndex = index + 1; // Y1, Y2, ..., Y10 (соответствует revenueY1, revenueY2, ..., revenueY10)
       const numValue = value !== null && value !== undefined ? Number(value) : null;
-      // Используем предыдущий календарный год как базовый, так как большинство компаний
-      // публикуют годовые отчеты за предыдущий год в начале следующего года
+      // Используем год, который на 2 года меньше текущего, так как большинство компаний
+      // публикуют годовые отчеты за предыдущий календарный год в начале следующего года
+      // Например, в начале 2026 года последний доступный отчет обычно за 2024 год
       // Это предотвращает переключение на новый год до публикации отчетов
-      const baseYear = new Date().getFullYear() - 1;
+      const baseYear = new Date().getFullYear() - 2;
       // yearLabel: для Y1 (index 0) это базовый год (обычно предыдущий календарный год), для Y10 (index 9) это 10 лет назад
       return {
         year: `Y${yearIndex}`,
