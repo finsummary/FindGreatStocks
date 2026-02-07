@@ -3056,6 +3056,8 @@ export function setupRoutes(app, supabase) {
           if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
           if (q.change !== undefined) updates.daily_change = Number(q.change);
           if (q.changesPercentage !== undefined) updates.daily_change_percent = Number(q.changesPercentage);
+          // Update timestamp when price is updated
+          updates.last_price_update = new Date().toISOString();
           try { await supabase.from(tableName).update(updates).eq('symbol', q.symbol); } catch {}
         }
         await new Promise(r => setTimeout(r, 150));
@@ -3098,6 +3100,7 @@ export function setupRoutes(app, supabase) {
       if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
       if (q.change !== undefined) updates.daily_change = Number(q.change);
       if (q.changesPercentage !== undefined) updates.daily_change_percent = Number(q.changesPercentage);
+      updates.last_price_update = new Date().toISOString();
       const { error } = await supabase.from('sp500_companies').update(updates).eq('symbol', symbol);
       if (error) return res.status(500).json({ message: 'DB update error', error });
       return res.json({ status: 'ok', symbol, updates });
@@ -3749,6 +3752,7 @@ export function setupRoutes(app, supabase) {
       if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
       if (q.change !== undefined) updates.daily_change = Number(q.change);
       if (q.changesPercentage !== undefined) updates.daily_change_percent = Number(q.changesPercentage);
+      updates.last_price_update = new Date().toISOString();
 
       const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies'];
       const results = [];
@@ -3766,6 +3770,91 @@ export function setupRoutes(app, supabase) {
     } catch (e) {
       console.error('prices/update-symbol error:', e);
       return res.status(500).json({ message: 'Failed to update symbol price' });
+    }
+  });
+
+  // Check when prices were last updated
+  app.get('/api/prices/last-updated', async (_req, res) => {
+    try {
+      // Get the most recent last_price_update timestamp from all company tables
+      const tables = ['sp500_companies', 'nasdaq100_companies', 'dow_jones_companies', 'ftse100_companies', 'companies'];
+      const lastUpdates = [];
+      
+      for (const table of tables) {
+        try {
+          const { data, error } = await supabase
+            .from(table)
+            .select('last_price_update')
+            .not('last_price_update', 'is', null)
+            .order('last_price_update', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          
+          if (!error && data?.last_price_update) {
+            lastUpdates.push({
+              table,
+              lastUpdate: data.last_price_update
+            });
+          }
+        } catch (e) {
+          // Table might not have the column yet (migration not run)
+          console.warn(`Error checking ${table}:`, e?.message);
+        }
+      }
+      
+      if (lastUpdates.length === 0) {
+        return res.json({
+          status: 'unknown',
+          message: 'No price update timestamps found. The last_price_update column may not exist yet. Please run the migration.',
+          updateSchedule: 'Hourly at :15 past each hour UTC, plus daily at 05:00 and 06:00 UTC'
+        });
+      }
+      
+      // Find the most recent update across all tables
+      const mostRecent = lastUpdates.reduce((latest, current) => {
+        const currentTime = new Date(current.lastUpdate).getTime();
+        const latestTime = latest ? new Date(latest.lastUpdate).getTime() : 0;
+        return currentTime > latestTime ? current : latest;
+      }, null);
+      
+      const mostRecentTime = new Date(mostRecent.lastUpdate);
+      const now = new Date();
+      const hoursAgo = (now - mostRecentTime) / (1000 * 60 * 60);
+      const daysAgo = hoursAgo / 24;
+      
+      let status = 'current';
+      let message = '';
+      if (hoursAgo < 2) {
+        message = `Prices were updated ${Math.round(hoursAgo * 60)} minutes ago`;
+        status = 'very_recent';
+      } else if (hoursAgo < 24) {
+        message = `Prices were updated ${Math.round(hoursAgo)} hours ago`;
+        status = 'recent';
+      } else if (daysAgo < 2) {
+        message = `Prices were updated ${Math.round(daysAgo)} day ago`;
+        status = 'stale';
+      } else {
+        message = `Prices were updated ${Math.round(daysAgo)} days ago`;
+        status = 'very_stale';
+      }
+      
+      return res.json({
+        status,
+        lastUpdate: mostRecent.lastUpdate,
+        lastUpdateFormatted: mostRecentTime.toISOString(),
+        lastUpdateTable: mostRecent.table,
+        message,
+        hoursAgo: Math.round(hoursAgo * 10) / 10,
+        daysAgo: Math.round(daysAgo * 10) / 10,
+        updateSchedule: 'Hourly at :15 past each hour UTC, plus daily at 05:00 and 06:00 UTC',
+        allTables: lastUpdates.map(u => ({
+          table: u.table,
+          lastUpdate: u.lastUpdate
+        }))
+      });
+    } catch (e) {
+      console.error('prices/last-updated error:', e);
+      return res.status(500).json({ message: 'Failed to check last update', error: e?.message || String(e) });
     }
   });
 

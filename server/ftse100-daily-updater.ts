@@ -46,6 +46,7 @@ export async function updateFTSE100Prices() {
         if (q.change != null) patch.daily_change = Number(q.change);
         if (q.changesPercentage != null) patch.daily_change_percent = Number(q.changesPercentage);
         if (q.marketCap != null) patch.market_cap = Number(q.marketCap);
+        patch.last_price_update = new Date().toISOString();
         
         // Fetch company data for derived metrics calculation
         const { data: companyData } = await supabase

@@ -77,6 +77,7 @@ async function updateCompanyPrice(symbol: string) {
     if (quoteData.change !== undefined) updateData.daily_change = Number(quoteData.change);
     if (quoteData.changesPercentage !== undefined) updateData.daily_change_percent = Number(quoteData.changesPercentage);
     if (quoteData.marketCap !== undefined) updateData.market_cap = Number(quoteData.marketCap);
+    updateData.last_price_update = new Date().toISOString();
     // Do not overwrite EPS daily
 
     // Some FMP responses include yield as 'yield' or 'dividendYield'

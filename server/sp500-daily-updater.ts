@@ -51,6 +51,7 @@ export async function updateSp500Prices() {
                                 const updateData: any = {
                                     price: Number(quote.price),
                                     market_cap: Number(quote.marketCap),
+                                    last_price_update: new Date().toISOString(),
                                 };
                                 if (quote.change !== undefined) updateData.daily_change = Number(quote.change);
                                 if (quote.changesPercentage !== undefined) updateData.daily_change_percent = Number(quote.changesPercentage);
