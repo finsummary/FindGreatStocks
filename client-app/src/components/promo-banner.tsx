@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Button } from './ui/button';
+import { useAuth } from '@/providers/AuthProvider';
 
 const TOUR_STORAGE_KEY = 'fgs:guided_tour:completed';
 
@@ -9,11 +10,20 @@ interface PromoBannerProps {
 }
 
 export function PromoBanner({ onClaimNow }: PromoBannerProps) {
+  const { user } = useAuth();
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const checkVisibility = () => {
       try {
+        // Don't show banner if user has active subscription (including trial)
+        const tier = (user?.subscriptionTier || 'free').toLowerCase();
+        const isPremiumUser = ['monthly', 'annual', 'quarterly', 'paid'].includes(tier);
+        if (isPremiumUser) {
+          setIsVisible(false);
+          return;
+        }
+
         // Check if banner was dismissed
         const dismissed = localStorage.getItem('fgs:promo-banner-dismissed');
         if (dismissed) {
@@ -29,7 +39,7 @@ export function PromoBanner({ onClaimNow }: PromoBannerProps) {
           return;
         }
 
-        // Tour is completed and banner not dismissed - show it
+        // Tour is completed, user is not premium, and banner not dismissed - show it
         setIsVisible(true);
       } catch {
         // On error, don't show banner
@@ -37,7 +47,7 @@ export function PromoBanner({ onClaimNow }: PromoBannerProps) {
       }
     };
 
-    // Check on mount
+    // Check on mount and when user changes
     checkVisibility();
 
     // Listen for tour completion event
@@ -48,14 +58,14 @@ export function PromoBanner({ onClaimNow }: PromoBannerProps) {
 
     window.addEventListener('fgs:first-tour-completed', handleTourCompleted);
 
-    // Also check periodically in case tour was completed in another tab
+    // Also check periodically in case tour was completed in another tab or subscription status changed
     const interval = setInterval(checkVisibility, 1000);
 
     return () => {
       window.removeEventListener('fgs:first-tour-completed', handleTourCompleted);
       clearInterval(interval);
     };
-  }, []);
+  }, [user?.subscriptionTier]); // Re-check when subscription tier changes
 
   const handleClose = () => {
     setIsVisible(false);
