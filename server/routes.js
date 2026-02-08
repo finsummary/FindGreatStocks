@@ -1329,7 +1329,7 @@ export function setupRoutes(app, supabase) {
           const to = now.toISOString().split('T')[0];
           const tenYearsAgo = new Date(now); tenYearsAgo.setFullYear(now.getFullYear() - 10);
           const from10 = tenYearsAgo.toISOString().split('T')[0];
-          const data = await fetchJson(`https://financialmodelingprep.com/stable/historical-price-full/${sym}?from=${from10}&to=${to}&serietype=line&apikey=${apiKey}`);
+          const data = await fetchJson(`https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=${sym}&from=${from10}&to=${to}&apikey=${apiKey}`);
           const hist = Array.isArray(data?.historical) ? data.historical.slice().sort((a, b) => new Date(a.date) - new Date(b.date)) : [];
           if (!hist.length) {
             const upd = { max_drawdown_3_year: null, max_drawdown_5_year: null, max_drawdown_10_year: null };
@@ -1382,7 +1382,7 @@ export function setupRoutes(app, supabase) {
           let roic = km && (km.roic !== undefined && km.roic !== null) ? Number(km.roic) : null;
           if (!(isFinite(roic))) {
             try {
-              const ttm = await fetchJson(`https://financialmodelingprep.com/stable/key-metrics-ttm/${sym}?apikey=${apiKey}`);
+              const ttm = await fetchJson(`https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${sym}&apikey=${apiKey}`);
               const t = Array.isArray(ttm) && ttm[0] ? ttm[0] : null;
               if (t && (t.roicTTM !== undefined && t.roicTTM !== null)) roic = Number(t.roicTTM);
             } catch {}
@@ -1430,7 +1430,7 @@ export function setupRoutes(app, supabase) {
           let roic = km && (km.roic !== undefined && km.roic !== null) ? Number(km.roic) : null;
           if (!(isFinite(roic))) {
             try {
-              const ttm = await fetchJson(`https://financialmodelingprep.com/stable/key-metrics-ttm/${sym}?apikey=${apiKey}`);
+              const ttm = await fetchJson(`https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${sym}&apikey=${apiKey}`);
               const t = Array.isArray(ttm) && ttm[0] ? ttm[0] : null;
               if (t && (t.roicTTM !== undefined && t.roicTTM !== null)) roic = Number(t.roicTTM);
             } catch {}
@@ -1840,7 +1840,7 @@ export function setupRoutes(app, supabase) {
 
       // Check ratios-ttm endpoint
       try {
-        const ratiosTTM = await fetchJson(`https://financialmodelingprep.com/stable/ratios-ttm/${symbol}?apikey=${apiKey}`);
+        const ratiosTTM = await fetchJson(`https://financialmodelingprep.com/stable/ratios-ttm?symbol=${symbol}&apikey=${apiKey}`);
         const ratioTTM = Array.isArray(ratiosTTM) && ratiosTTM[0] ? ratiosTTM[0] : ratiosTTM;
         results.ratiosTTM = {
           available: !!ratioTTM,
@@ -3906,7 +3906,8 @@ export function setupRoutes(app, supabase) {
         const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies'];
         const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
         const fetchQuotes = async (symbols) => {
-          const url = `https://financialmodelingprep.com/stable/quote?symbol=${symbols.join(',')}&apikey=${apiKey}`;
+          // Use batch-quote for multiple symbols (documentation shows batch-quote uses 'symbols' parameter)
+          const url = `https://financialmodelingprep.com/stable/batch-quote?symbols=${symbols.join(',')}&apikey=${apiKey}`;
           const r = await fetch(url);
           if (!r.ok) throw new Error(`FMP quote ${r.status}`);
           const arr = await r.json();
