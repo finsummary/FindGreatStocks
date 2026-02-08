@@ -3968,7 +3968,20 @@ export function setupRoutes(app, supabase) {
           // Use batch-quote for multiple symbols (documentation shows batch-quote uses 'symbols' parameter)
           const url = `https://financialmodelingprep.com/stable/batch-quote?symbols=${symbols.join(',')}&apikey=${apiKey}`;
           const r = await fetch(url);
-          if (!r.ok) throw new Error(`FMP quote ${r.status}`);
+          if (!r.ok) {
+            const errorText = await r.text().catch(() => '');
+            let errorMsg = `FMP quote ${r.status}`;
+            try {
+              const errorJson = JSON.parse(errorText);
+              errorMsg += `: ${errorJson.Error Message || errorJson.message || errorText.substring(0, 200)}`;
+            } catch {
+              errorMsg += `: ${errorText.substring(0, 200)}`;
+            }
+            if (r.status === 402) {
+              console.error(`[FMP] 402 Payment Required - Check API subscription and limits. Response:`, errorText.substring(0, 300));
+            }
+            throw new Error(errorMsg);
+          }
           const arr = await r.json();
           const map = new Map();
           for (const q of (Array.isArray(arr) ? arr : [])) {
@@ -4011,7 +4024,12 @@ export function setupRoutes(app, supabase) {
                 // small delay to avoid hitting rate limits hard
                 await new Promise(r => setTimeout(r, 200));
               } catch (e) {
-                console.warn('chunk update error', t, e?.message || e);
+                const errorMsg = e?.message || String(e);
+                if (errorMsg.includes('402')) {
+                  console.error(`[FMP] 402 error for ${t}:`, errorMsg);
+                } else {
+                  console.warn('chunk update error', t, errorMsg);
+                }
               }
             }
           } catch (e) {
