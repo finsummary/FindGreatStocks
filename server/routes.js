@@ -2658,6 +2658,43 @@ export function setupRoutes(app, supabase) {
         orderCol = 'market_cap';
       }
 
+      // Special handling for dow_jones_companies - try simpler query first
+      if (tableName === 'dow_jones_companies') {
+        try {
+          // First, try a simple query without count to see if it's a count issue
+          let simpleQuery = supabase
+            .from(tableName)
+            .select('id,symbol,name,price,market_cap')
+            .order(orderCol, { ascending: sortOrder, nullsFirst: false })
+            .range(offset, offset + limit - 1);
+          if (search) {
+            simpleQuery = simpleQuery.or(`name.ilike.%${search}%,symbol.ilike.%${search}%`);
+          }
+          const { data: simpleData, error: simpleError } = await simpleQuery;
+          if (simpleError) {
+            console.error(`[${tableName}] Simple query error:`, {
+              message: simpleError.message,
+              details: simpleError.details,
+              hint: simpleError.hint,
+              code: simpleError.code
+            });
+            // Try even simpler - just get count
+            const { count: testCount, error: countError } = await supabase
+              .from(tableName)
+              .select('*', { count: 'exact', head: true });
+            if (countError) {
+              console.error(`[${tableName}] Count query also failed:`, countError);
+            } else {
+              console.log(`[${tableName}] Count query succeeded: ${testCount} rows`);
+            }
+            return res.json({ companies: [], total: 0, limit, offset, hasMore: false });
+          }
+          // If simple query works, try full query
+        } catch (testErr) {
+          console.error(`[${tableName}] Test query failed:`, testErr);
+        }
+      }
+
       let query = supabase
         .from(tableName)
         .select('*', { count: 'exact' })
@@ -2674,7 +2711,9 @@ export function setupRoutes(app, supabase) {
           details: error.details,
           hint: error.hint,
           code: error.code,
-          fullError: JSON.stringify(error, null, 2)
+          fullError: JSON.stringify(error, null, 2),
+          errorType: typeof error,
+          errorKeys: Object.keys(error || {})
         });
         // Возвращаем пустой результат вместо 500, чтобы не падал фронт при префетче
         return res.json({ companies: [], total: 0, limit, offset, hasMore: false });
