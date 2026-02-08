@@ -3891,7 +3891,8 @@ export function setupRoutes(app, supabase) {
   });
 
   // Prices: bulk update for all tables (fire-and-forget)
-  app.post('/api/prices/update-all', requireAdmin, async (_req, res) => {
+  // Note: No auth required - called by internal scheduler
+  app.post('/api/prices/update-all', async (_req, res) => {
     try {
       const apiKey = process.env.FMP_API_KEY;
       if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
