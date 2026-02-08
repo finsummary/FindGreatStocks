@@ -2647,10 +2647,6 @@ export function setupRoutes(app, supabase) {
 
   // Helper: list from a specific table (sp500, nasdaq100, dowjones)
   async function listFromTable(tableName, req, res) {
-    // Log entry point for debugging
-    if (tableName === 'dow_jones_companies') {
-      console.log(`[${tableName}] === listFromTable called ===`);
-    }
     try {
       const limit = parseInt(req.query.limit) || 50;
       const offset = parseInt(req.query.offset) || 0;
@@ -2661,70 +2657,12 @@ export function setupRoutes(app, supabase) {
       if ((orderCol === 'roic_10y_avg' || orderCol === 'roic_10y_std' || orderCol === 'fcf_margin_median_10y') && tableName !== 'companies') {
         orderCol = 'market_cap';
       }
-      
-      if (tableName === 'dow_jones_companies') {
-        console.log(`[${tableName}] Parameters: limit=${limit}, offset=${offset}, sortBy=${sortBy}, orderCol=${orderCol}`);
-      }
-
-      // Special handling for dow_jones_companies - try simpler query first
-      if (tableName === 'dow_jones_companies') {
-        console.log(`[${tableName}] Starting diagnostic queries...`);
-        try {
-          // First, try a simple query without count to see if it's a count issue
-          console.log(`[${tableName}] Attempting simple query with limited fields...`);
-          let simpleQuery = supabase
-            .from(tableName)
-            .select('id,symbol,name,price,market_cap')
-            .order(orderCol, { ascending: sortOrder, nullsFirst: false })
-            .range(offset, offset + limit - 1);
-          if (search) {
-            simpleQuery = simpleQuery.or(`name.ilike.%${search}%,symbol.ilike.%${search}%`);
-          }
-          const { data: simpleData, error: simpleError } = await simpleQuery;
-          if (simpleError) {
-            console.error(`[${tableName}] Simple query error:`, {
-              message: simpleError.message,
-              details: simpleError.details,
-              hint: simpleError.hint,
-              code: simpleError.code,
-              errorString: String(simpleError),
-              errorJSON: JSON.stringify(simpleError)
-            });
-            // Try even simpler - just get count
-            console.log(`[${tableName}] Attempting count-only query...`);
-            const { count: testCount, error: countError } = await supabase
-              .from(tableName)
-              .select('*', { count: 'exact', head: true });
-            if (countError) {
-              console.error(`[${tableName}] Count query also failed:`, {
-                message: countError.message,
-                errorString: String(countError),
-                errorJSON: JSON.stringify(countError)
-              });
-            } else {
-              console.log(`[${tableName}] Count query succeeded: ${testCount} rows`);
-            }
-            return res.json({ companies: [], total: 0, limit, offset, hasMore: false });
-          } else {
-            console.log(`[${tableName}] Simple query succeeded, got ${simpleData?.length || 0} rows`);
-            // If simple query works, continue with full query below
-          }
-        } catch (testErr) {
-          console.error(`[${tableName}] Test query failed with exception:`, {
-            message: testErr?.message,
-            stack: testErr?.stack,
-            errorString: String(testErr),
-            errorJSON: JSON.stringify(testErr)
-          });
-          return res.json({ companies: [], total: 0, limit, offset, hasMore: false });
-        }
-      }
 
       let data, count, error;
       
       // For dow_jones_companies, split query into data and count separately
+      // This is necessary because select('*', { count: 'exact' }) fails for this table
       if (tableName === 'dow_jones_companies') {
-        console.log(`[${tableName}] Attempting split query (data + count separately)...`);
         try {
           // Get data without count
           let dataQuery = supabase
@@ -2738,11 +2676,7 @@ export function setupRoutes(app, supabase) {
           const { data: dataResult, error: dataError } = await dataQuery;
           
           if (dataError) {
-            console.error(`[${tableName}] Data query failed:`, {
-              message: dataError.message,
-              errorString: String(dataError),
-              errorJSON: JSON.stringify(dataError)
-            });
+            console.error(`[${tableName}] Data query failed:`, dataError);
             return res.json({ companies: [], total: 0, limit, offset, hasMore: false });
           }
           
@@ -2756,24 +2690,14 @@ export function setupRoutes(app, supabase) {
           const { count: countResult, error: countError } = await countQuery;
           
           data = dataResult;
-          count = countResult;
-          error = countError; // Continue even if count fails
+          count = countResult || 0; // Default to 0 if count fails
+          error = countError;
           
           if (countError) {
-            console.warn(`[${tableName}] Count query failed but data query succeeded:`, {
-              message: countError.message,
-              errorString: String(countError)
-            });
-            count = 0; // Set default count if count query fails
-          } else {
-            console.log(`[${tableName}] Both queries succeeded: ${data?.length || 0} rows, count: ${count}`);
+            console.warn(`[${tableName}] Count query failed but data query succeeded, using count=0`);
           }
         } catch (splitErr) {
-          console.error(`[${tableName}] Split query failed with exception:`, {
-            message: splitErr?.message,
-            stack: splitErr?.stack,
-            errorString: String(splitErr)
-          });
+          console.error(`[${tableName}] Split query failed:`, splitErr);
           return res.json({ companies: [], total: 0, limit, offset, hasMore: false });
         }
       } else {
