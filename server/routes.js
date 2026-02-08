@@ -21,8 +21,8 @@ async function fetchProfilesBatch(symbols) {
   for (let i = 0; i < symbols.length; i += chunkSize) chunks.push(symbols.slice(i, i + chunkSize));
   for (const group of chunks) {
     try {
-      // Try new format without version (FMP may have removed version from URL)
-      const url = `https://financialmodelingprep.com/api/profile/${group.join(',')}?apikey=${apiKey}`;
+      // Use /stable/ endpoint format (new FMP API format)
+      const url = `https://financialmodelingprep.com/stable/profile?symbol=${group.join(',')}&apikey=${apiKey}`;
       const r = await fetch(url);
       if (!r.ok) {
         const errorText = await r.text().catch(() => '');
@@ -565,8 +565,8 @@ export function setupRoutes(app, supabase) {
 
       const recomputeOne = async (sym) => {
         try {
-          const incomeUrl = `https://financialmodelingprep.com/api/income-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`;
-          const cashUrl = `https://financialmodelingprep.com/api/cash-flow-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`;
+          const incomeUrl = `https://financialmodelingprep.com/stable/income-statement?symbol=${sym}&period=annual&limit=12&apikey=${apiKey}`;
+          const cashUrl = `https://financialmodelingprep.com/stable/cash-flow-statement?symbol=${sym}&period=annual&limit=12&apikey=${apiKey}`;
           const income = await fetchJson(incomeUrl);
           const cash = await fetchJson(cashUrl);
           const incArr = Array.isArray(income) ? income : [];
@@ -662,8 +662,8 @@ export function setupRoutes(app, supabase) {
       const hasMore = offset + limit < total;
       const recomputeOne = async (sym) => {
         try {
-          const incomeUrl = `https://financialmodelingprep.com/api/income-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`;
-          const cashUrl = `https://financialmodelingprep.com/api/cash-flow-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`;
+          const incomeUrl = `https://financialmodelingprep.com/stable/income-statement?symbol=${sym}&period=annual&limit=12&apikey=${apiKey}`;
+          const cashUrl = `https://financialmodelingprep.com/stable/cash-flow-statement?symbol=${sym}&period=annual&limit=12&apikey=${apiKey}`;
           const income = await fetchJson(incomeUrl);
           const cash = await fetchJson(cashUrl);
           const incArr = Array.isArray(income) ? income : [];
@@ -760,8 +760,8 @@ export function setupRoutes(app, supabase) {
       const symbols = Array.from(symSet);
       const recomputeOne = async (sym) => {
         try {
-          const incomeUrl = `https://financialmodelingprep.com/api/income-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`;
-          const cashUrl = `https://financialmodelingprep.com/api/cash-flow-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`;
+          const incomeUrl = `https://financialmodelingprep.com/stable/income-statement?symbol=${sym}&period=annual&limit=12&apikey=${apiKey}`;
+          const cashUrl = `https://financialmodelingprep.com/stable/cash-flow-statement?symbol=${sym}&period=annual&limit=12&apikey=${apiKey}`;
           const income = await fetchJson(incomeUrl);
           const cash = await fetchJson(cashUrl);
           const incArr = Array.isArray(income) ? income : [];
@@ -852,7 +852,7 @@ export function setupRoutes(app, supabase) {
       for (const sym of symbols) {
         try {
           // Fetch annual ratios from FMP API
-          const ratiosData = await fetchJson(`https://financialmodelingprep.com/api/ratios/${sym}?period=annual&limit=1&apikey=${apiKey}`);
+          const ratiosData = await fetchJson(`https://financialmodelingprep.com/stable/ratios?symbol=${sym}&period=annual&limit=1&apikey=${apiKey}`);
           const ratio = Array.isArray(ratiosData) && ratiosData[0] ? ratiosData[0] : null;
 
           // Debug logging for companies with missing data
@@ -978,7 +978,7 @@ export function setupRoutes(app, supabase) {
       const results = [];
       for (const sym of symbols) {
         try {
-          const ratiosData = await fetchJson(`https://financialmodelingprep.com/api/ratios/${sym}?period=annual&limit=1&apikey=${apiKey}`);
+          const ratiosData = await fetchJson(`https://financialmodelingprep.com/stable/ratios?symbol=${sym}&period=annual&limit=1&apikey=${apiKey}`);
           const ratio = Array.isArray(ratiosData) && ratiosData[0] ? ratiosData[0] : null;
 
           // Debug logging for companies with missing data
@@ -1129,7 +1129,7 @@ export function setupRoutes(app, supabase) {
           
           for (const sym of batch) {
             try {
-              const ratiosData = await fetchJson(`https://financialmodelingprep.com/api/ratios/${sym}?period=annual&limit=1&apikey=${apiKey}`);
+              const ratiosData = await fetchJson(`https://financialmodelingprep.com/stable/ratios?symbol=${sym}&period=annual&limit=1&apikey=${apiKey}`);
               const ratio = Array.isArray(ratiosData) && ratiosData[0] ? ratiosData[0] : null;
 
               let debtToEquity = null;
@@ -1222,7 +1222,7 @@ export function setupRoutes(app, supabase) {
           const netIncome = Number(src.row?.net_income);
 
           // pull latest totalAssets / totalEquity
-          const bs = await fetchJson(`https://financialmodelingprep.com/api/balance-sheet-statement/${sym}?period=annual&limit=1&apikey=${apiKey}`);
+          const bs = await fetchJson(`https://financialmodelingprep.com/stable/balance-sheet-statement?symbol=${sym}&period=annual&limit=1&apikey=${apiKey}`);
           const latest = Array.isArray(bs) && bs[0];
           const totalAssets = Number(latest?.totalAssets);
           const totalEquity = Number(latest?.totalStockholdersEquity);
@@ -1329,7 +1329,7 @@ export function setupRoutes(app, supabase) {
           const to = now.toISOString().split('T')[0];
           const tenYearsAgo = new Date(now); tenYearsAgo.setFullYear(now.getFullYear() - 10);
           const from10 = tenYearsAgo.toISOString().split('T')[0];
-          const data = await fetchJson(`https://financialmodelingprep.com/api/historical-price-full/${sym}?from=${from10}&to=${to}&serietype=line&apikey=${apiKey}`);
+          const data = await fetchJson(`https://financialmodelingprep.com/stable/historical-price-full/${sym}?from=${from10}&to=${to}&serietype=line&apikey=${apiKey}`);
           const hist = Array.isArray(data?.historical) ? data.historical.slice().sort((a, b) => new Date(a.date) - new Date(b.date)) : [];
           if (!hist.length) {
             const upd = { max_drawdown_3_year: null, max_drawdown_5_year: null, max_drawdown_10_year: null };
@@ -1376,13 +1376,13 @@ export function setupRoutes(app, supabase) {
       for (const sym of symbols) {
         try {
           // Try annual first
-          const kmData = await fetchJson(`https://financialmodelingprep.com/api/key-metrics/${sym}?period=annual&limit=1&apikey=${apiKey}`);
+          const kmData = await fetchJson(`https://financialmodelingprep.com/stable/key-metrics?symbol=${sym}&period=annual&limit=1&apikey=${apiKey}`);
           const km = Array.isArray(kmData) && kmData[0] ? kmData[0] : null;
           // Fallback to TTM endpoint if needed
           let roic = km && (km.roic !== undefined && km.roic !== null) ? Number(km.roic) : null;
           if (!(isFinite(roic))) {
             try {
-              const ttm = await fetchJson(`https://financialmodelingprep.com/api/key-metrics-ttm/${sym}?apikey=${apiKey}`);
+              const ttm = await fetchJson(`https://financialmodelingprep.com/stable/key-metrics-ttm/${sym}?apikey=${apiKey}`);
               const t = Array.isArray(ttm) && ttm[0] ? ttm[0] : null;
               if (t && (t.roicTTM !== undefined && t.roicTTM !== null)) roic = Number(t.roicTTM);
             } catch {}
@@ -1425,12 +1425,12 @@ export function setupRoutes(app, supabase) {
       const results = [];
       for (const sym of symbols) {
         try {
-          const kmData = await fetchJson(`https://financialmodelingprep.com/api/key-metrics/${sym}?period=annual&limit=1&apikey=${apiKey}`);
+          const kmData = await fetchJson(`https://financialmodelingprep.com/stable/key-metrics?symbol=${sym}&period=annual&limit=1&apikey=${apiKey}`);
           const km = Array.isArray(kmData) && kmData[0] ? kmData[0] : null;
           let roic = km && (km.roic !== undefined && km.roic !== null) ? Number(km.roic) : null;
           if (!(isFinite(roic))) {
             try {
-              const ttm = await fetchJson(`https://financialmodelingprep.com/api/key-metrics-ttm/${sym}?apikey=${apiKey}`);
+              const ttm = await fetchJson(`https://financialmodelingprep.com/stable/key-metrics-ttm/${sym}?apikey=${apiKey}`);
               const t = Array.isArray(ttm) && ttm[0] ? ttm[0] : null;
               if (t && (t.roicTTM !== undefined && t.roicTTM !== null)) roic = Number(t.roicTTM);
             } catch {}
@@ -1472,7 +1472,7 @@ export function setupRoutes(app, supabase) {
       for (const sym of symbols) {
         try {
           // Pull up to 12 annual entries to safely cover 10 years
-          const kmData = await fetchJson(`https://financialmodelingprep.com/api/key-metrics/${sym}?period=annual&limit=12&apikey=${apiKey}`);
+          const kmData = await fetchJson(`https://financialmodelingprep.com/stable/key-metrics?symbol=${sym}&period=annual&limit=12&apikey=${apiKey}`);
           const arr = Array.isArray(kmData) ? kmData : [];
           // Normalize to latest first
           const series = arr.map(r => r && (r.roic ?? r.ROIC)).filter(v => v !== undefined && v !== null).map(Number);
@@ -1486,8 +1486,8 @@ export function setupRoutes(app, supabase) {
           // Fallback: if not enough annual ROIC points, derive from financial statements
           if (last10.length < 2) {
             try {
-              const inc = await fetchJson(`https://financialmodelingprep.com/api/income-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`);
-              const bal = await fetchJson(`https://financialmodelingprep.com/api/balance-sheet-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`);
+              const inc = await fetchJson(`https://financialmodelingprep.com/stable/income-statement?symbol=${sym}&period=annual&limit=12&apikey=${apiKey}`);
+              const bal = await fetchJson(`https://financialmodelingprep.com/stable/balance-sheet-statement?symbol=${sym}&period=annual&limit=12&apikey=${apiKey}`);
               const incArr = Array.isArray(inc) ? inc : [];
               const balArr = Array.isArray(bal) ? bal : [];
               const len = Math.min(incArr.length, balArr.length, 10);
@@ -1650,7 +1650,7 @@ export function setupRoutes(app, supabase) {
       const results = [];
       for (const sym of symbols) {
         try {
-          const kmData = await fetchJson(`https://financialmodelingprep.com/api/key-metrics/${sym}?period=annual&limit=12&apikey=${apiKey}`);
+          const kmData = await fetchJson(`https://financialmodelingprep.com/stable/key-metrics?symbol=${sym}&period=annual&limit=12&apikey=${apiKey}`);
           const arr = Array.isArray(kmData) ? kmData : [];
           const series = arr.map(r => r && (r.roic ?? r.ROIC)).filter(v => v !== undefined && v !== null).map(Number);
           let norm = series
@@ -1660,8 +1660,8 @@ export function setupRoutes(app, supabase) {
           let last10 = norm.slice(0, 10);
           if (last10.length < 2) {
             try {
-              const inc = await fetchJson(`https://financialmodelingprep.com/api/income-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`);
-              const bal = await fetchJson(`https://financialmodelingprep.com/api/balance-sheet-statement/${sym}?period=annual&limit=12&apikey=${apiKey}`);
+              const inc = await fetchJson(`https://financialmodelingprep.com/stable/income-statement?symbol=${sym}&period=annual&limit=12&apikey=${apiKey}`);
+              const bal = await fetchJson(`https://financialmodelingprep.com/stable/balance-sheet-statement?symbol=${sym}&period=annual&limit=12&apikey=${apiKey}`);
               const incArr = Array.isArray(inc) ? inc : [];
               const balArr = Array.isArray(bal) ? bal : [];
               const len = Math.min(incArr.length, balArr.length, 10);
@@ -1822,7 +1822,7 @@ export function setupRoutes(app, supabase) {
 
       // Check ratios endpoint
       try {
-        const ratios = await fetchJson(`https://financialmodelingprep.com/api/ratios/${symbol}?period=annual&limit=1&apikey=${apiKey}`);
+        const ratios = await fetchJson(`https://financialmodelingprep.com/stable/ratios/${symbol}?period=annual&limit=1&apikey=${apiKey}`);
         const ratio = Array.isArray(ratios) && ratios[0] ? ratios[0] : null;
         results.ratios = {
           available: !!ratio,
@@ -1840,7 +1840,7 @@ export function setupRoutes(app, supabase) {
 
       // Check ratios-ttm endpoint
       try {
-        const ratiosTTM = await fetchJson(`https://financialmodelingprep.com/api/ratios-ttm/${symbol}?apikey=${apiKey}`);
+        const ratiosTTM = await fetchJson(`https://financialmodelingprep.com/stable/ratios-ttm/${symbol}?apikey=${apiKey}`);
         const ratioTTM = Array.isArray(ratiosTTM) && ratiosTTM[0] ? ratiosTTM[0] : ratiosTTM;
         results.ratiosTTM = {
           available: !!ratioTTM,
@@ -1857,7 +1857,7 @@ export function setupRoutes(app, supabase) {
 
       // Check key-metrics endpoint
       try {
-        const keyMetrics = await fetchJson(`https://financialmodelingprep.com/api/key-metrics/${symbol}?period=annual&limit=1&apikey=${apiKey}`);
+        const keyMetrics = await fetchJson(`https://financialmodelingprep.com/stable/key-metrics?symbol=${symbol}&period=annual&limit=1&apikey=${apiKey}`);
         const km = Array.isArray(keyMetrics) && keyMetrics[0] ? keyMetrics[0] : null;
         results.keyMetrics = {
           available: !!km,
@@ -1874,7 +1874,7 @@ export function setupRoutes(app, supabase) {
 
       // Check balance sheet for debt and equity
       try {
-        const balance = await fetchJson(`https://financialmodelingprep.com/api/balance-sheet-statement/${symbol}?period=annual&limit=1&apikey=${apiKey}`);
+        const balance = await fetchJson(`https://financialmodelingprep.com/stable/balance-sheet-statement?symbol=${symbol}&period=annual&limit=1&apikey=${apiKey}`);
         const bs = Array.isArray(balance) && balance[0] ? balance[0] : null;
         results.balanceSheet = {
           available: !!bs,
@@ -1889,7 +1889,7 @@ export function setupRoutes(app, supabase) {
 
       // Check income statement for EBIT and Interest Expense
       try {
-        const income = await fetchJson(`https://financialmodelingprep.com/api/income-statement/${symbol}?period=annual&limit=1&apikey=${apiKey}`);
+        const income = await fetchJson(`https://financialmodelingprep.com/stable/income-statement?symbol=${symbol}&period=annual&limit=1&apikey=${apiKey}`);
         const inc = Array.isArray(income) && income[0] ? income[0] : null;
         results.incomeStatement = {
           available: !!inc,
@@ -2112,7 +2112,7 @@ export function setupRoutes(app, supabase) {
     const apiKey = process.env.FMP_API_KEY;
     if (!apiKey) return [];
     try {
-      const url = `https://financialmodelingprep.com/api/income-statement/${encodeURIComponent(sym)}?period=annual&limit=${limit}&apikey=${apiKey}`;
+      const url = `https://financialmodelingprep.com/stable/income-statement/${encodeURIComponent(sym)}?period=annual&limit=${limit}&apikey=${apiKey}`;
       const r = await fetch(url);
       if (!r.ok) return [];
       const arr = await r.json();
@@ -2204,7 +2204,7 @@ export function setupRoutes(app, supabase) {
       if (apiKey) {
         const candidates = ['%5EFTSE', '%5EUKX'];
         for (const idx of candidates) {
-          const url = `https://financialmodelingprep.com/api/index-constituent/${idx}?apikey=${apiKey}`;
+          const url = `https://financialmodelingprep.com/stable/index-constituent/${idx}?apikey=${apiKey}`;
           const r = await fetch(url);
           if (r.ok) {
             const arr = await r.json();
@@ -2216,7 +2216,7 @@ export function setupRoutes(app, supabase) {
             }
           }
         }
-        const alt = await fetch(`https://financialmodelingprep.com/api/ftse_constituent?apikey=${apiKey}`);
+        const alt = await fetch(`https://financialmodelingprep.com/stable/ftse_constituent?apikey=${apiKey}`);
         if (alt.ok) {
           const arr = await alt.json();
           if (Array.isArray(arr) && arr.length) {
@@ -2292,7 +2292,8 @@ export function setupRoutes(app, supabase) {
       for (let i = 0; i < symbols.length; i += chunkSize) {
         const group = symbols.slice(i, i + chunkSize);
         try {
-          const url = `https://financialmodelingprep.com/api/quote/${group.join(',')}?apikey=${apiKey}`;
+          // Use batch-quote endpoint for multiple symbols
+          const url = `https://financialmodelingprep.com/stable/batch-quote?symbols=${group.join(',')}&apikey=${apiKey}`;
           const r = await fetch(url);
           if (!r.ok) { failed += group.length; continue; }
           const arr = await r.json();
@@ -3066,7 +3067,8 @@ export function setupRoutes(app, supabase) {
     const chunks = chunk(symbols, 50);
     for (const group of chunks) {
       try {
-        const url = `https://financialmodelingprep.com/api/quote/${group.join(',')}?apikey=${apiKey}`;
+        // Use batch-quote endpoint for multiple symbols
+        const url = `https://financialmodelingprep.com/stable/batch-quote?symbols=${group.join(',')}&apikey=${apiKey}`;
         const r = await fetch(url);
         if (!r.ok) {
           const errorText = await r.text().catch(() => '');
@@ -3118,7 +3120,7 @@ export function setupRoutes(app, supabase) {
       if (!symbol) return res.status(400).json({ message: 'symbol is required' });
       const apiKey = process.env.FMP_API_KEY;
       if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
-      const url = `https://financialmodelingprep.com/api/quote/${symbol}?apikey=${apiKey}`;
+      const url = `https://financialmodelingprep.com/stable/quote/${symbol}?apikey=${apiKey}`;
       const r = await fetch(url);
       if (!r.ok) return res.status(502).json({ message: 'FMP error', status: r.status });
       const arr = await r.json();
@@ -3160,7 +3162,7 @@ export function setupRoutes(app, supabase) {
       if (!symbol) return res.status(400).json({ message: 'symbol is required' });
       const apiKey = process.env.FMP_API_KEY;
       if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
-      const url = `https://financialmodelingprep.com/api/quote/${symbol}?apikey=${apiKey}`;
+      const url = `https://financialmodelingprep.com/stable/quote/${symbol}?apikey=${apiKey}`;
       const r = await fetch(url);
       if (!r.ok) return res.status(502).json({ message: 'FMP error', status: r.status });
       const arr = await r.json();
@@ -3288,7 +3290,7 @@ export function setupRoutes(app, supabase) {
     try {
       const apiKey = process.env.FMP_API_KEY;
       if (!apiKey) throw new Error('FMP_API_KEY is missing');
-      const url = `https://financialmodelingprep.com/api/${fmpPath}?apikey=${apiKey}`;
+      const url = `https://financialmodelingprep.com/stable/${fmpPath}?apikey=${apiKey}`;
       const resp = await fetch(url);
       if (!resp.ok) throw new Error(`FMP ${fmpPath} failed: ${resp.status}`);
       const list = await resp.json(); // [{symbol,name}]
@@ -3532,7 +3534,7 @@ export function setupRoutes(app, supabase) {
       const results = [];
       for (const sym of symbols) {
         try {
-          const url = `https://financialmodelingprep.com/api/historical-price-full/${sym}?from=${from10}&to=${to}&serietype=line&apikey=${apiKey}`;
+          const url = `https://financialmodelingprep.com/stable/historical-price-full/${sym}?from=${from10}&to=${to}&serietype=line&apikey=${apiKey}`;
           const r = await fetch(url);
           if (!r.ok) throw new Error(`historical ${r.status}`);
           const data = await r.json();
@@ -3626,7 +3628,7 @@ export function setupRoutes(app, supabase) {
       // get USD/CNY once
       let cnyUsd = 7.0;
       try {
-        const fx = await fetchJson(`https://financialmodelingprep.com/api/fx/CNYUSD?apikey=${apiKey}`);
+        const fx = await fetchJson(`https://financialmodelingprep.com/stable/fx/CNYUSD?apikey=${apiKey}`);
         const rate = Array.isArray(fx) && fx[0]?.price; if (rate) cnyUsd = Number(rate);
       } catch {}
 
@@ -3649,7 +3651,7 @@ export function setupRoutes(app, supabase) {
           // currency from profile
           let currency = 'USD';
           try {
-            const prof = await fetchJson(`https://financialmodelingprep.com/api/profile/${sym}?apikey=${apiKey}`);
+            const prof = await fetchJson(`https://financialmodelingprep.com/stable/profile/${sym}?apikey=${apiKey}`);
             const p = Array.isArray(prof) && prof[0]; if (p?.currency) currency = String(p.currency).toUpperCase();
           } catch {}
 
@@ -3699,7 +3701,7 @@ export function setupRoutes(app, supabase) {
           // Profile (currency) and market cap
           let currency = 'USD'; let marketCap = null; let revenueGrowth10y = null;
           try {
-            const prof = await fetchJson(`https://financialmodelingprep.com/api/profile/${sym}?apikey=${apiKey}`);
+            const prof = await fetchJson(`https://financialmodelingprep.com/stable/profile/${sym}?apikey=${apiKey}`);
             const p = Array.isArray(prof) && prof[0];
             if (p?.currency) currency = String(p.currency).toUpperCase();
             if (p?.mktCap) marketCap = Number(p.mktCap);
@@ -3711,7 +3713,7 @@ export function setupRoutes(app, supabase) {
           }
 
           // Fetch last 5y cash flows
-          const cash = await fetchJson(`https://financialmodelingprep.com/api/cash-flow-statement/${sym}?limit=5&apikey=${apiKey}`);
+          const cash = await fetchJson(`https://financialmodelingprep.com/stable/cash-flow-statement/${sym}?limit=5&apikey=${apiKey}`);
           const series = Array.isArray(cash) ? cash : [];
           const fcfs = series.map(r => Number(r.freeCashFlow)).filter(v => isFinite(v));
           const fcfBase = fcfs.length ? (fcfs.slice(0, 3).reduce((a, b) => a + b, 0) / Math.min(3, fcfs.length)) : null;
@@ -3722,7 +3724,7 @@ export function setupRoutes(app, supabase) {
           if (currency && currency !== 'USD') {
             try {
               const pair = `${currency}USD`;
-              const fx = await fetchJson(`https://financialmodelingprep.com/api/fx/${pair}?apikey=${apiKey}`);
+              const fx = await fetchJson(`https://financialmodelingprep.com/stable/fx/${pair}?apikey=${apiKey}`);
               const rate = Array.isArray(fx) && fx[0]?.price; if (rate) fcfUsd = fcfUsd * Number(rate);
             } catch {}
           }
@@ -3771,7 +3773,7 @@ export function setupRoutes(app, supabase) {
       if (!symbol) return res.status(400).json({ message: 'symbol is required' });
       const apiKey = process.env.FMP_API_KEY;
       if (!apiKey) return res.status(500).json({ message: 'FMP_API_KEY missing' });
-      const url = `https://financialmodelingprep.com/api/quote/${symbol}?apikey=${apiKey}`;
+      const url = `https://financialmodelingprep.com/stable/quote/${symbol}?apikey=${apiKey}`;
       const r = await fetch(url);
       if (!r.ok) return res.status(502).json({ message: 'FMP error', status: r.status });
       const arr = await r.json();
@@ -3904,7 +3906,7 @@ export function setupRoutes(app, supabase) {
         const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies'];
         const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
         const fetchQuotes = async (symbols) => {
-          const url = `https://financialmodelingprep.com/api/quote/${symbols.join(',')}?apikey=${apiKey}`;
+          const url = `https://financialmodelingprep.com/stable/quote?symbol=${symbols.join(',')}&apikey=${apiKey}`;
           const r = await fetch(url);
           if (!r.ok) throw new Error(`FMP quote ${r.status}`);
           const arr = await r.json();
