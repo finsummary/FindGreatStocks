@@ -3955,12 +3955,13 @@ export function setupRoutes(app, supabase) {
   // Yahoo Finance fallback function
   const fetchYahooFinanceQuote = async (symbol) => {
     try {
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
-      const response = await fetch(url);
-      if (!response.ok) return null;
-      const data = await response.json();
-      if (!data?.chart?.result || data.chart.result.length === 0) return null;
-      const result = data.chart.result[0];
+      // First, get price data from chart endpoint
+      const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
+      const chartResponse = await fetch(chartUrl);
+      if (!chartResponse.ok) return null;
+      const chartData = await chartResponse.json();
+      if (!chartData?.chart?.result || chartData.chart.result.length === 0) return null;
+      const result = chartData.chart.result[0];
       const meta = result.meta;
       const quote = result.indicators?.quote?.[0];
       if (!meta || !quote) return null;
@@ -3970,8 +3971,41 @@ export function setupRoutes(app, supabase) {
       const previousClose = meta.previousClose || currentPrice;
       const change = currentPrice - previousClose;
       const changePercent = previousClose ? (change / previousClose) * 100 : 0;
-      const sharesOutstanding = meta.sharesOutstanding;
-      const marketCap = sharesOutstanding && currentPrice ? sharesOutstanding * currentPrice : null;
+      
+      // Try to get market cap from quoteSummary endpoint (more reliable)
+      let marketCap = null;
+      try {
+        const summaryUrl = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=summaryDetail,defaultKeyStatistics`;
+        const summaryResponse = await fetch(summaryUrl);
+        if (summaryResponse.ok) {
+          const summaryData = await summaryResponse.json();
+          const summary = summaryData?.quoteSummary?.result?.[0];
+          if (summary) {
+            // Try multiple paths for market cap
+            marketCap = summary.defaultKeyStatistics?.marketCap?.raw || 
+                       summary.summaryDetail?.marketCap?.raw ||
+                       summary.defaultKeyStatistics?.enterpriseValue?.raw ||
+                       null;
+            
+            // If market cap not found, try to calculate from shares outstanding
+            if (!marketCap && currentPrice) {
+              const sharesOutstanding = summary.defaultKeyStatistics?.sharesOutstanding?.raw ||
+                                       summary.summaryDetail?.sharesOutstanding?.raw ||
+                                       meta.sharesOutstanding;
+              if (sharesOutstanding) {
+                marketCap = sharesOutstanding * currentPrice;
+              }
+            }
+          }
+        }
+      } catch (summaryError) {
+        // Fallback: try to calculate from chart endpoint data
+        const sharesOutstanding = meta.sharesOutstanding;
+        if (sharesOutstanding && currentPrice) {
+          marketCap = sharesOutstanding * currentPrice;
+        }
+      }
+      
       return {
         symbol: symbol.toUpperCase(),
         price: currentPrice,
