@@ -28,12 +28,17 @@ app.use(express.json());
 setupRoutes(app, supabase);
 
 const port = process.env.PORT || 5002;
-const dataScheduler = new DataScheduler(supabase);
+const dataScheduler = new DataScheduler(port);
 
 // Start the server
 app.listen(port, () => {
   console.log(`🚀 Server running on port ${port}`);
-  console.log(`📊 Data scheduler started`);
+  try {
+    dataScheduler.start();
+    console.log(`📊 Data scheduler started`);
+  } catch (e) {
+    console.error('Scheduler start error:', e);
+  }
 });
 
 // Graceful shutdown
