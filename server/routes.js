@@ -3974,12 +3974,21 @@ export function setupRoutes(app, supabase) {
       
       // Try to get market cap from quoteSummary endpoint (more reliable)
       let marketCap = null;
+      let sharesOutstanding = null;
+      
       try {
         const summaryUrl = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=summaryDetail,defaultKeyStatistics,price`;
-        const summaryResponse = await fetch(summaryUrl);
+        const summaryResponse = await fetch(summaryUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json'
+          }
+        });
+        
         if (summaryResponse.ok) {
           const summaryData = await summaryResponse.json();
           const summary = summaryData?.quoteSummary?.result?.[0];
+          
           if (summary) {
             // Try multiple paths for market cap - check both raw and fmt values
             const marketCapRaw = summary.defaultKeyStatistics?.marketCap?.raw;
@@ -3988,16 +3997,16 @@ export function setupRoutes(app, supabase) {
             
             marketCap = marketCapRaw || marketCapFmt || marketCapFromSummary || null;
             
-            // If market cap not found, try to calculate from shares outstanding
-            if ((!marketCap || marketCap === 0) && currentPrice) {
-              const sharesOutstanding = summary.defaultKeyStatistics?.sharesOutstanding?.raw ||
-                                     summary.defaultKeyStatistics?.sharesOutstanding ||
-                                     summary.summaryDetail?.sharesOutstanding?.raw ||
-                                     summary.summaryDetail?.sharesOutstanding ||
-                                     meta.sharesOutstanding;
-              if (sharesOutstanding && sharesOutstanding > 0) {
-                marketCap = sharesOutstanding * currentPrice;
-              }
+            // Get shares outstanding from multiple sources
+            sharesOutstanding = summary.defaultKeyStatistics?.sharesOutstanding?.raw ||
+                             summary.defaultKeyStatistics?.sharesOutstanding ||
+                             summary.summaryDetail?.sharesOutstanding?.raw ||
+                             summary.summaryDetail?.sharesOutstanding ||
+                             null;
+            
+            // If market cap not found but we have shares outstanding, calculate it
+            if ((!marketCap || marketCap === 0) && currentPrice && sharesOutstanding && sharesOutstanding > 0) {
+              marketCap = sharesOutstanding * currentPrice;
             }
             
             // Debug logging for first few symbols
@@ -4006,25 +4015,45 @@ export function setupRoutes(app, supabase) {
                 marketCapRaw,
                 marketCapFmt,
                 marketCapFromSummary,
-                sharesOutstanding: summary.defaultKeyStatistics?.sharesOutstanding?.raw,
+                sharesOutstandingFromSummary: sharesOutstanding,
                 calculated: sharesOutstanding && currentPrice ? sharesOutstanding * currentPrice : null,
-                finalMarketCap: marketCap
+                finalMarketCap: marketCap,
+                summaryKeys: summary ? Object.keys(summary) : null
+              });
+            }
+          } else {
+            // Log if summary is empty
+            if (symbol === 'AAPL' || symbol === 'MSFT' || symbol === 'GOOGL') {
+              console.warn(`[Yahoo Finance] ${symbol}: quoteSummary returned empty result`, {
+                status: summaryResponse.status,
+                data: summaryData
               });
             }
           }
         } else {
-          // If quoteSummary fails, try to calculate from chart endpoint data
-          const sharesOutstanding = meta.sharesOutstanding;
-          if (sharesOutstanding && sharesOutstanding > 0 && currentPrice) {
-            marketCap = sharesOutstanding * currentPrice;
+          // Log if request failed
+          if (symbol === 'AAPL' || symbol === 'MSFT' || symbol === 'GOOGL') {
+            const errorText = await summaryResponse.text().catch(() => '');
+            console.warn(`[Yahoo Finance] ${symbol}: quoteSummary failed`, {
+              status: summaryResponse.status,
+              error: errorText.substring(0, 200)
+            });
           }
         }
       } catch (summaryError) {
-        // Fallback: try to calculate from chart endpoint data
-        const sharesOutstanding = meta.sharesOutstanding;
-        if (sharesOutstanding && sharesOutstanding > 0 && currentPrice) {
-          marketCap = sharesOutstanding * currentPrice;
+        if (symbol === 'AAPL' || symbol === 'MSFT' || symbol === 'GOOGL') {
+          console.warn(`[Yahoo Finance] ${symbol}: quoteSummary error:`, summaryError?.message || summaryError);
         }
+      }
+      
+      // If still no shares outstanding, try from chart endpoint meta
+      if (!sharesOutstanding && meta.sharesOutstanding) {
+        sharesOutstanding = meta.sharesOutstanding;
+      }
+      
+      // Final calculation: if we have shares outstanding but no market cap, calculate it
+      if (!marketCap && currentPrice && sharesOutstanding && sharesOutstanding > 0) {
+        marketCap = sharesOutstanding * currentPrice;
       }
       
       // Log if market cap is still null for debugging
@@ -4254,18 +4283,22 @@ export function setupRoutes(app, supabase) {
                 
                 const yahooQuote = await fetchYahooFinanceQuote(sym);
                 if (yahooQuote) {
-                  // If Yahoo Finance didn't provide market cap, calculate it from existing DB data
+                  // If Yahoo Finance didn't provide market cap, try to calculate it
                   if (!yahooQuote.marketCap && yahooQuote.price) {
-                    if (existingData?.market_cap && existingData?.price && existingData.price > 0) {
+                    // First, try from existing DB data (if market_cap was not 0)
+                    if (existingData?.market_cap && existingData.market_cap > 0 && existingData?.price && existingData.price > 0) {
                       // Calculate shares outstanding from existing data
                       const sharesOutstanding = Number(existingData.market_cap) / Number(existingData.price);
-                      if (sharesOutstanding > 0) {
+                      if (sharesOutstanding > 0 && !isNaN(sharesOutstanding) && isFinite(sharesOutstanding)) {
                         // Recalculate market cap with new price
                         yahooQuote.marketCap = sharesOutstanding * yahooQuote.price;
                         if (totalUpdated < 5) {
-                          console.log(`[Yahoo Finance] ${sym}: Calculated market cap from existing data: ${yahooQuote.marketCap} (shares: ${sharesOutstanding}, new price: ${yahooQuote.price})`);
+                          console.log(`[Yahoo Finance] ${sym}: Calculated market cap from existing DB data: ${yahooQuote.marketCap} (shares: ${sharesOutstanding.toFixed(0)}, old price: ${existingData.price}, new price: ${yahooQuote.price})`);
                         }
                       }
+                    } else if (totalUpdated < 10) {
+                      // Log if we can't calculate from DB (market_cap is 0 or missing)
+                      console.warn(`[Yahoo Finance] ${sym}: Cannot calculate market cap - existing market_cap: ${existingData?.market_cap}, existing price: ${existingData?.price}, new price: ${yahooQuote.price}`);
                     }
                   }
                   
