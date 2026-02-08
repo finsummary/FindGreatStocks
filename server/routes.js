@@ -4092,6 +4092,75 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Prices: bulk update using Yahoo Finance (no API key required)
+  app.post('/api/prices/update-all-yahoo', async (_req, res) => {
+    try {
+      res.json({ status: 'started', source: 'yahoo-finance' }); // respond immediately
+
+      // background task
+      (async () => {
+        const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies'];
+        const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
+        
+        const applyUpdate = (q) => {
+          const updates = {};
+          const closePrice = (q.price !== undefined && q.price !== null)
+            ? Number(q.price)
+            : (q.previousClose !== undefined ? Number(q.previousClose) : undefined);
+          if (closePrice !== undefined) updates.price = closePrice;
+          if (q.marketCap !== undefined && q.marketCap !== null) updates.market_cap = Number(q.marketCap);
+          if (q.change !== undefined && q.change !== null) updates.daily_change = Number(q.change);
+          if (q.changesPercentage !== undefined && q.changesPercentage !== null) updates.daily_change_percent = Number(q.changesPercentage);
+          updates.last_price_update = new Date().toISOString();
+          return updates;
+        };
+
+        let totalUpdated = 0;
+        let totalFailed = 0;
+
+        for (const t of tables) {
+          try {
+            const { data, error } = await supabase.from(t).select('symbol');
+            if (error) { console.warn('read symbols error', t, error); continue; }
+            const symbols = (data || []).map(r => (r?.symbol || '').toUpperCase()).filter(Boolean);
+            console.log(`[Yahoo Finance] Updating ${symbols.length} symbols from ${t}...`);
+            
+            for (const sym of symbols) {
+              try {
+                const yahooQuote = await fetchYahooFinanceQuote(sym);
+                if (yahooQuote) {
+                  const updates = applyUpdate(yahooQuote);
+                  if (Object.keys(updates).length > 0) {
+                    await supabase.from(t).update(updates).eq('symbol', sym);
+                    totalUpdated++;
+                    if (totalUpdated % 50 === 0) {
+                      console.log(`[Yahoo Finance] Updated ${totalUpdated} companies so far...`);
+                    }
+                  }
+                } else {
+                  totalFailed++;
+                }
+                // Rate limiting - 100ms delay between requests
+                await new Promise(r => setTimeout(r, 100));
+              } catch (e) {
+                totalFailed++;
+                console.warn(`[Yahoo Finance] Error updating ${sym} in ${t}:`, e?.message || e);
+              }
+            }
+            console.log(`[Yahoo Finance] Completed ${t}: ${totalUpdated} updated, ${totalFailed} failed`);
+          } catch (e) {
+            console.warn(`[Yahoo Finance] Table update error ${t}:`, e?.message || e);
+          }
+        }
+        
+        console.log(`[Yahoo Finance] Total: ${totalUpdated} updated, ${totalFailed} failed`);
+      })().catch(e => console.error('prices/update-all-yahoo bg error', e));
+    } catch (e) {
+      console.error('prices/update-all-yahoo error:', e);
+      return res.status(500).json({ message: 'Failed to start Yahoo Finance update' });
+    }
+  });
+
   // Watchlist endpoints
   app.get('/api/watchlist', isAuthenticated, async (req, res) => {
     try {
