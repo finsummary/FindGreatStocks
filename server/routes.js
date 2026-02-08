@@ -4285,19 +4285,47 @@ export function setupRoutes(app, supabase) {
                 if (yahooQuote) {
                   // If Yahoo Finance didn't provide market cap, try to calculate it
                   if (!yahooQuote.marketCap && yahooQuote.price) {
+                    let calculatedMarketCap = null;
+                    
                     // First, try from existing DB data (if market_cap was not 0)
                     if (existingData?.market_cap && existingData.market_cap > 0 && existingData?.price && existingData.price > 0) {
                       // Calculate shares outstanding from existing data
                       const sharesOutstanding = Number(existingData.market_cap) / Number(existingData.price);
                       if (sharesOutstanding > 0 && !isNaN(sharesOutstanding) && isFinite(sharesOutstanding)) {
                         // Recalculate market cap with new price
-                        yahooQuote.marketCap = sharesOutstanding * yahooQuote.price;
+                        calculatedMarketCap = sharesOutstanding * yahooQuote.price;
                         if (totalUpdated < 5) {
-                          console.log(`[Yahoo Finance] ${sym}: Calculated market cap from existing DB data: ${yahooQuote.marketCap} (shares: ${sharesOutstanding.toFixed(0)}, old price: ${existingData.price}, new price: ${yahooQuote.price})`);
+                          console.log(`[Yahoo Finance] ${sym}: Calculated market cap from existing DB data: ${calculatedMarketCap} (shares: ${sharesOutstanding.toFixed(0)}, old price: ${existingData.price}, new price: ${yahooQuote.price})`);
                         }
                       }
+                    }
+                    
+                    // If still no market cap, try to get from FMP API as last resort (if available)
+                    if (!calculatedMarketCap && process.env.FMP_API_KEY) {
+                      try {
+                        // Try to get shares outstanding from FMP key-metrics endpoint
+                        const fmpUrl = `https://financialmodelingprep.com/stable/key-metrics-ttm/${sym}?apikey=${process.env.FMP_API_KEY}`;
+                        const fmpResponse = await fetch(fmpUrl);
+                        if (fmpResponse.ok) {
+                          const fmpData = await fmpResponse.json();
+                          if (Array.isArray(fmpData) && fmpData.length > 0 && fmpData[0].sharesOutstandingTTM) {
+                            const sharesOutstanding = fmpData[0].sharesOutstandingTTM;
+                            calculatedMarketCap = sharesOutstanding * yahooQuote.price;
+                            if (totalUpdated < 5) {
+                              console.log(`[Yahoo Finance] ${sym}: Calculated market cap from FMP shares outstanding: ${calculatedMarketCap} (shares: ${sharesOutstanding}, price: ${yahooQuote.price})`);
+                            }
+                          }
+                        }
+                      } catch (fmpError) {
+                        // Ignore FMP errors
+                      }
+                    }
+                    
+                    // Use calculated market cap if we got one
+                    if (calculatedMarketCap && calculatedMarketCap > 0) {
+                      yahooQuote.marketCap = calculatedMarketCap;
                     } else if (totalUpdated < 10) {
-                      // Log if we can't calculate from DB (market_cap is 0 or missing)
+                      // Log if we can't calculate from any source
                       console.warn(`[Yahoo Finance] ${sym}: Cannot calculate market cap - existing market_cap: ${existingData?.market_cap}, existing price: ${existingData?.price}, new price: ${yahooQuote.price}`);
                     }
                   }
