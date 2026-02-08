@@ -4035,6 +4035,26 @@ export function setupRoutes(app, supabase) {
         });
       }
       
+      // If market cap is still null, try one more endpoint - quote endpoint
+      if (!marketCap && currentPrice) {
+        try {
+          const quoteUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`;
+          const quoteResponse = await fetch(quoteUrl);
+          if (quoteResponse.ok) {
+            const quoteData = await quoteResponse.json();
+            const quote = quoteData?.quoteResponse?.result?.[0];
+            if (quote) {
+              marketCap = quote.marketCap || quote.regularMarketMarketCap || null;
+              if (!marketCap && quote.sharesOutstanding && currentPrice) {
+                marketCap = quote.sharesOutstanding * currentPrice;
+              }
+            }
+          }
+        } catch (quoteError) {
+          // Ignore quote endpoint errors
+        }
+      }
+      
       return {
         symbol: symbol.toUpperCase(),
         price: currentPrice,
