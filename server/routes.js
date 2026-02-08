@@ -4192,12 +4192,18 @@ export function setupRoutes(app, supabase) {
                 const yahooQuote = await fetchYahooFinanceQuote(sym);
                 if (yahooQuote) {
                   const updates = applyUpdate(yahooQuote);
+                  // Log market cap for first few symbols to debug
+                  if (totalUpdated < 5) {
+                    console.log(`[Yahoo Finance] ${sym}: price=${yahooQuote.price}, marketCap=${yahooQuote.marketCap}, updates.market_cap=${updates.market_cap}`);
+                  }
                   if (Object.keys(updates).length > 0) {
                     await supabase.from(t).update(updates).eq('symbol', sym);
                     totalUpdated++;
                     if (totalUpdated % 50 === 0) {
                       console.log(`[Yahoo Finance] Updated ${totalUpdated} companies so far...`);
                     }
+                  } else if (totalUpdated < 5) {
+                    console.warn(`[Yahoo Finance] ${sym}: No updates to apply`);
                   }
                 } else {
                   totalFailed++;
