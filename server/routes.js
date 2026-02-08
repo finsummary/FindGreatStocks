@@ -3952,6 +3952,40 @@ export function setupRoutes(app, supabase) {
     }
   });
 
+  // Yahoo Finance fallback function
+  const fetchYahooFinanceQuote = async (symbol) => {
+    try {
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
+      const response = await fetch(url);
+      if (!response.ok) return null;
+      const data = await response.json();
+      if (!data?.chart?.result || data.chart.result.length === 0) return null;
+      const result = data.chart.result[0];
+      const meta = result.meta;
+      const quote = result.indicators?.quote?.[0];
+      if (!meta || !quote) return null;
+      const prices = quote.close || [];
+      const lastIndex = prices.length - 1;
+      const currentPrice = prices[lastIndex];
+      const previousClose = meta.previousClose || currentPrice;
+      const change = currentPrice - previousClose;
+      const changePercent = previousClose ? (change / previousClose) * 100 : 0;
+      const sharesOutstanding = meta.sharesOutstanding;
+      const marketCap = sharesOutstanding && currentPrice ? sharesOutstanding * currentPrice : null;
+      return {
+        symbol: symbol.toUpperCase(),
+        price: currentPrice,
+        previousClose: previousClose,
+        change: change,
+        changesPercentage: changePercent,
+        marketCap: marketCap,
+      };
+    } catch (error) {
+      console.warn(`[Yahoo Finance] Error fetching ${symbol}:`, error.message);
+      return null;
+    }
+  };
+
   // Prices: bulk update for all tables (fire-and-forget)
   // Note: No auth required - called by internal scheduler
   app.post('/api/prices/update-all', async (_req, res) => {
@@ -3965,7 +3999,7 @@ export function setupRoutes(app, supabase) {
         const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies'];
         const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
         const fetchQuotes = async (symbols) => {
-          // Use batch-quote for multiple symbols (documentation shows batch-quote uses 'symbols' parameter)
+          // Try FMP API first
           const url = `https://financialmodelingprep.com/stable/batch-quote?symbols=${symbols.join(',')}&apikey=${apiKey}`;
           const r = await fetch(url);
           if (!r.ok) {
@@ -3978,7 +4012,22 @@ export function setupRoutes(app, supabase) {
               errorMsg += `: ${errorText.substring(0, 200)}`;
             }
             if (r.status === 402) {
-              console.error(`[FMP] 402 Payment Required - Check API subscription and limits. Response:`, errorText.substring(0, 300));
+              console.error(`[FMP] 402 Payment Required - Falling back to Yahoo Finance. Response:`, errorText.substring(0, 300));
+              // Fallback to Yahoo Finance
+              console.log(`[Yahoo Finance] Fetching ${symbols.length} symbols as fallback...`);
+              const yahooMap = new Map();
+              for (const sym of symbols) {
+                const yahooQuote = await fetchYahooFinanceQuote(sym);
+                if (yahooQuote) {
+                  yahooMap.set(sym.toUpperCase(), yahooQuote);
+                }
+                // Rate limiting for Yahoo Finance
+                await new Promise(resolve => setTimeout(resolve, 100));
+              }
+              if (yahooMap.size > 0) {
+                console.log(`[Yahoo Finance] Successfully fetched ${yahooMap.size} quotes`);
+              }
+              return yahooMap;
             }
             throw new Error(errorMsg);
           }
