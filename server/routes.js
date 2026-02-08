@@ -12,7 +12,10 @@ const PROFILE_TTL_MS = 12 * 60 * 60 * 1000; // 12h
 
 async function fetchProfilesBatch(symbols) {
   const apiKey = process.env.FMP_API_KEY;
-  if (!apiKey || !symbols.length) return;
+  if (!apiKey || !symbols.length) {
+    if (!apiKey) console.warn('[FMP] FMP_API_KEY is missing or empty');
+    return;
+  }
   const chunkSize = 50;
   const chunks = [];
   for (let i = 0; i < symbols.length; i += chunkSize) chunks.push(symbols.slice(i, i + chunkSize));
@@ -20,14 +23,22 @@ async function fetchProfilesBatch(symbols) {
     try {
       const url = `https://financialmodelingprep.com/api/v3/profile/${group.join(',')}?apikey=${apiKey}`;
       const r = await fetch(url);
-      if (!r.ok) { console.warn('FMP profile batch error', r.status); continue; }
+      if (!r.ok) {
+        const errorText = await r.text().catch(() => '');
+        if (r.status === 403) {
+          console.error('[FMP] 403 Forbidden - Check API key validity and rate limits. Response:', errorText.substring(0, 200));
+        } else {
+          console.warn('[FMP] profile batch error', r.status, errorText.substring(0, 100));
+        }
+        continue;
+      }
       const arr = await r.json();
       for (const p of (Array.isArray(arr) ? arr : [])) {
         if (!p?.symbol) continue;
         profileCache.set(String(p.symbol).toUpperCase(), { ipoDate: p.ipoDate || null, ts: Date.now() });
       }
     } catch (e) {
-      console.warn('fetchProfilesBatch error', e?.message || e);
+      console.warn('[FMP] fetchProfilesBatch error', e?.message || e);
     }
   }
 }
@@ -3043,7 +3054,10 @@ export function setupRoutes(app, supabase) {
   // Helpers: bulk price updates (inline JS, no TS deps)
   async function bulkUpdatePricesFor(tableName) {
     const apiKey = process.env.FMP_API_KEY;
-    if (!apiKey) throw new Error('FMP_API_KEY missing');
+    if (!apiKey) {
+      console.error(`[FMP] FMP_API_KEY missing for ${tableName} price update`);
+      throw new Error('FMP_API_KEY missing');
+    }
     const { data: rows, error } = await supabase.from(tableName).select('symbol');
     if (error) throw error;
     const symbols = (rows || []).map(r => r.symbol).filter(Boolean);
@@ -3053,7 +3067,15 @@ export function setupRoutes(app, supabase) {
       try {
         const url = `https://financialmodelingprep.com/api/v3/quote/${group.join(',')}?apikey=${apiKey}`;
         const r = await fetch(url);
-        if (!r.ok) { console.warn('FMP group error', tableName, r.status); continue; }
+        if (!r.ok) {
+          const errorText = await r.text().catch(() => '');
+          if (r.status === 403) {
+            console.error(`[FMP] 403 Forbidden for ${tableName} - Check API key validity and rate limits. Response:`, errorText.substring(0, 200));
+          } else {
+            console.warn(`[FMP] quote error for ${tableName}`, r.status, errorText.substring(0, 100));
+          }
+          continue;
+        }
         const arr = await r.json();
         for (const q of (Array.isArray(arr) ? arr : [])) {
           if (!q?.symbol) continue;
