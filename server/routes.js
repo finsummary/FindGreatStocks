@@ -4245,8 +4245,30 @@ export function setupRoutes(app, supabase) {
             
             for (const sym of symbols) {
               try {
+                // Get existing market cap and price from DB to calculate shares outstanding
+                const { data: existingData } = await supabase
+                  .from(t)
+                  .select('market_cap, price')
+                  .eq('symbol', sym)
+                  .single();
+                
                 const yahooQuote = await fetchYahooFinanceQuote(sym);
                 if (yahooQuote) {
+                  // If Yahoo Finance didn't provide market cap, calculate it from existing DB data
+                  if (!yahooQuote.marketCap && yahooQuote.price) {
+                    if (existingData?.market_cap && existingData?.price && existingData.price > 0) {
+                      // Calculate shares outstanding from existing data
+                      const sharesOutstanding = Number(existingData.market_cap) / Number(existingData.price);
+                      if (sharesOutstanding > 0) {
+                        // Recalculate market cap with new price
+                        yahooQuote.marketCap = sharesOutstanding * yahooQuote.price;
+                        if (totalUpdated < 5) {
+                          console.log(`[Yahoo Finance] ${sym}: Calculated market cap from existing data: ${yahooQuote.marketCap} (shares: ${sharesOutstanding}, new price: ${yahooQuote.price})`);
+                        }
+                      }
+                    }
+                  }
+                  
                   const updates = applyUpdate(yahooQuote);
                   // Log market cap for first few symbols to debug
                   if (totalUpdated < 5) {
