@@ -3981,29 +3981,45 @@ export function setupRoutes(app, supabase) {
           const summaryData = await summaryResponse.json();
           const summary = summaryData?.quoteSummary?.result?.[0];
           if (summary) {
-            // Try multiple paths for market cap
+            // Try multiple paths for market cap - check both raw and fmt values
             marketCap = summary.defaultKeyStatistics?.marketCap?.raw || 
+                       summary.defaultKeyStatistics?.marketCap ||
                        summary.summaryDetail?.marketCap?.raw ||
+                       summary.summaryDetail?.marketCap ||
                        summary.defaultKeyStatistics?.enterpriseValue?.raw ||
+                       summary.defaultKeyStatistics?.enterpriseValue ||
                        null;
             
             // If market cap not found, try to calculate from shares outstanding
-            if (!marketCap && currentPrice) {
+            if ((!marketCap || marketCap === 0) && currentPrice) {
               const sharesOutstanding = summary.defaultKeyStatistics?.sharesOutstanding?.raw ||
-                                       summary.summaryDetail?.sharesOutstanding?.raw ||
-                                       meta.sharesOutstanding;
-              if (sharesOutstanding) {
+                                     summary.defaultKeyStatistics?.sharesOutstanding ||
+                                     summary.summaryDetail?.sharesOutstanding?.raw ||
+                                     summary.summaryDetail?.sharesOutstanding ||
+                                     meta.sharesOutstanding;
+              if (sharesOutstanding && sharesOutstanding > 0) {
                 marketCap = sharesOutstanding * currentPrice;
               }
             }
+          }
+        } else {
+          // If quoteSummary fails, try to calculate from chart endpoint data
+          const sharesOutstanding = meta.sharesOutstanding;
+          if (sharesOutstanding && sharesOutstanding > 0 && currentPrice) {
+            marketCap = sharesOutstanding * currentPrice;
           }
         }
       } catch (summaryError) {
         // Fallback: try to calculate from chart endpoint data
         const sharesOutstanding = meta.sharesOutstanding;
-        if (sharesOutstanding && currentPrice) {
+        if (sharesOutstanding && sharesOutstanding > 0 && currentPrice) {
           marketCap = sharesOutstanding * currentPrice;
         }
+      }
+      
+      // Log if market cap is still null for debugging
+      if (!marketCap && currentPrice) {
+        console.warn(`[Yahoo Finance] Market cap not found for ${symbol}, price: ${currentPrice}`);
       }
       
       return {
@@ -4080,7 +4096,13 @@ export function setupRoutes(app, supabase) {
             ? Number(q.price)
             : (q.previousClose !== undefined ? Number(q.previousClose) : undefined);
           if (closePrice !== undefined) updates.price = closePrice;
-          if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
+          // Market cap: only update if we have a valid value (not null, not 0, not undefined)
+          if (q.marketCap !== undefined && q.marketCap !== null && q.marketCap !== 0) {
+            const marketCapValue = Number(q.marketCap);
+            if (!isNaN(marketCapValue) && marketCapValue > 0) {
+              updates.market_cap = marketCapValue;
+            }
+          }
           if (q.change !== undefined) updates.daily_change = Number(q.change);
           if (q.changesPercentage !== undefined) updates.daily_change_percent = Number(q.changesPercentage);
           // Update timestamp when price is updated
@@ -4142,7 +4164,13 @@ export function setupRoutes(app, supabase) {
             ? Number(q.price)
             : (q.previousClose !== undefined ? Number(q.previousClose) : undefined);
           if (closePrice !== undefined) updates.price = closePrice;
-          if (q.marketCap !== undefined && q.marketCap !== null) updates.market_cap = Number(q.marketCap);
+          // Market cap: only update if we have a valid value (not null, not 0, not undefined)
+          if (q.marketCap !== undefined && q.marketCap !== null && q.marketCap !== 0) {
+            const marketCapValue = Number(q.marketCap);
+            if (!isNaN(marketCapValue) && marketCapValue > 0) {
+              updates.market_cap = marketCapValue;
+            }
+          }
           if (q.change !== undefined && q.change !== null) updates.daily_change = Number(q.change);
           if (q.changesPercentage !== undefined && q.changesPercentage !== null) updates.daily_change_percent = Number(q.changesPercentage);
           updates.last_price_update = new Date().toISOString();
