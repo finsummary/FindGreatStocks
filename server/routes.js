@@ -3975,20 +3975,18 @@ export function setupRoutes(app, supabase) {
       // Try to get market cap from quoteSummary endpoint (more reliable)
       let marketCap = null;
       try {
-        const summaryUrl = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=summaryDetail,defaultKeyStatistics`;
+        const summaryUrl = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=summaryDetail,defaultKeyStatistics,price`;
         const summaryResponse = await fetch(summaryUrl);
         if (summaryResponse.ok) {
           const summaryData = await summaryResponse.json();
           const summary = summaryData?.quoteSummary?.result?.[0];
           if (summary) {
             // Try multiple paths for market cap - check both raw and fmt values
-            marketCap = summary.defaultKeyStatistics?.marketCap?.raw || 
-                       summary.defaultKeyStatistics?.marketCap ||
-                       summary.summaryDetail?.marketCap?.raw ||
-                       summary.summaryDetail?.marketCap ||
-                       summary.defaultKeyStatistics?.enterpriseValue?.raw ||
-                       summary.defaultKeyStatistics?.enterpriseValue ||
-                       null;
+            const marketCapRaw = summary.defaultKeyStatistics?.marketCap?.raw;
+            const marketCapFmt = summary.defaultKeyStatistics?.marketCap;
+            const marketCapFromSummary = summary.summaryDetail?.marketCap?.raw || summary.summaryDetail?.marketCap;
+            
+            marketCap = marketCapRaw || marketCapFmt || marketCapFromSummary || null;
             
             // If market cap not found, try to calculate from shares outstanding
             if ((!marketCap || marketCap === 0) && currentPrice) {
@@ -4000,6 +3998,18 @@ export function setupRoutes(app, supabase) {
               if (sharesOutstanding && sharesOutstanding > 0) {
                 marketCap = sharesOutstanding * currentPrice;
               }
+            }
+            
+            // Debug logging for first few symbols
+            if (symbol === 'AAPL' || symbol === 'MSFT' || symbol === 'GOOGL') {
+              console.log(`[Yahoo Finance Debug] ${symbol}:`, {
+                marketCapRaw,
+                marketCapFmt,
+                marketCapFromSummary,
+                sharesOutstanding: summary.defaultKeyStatistics?.sharesOutstanding?.raw,
+                calculated: sharesOutstanding && currentPrice ? sharesOutstanding * currentPrice : null,
+                finalMarketCap: marketCap
+              });
             }
           }
         } else {
@@ -4019,7 +4029,10 @@ export function setupRoutes(app, supabase) {
       
       // Log if market cap is still null for debugging
       if (!marketCap && currentPrice) {
-        console.warn(`[Yahoo Finance] Market cap not found for ${symbol}, price: ${currentPrice}`);
+        console.warn(`[Yahoo Finance] Market cap not found for ${symbol}, price: ${currentPrice}, meta:`, {
+          sharesOutstanding: meta.sharesOutstanding,
+          regularMarketPrice: meta.regularMarketPrice
+        });
       }
       
       return {
