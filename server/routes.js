@@ -196,8 +196,8 @@ export function setupStripeWebhook(app, supabase) {
           const customerId = (session.customer && typeof session.customer === 'string') ? session.customer : null;
           const subscriptionId = (session.subscription && typeof session.subscription === 'string') ? session.subscription : null;
           let tier = 'paid';
-          if (session.mode === 'payment' || plan === 'lifetime') tier = 'lifetime';
-          if (plan === 'annual') tier = 'annual';
+          if (plan === 'monthly') tier = 'monthly';
+          else if (plan === 'annual') tier = 'annual';
           else if (plan === 'quarterly') tier = 'quarterly';
           // If plan not provided, try to infer from subscription price
           try {
@@ -205,8 +205,10 @@ export function setupStripeWebhook(app, supabase) {
               const sub = await stripe.subscriptions.retrieve(subscriptionId, { expand: ['items.data.price'] });
               const price = sub?.items?.data?.[0]?.price;
               const nickname = (price?.nickname || '').toString().toLowerCase();
-              if (nickname.includes('annual')) tier = 'annual';
-              else if (nickname.includes('quarter')) tier = 'quarterly';
+              const interval = price?.recurring?.interval;
+              if (nickname.includes('annual') || interval === 'year') tier = 'annual';
+              else if (nickname.includes('monthly') || interval === 'month') tier = 'monthly';
+              else if (nickname.includes('quarter') || interval === 'quarter') tier = 'quarterly';
             }
           } catch {}
           await updateUserTier({ userId, email: session.customer_details?.email, tier, customerId, subscriptionId });
@@ -217,14 +219,22 @@ export function setupStripeWebhook(app, supabase) {
           const status = (sub.status || '').toString();
           const customerId = (sub.customer && typeof sub.customer === 'string') ? sub.customer : null;
           const subscriptionId = (sub.id || null);
-          let tier = (status === 'active' || status === 'trialing') ? 'paid' : 'free';
-          // try to map plan from price nickname
-          try {
-            const price = sub?.items?.data?.[0]?.price;
-            const nickname = (price?.nickname || '').toString().toLowerCase();
-            if (nickname.includes('annual')) tier = (status === 'active' || status === 'trialing') ? 'annual' : 'free';
-            else if (nickname.includes('quarter')) tier = (status === 'active' || status === 'trialing') ? 'quarterly' : 'free';
-          } catch {}
+          let tier = 'free';
+          if (status === 'active' || status === 'trialing') {
+            // Determine tier from subscription price
+            try {
+              const expandedSub = await stripe.subscriptions.retrieve(sub.id, { expand: ['items.data.price'] });
+              const price = expandedSub?.items?.data?.[0]?.price;
+              const interval = price?.recurring?.interval;
+              const nickname = (price?.nickname || '').toString().toLowerCase();
+              if (interval === 'year' || nickname.includes('annual')) tier = 'annual';
+              else if (interval === 'month' || nickname.includes('monthly')) tier = 'monthly';
+              else if (interval === 'quarter' || nickname.includes('quarter')) tier = 'quarterly';
+              else tier = 'paid';
+            } catch {
+              tier = 'paid';
+            }
+          }
           // try find user by stripe_customer_id
           try {
             const { data } = await supabase.from('users').select('id,email').eq('stripe_customer_id', customerId).limit(1);
@@ -4854,16 +4864,15 @@ export function setupRoutes(app, supabase) {
       const planLower = (plan || '').toString().toLowerCase();
       let resolvedPriceId = priceId;
       if (!resolvedPriceId) {
+        const monthly = process.env.STRIPE_MONTHLY_PRICE_ID || process.env.STRIPE_PRICE_MONTHLY;
         const annual = process.env.STRIPE_ANNUAL_PRICE_ID || process.env.STRIPE_PRICE_ANNUAL;
         const quarterly = process.env.STRIPE_QUARTERLY_PRICE_ID || process.env.STRIPE_PRICE_QUARTERLY;
-        const lifetime = process.env.STRIPE_LIFETIME_PRICE_ID || process.env.STRIPE_PRICE_LIFETIME;
+        if (planLower === 'monthly' && monthly) resolvedPriceId = monthly;
         if (planLower === 'annual' && annual) resolvedPriceId = annual;
         if (planLower === 'quarterly' && quarterly) resolvedPriceId = quarterly;
-        if (planLower === 'lifetime' && lifetime) resolvedPriceId = lifetime;
       }
       if (!resolvedPriceId) return res.status(400).json({ error: { message: 'Price ID is required' } });
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' });
-      const isLifetime = planLower === 'lifetime';
       // Try to reuse existing Stripe customer; otherwise create one via Checkout
       let customerId = null; let userEmail = null;
       try {
@@ -4879,26 +4888,19 @@ export function setupRoutes(app, supabase) {
       const baseParams = {
         payment_method_types: ['card'],
         line_items: [{ price: resolvedPriceId, quantity: 1 }],
-        mode: isLifetime ? 'payment' : 'subscription',
+        mode: 'subscription',
         success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.CLIENT_URL}/payment-cancelled`,
         metadata: { userId: req.user.id, priceId: resolvedPriceId, plan: planLower || null },
+        subscription_data: {
+          trial_period_days: 7, // 7-day free trial for all subscriptions
+        },
       };
 
       const sessionParams = customerId
         ? { ...baseParams, customer: customerId, customer_update: { name: 'auto', address: 'auto' } }
         : { ...baseParams, customer_email: userEmail || undefined, customer_creation: 'always' };
 
-      // Add PI metadata for lifetime (one‑time) so refunds can map back to userId
-      if (isLifetime) {
-        sessionParams.payment_intent_data = Object.assign({}, sessionParams.payment_intent_data || {}, {
-          metadata: Object.assign({
-            userId: String(req.user.id),
-            plan: 'lifetime',
-            priceId: String(resolvedPriceId),
-          }, (sessionParams.payment_intent_data && sessionParams.payment_intent_data.metadata) || {})
-        });
-      }
 
       const session = await stripe.checkout.sessions.create(sessionParams);
       return res.json({ sessionId: session.id, url: session.url });

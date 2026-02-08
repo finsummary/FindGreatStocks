@@ -305,7 +305,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const isLoggedIn = !!user || !!session;
   const tier = (user?.subscriptionTier as any);
   const premiumAllow = useFlag('premium:allow'); // allow premium via feature flag allowlist
-  const isPaidUser = (tier === 'paid' || tier === 'quarterly' || tier === 'annual' || tier === 'lifetime' || premiumAllow);
+  const isPaidUser = (tier === 'paid' || tier === 'monthly' || tier === 'quarterly' || tier === 'annual' || premiumAllow);
   // Layout access via flags (admin allowlist or rollout)
   const layoutAccess: Record<string, boolean> = {
     dcfValuation: useFlag('layout:dcf'),
@@ -442,7 +442,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
     showUpgradeButton: !authLoading && !isPaidUser
   });
 
-  const handleUpgradeClick = async ({ priceId, plan }: { priceId?: string; plan: 'annual' | 'quarterly' | 'lifetime' }) => {
+  const handleUpgradeClick = async ({ priceId, plan }: { priceId?: string; plan: 'monthly' | 'annual' | 'quarterly' }) => {
     console.log(`[1/5] handleUpgradeClick triggered with priceId: ${priceId}`);
 
     if (!session) {
@@ -1281,7 +1281,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                           <MoreVertical className="h-4 w-4 flex-shrink-0" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuContent align="end" side="top" sideOffset={4} className="w-56">
                         <DropdownMenuLabel>Actions for {row.symbol}</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => {

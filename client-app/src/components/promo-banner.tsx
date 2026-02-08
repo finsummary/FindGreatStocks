@@ -72,7 +72,7 @@ export function PromoBanner({ onClaimNow }: PromoBannerProps) {
     <div className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-center py-2 px-4 relative z-50">
       <div className="container mx-auto flex items-center justify-center gap-2 text-sm sm:text-base">
         <span className="font-semibold">
-          🎉 Get Limited Time <strong>Lifetime Deal</strong> for <strong>$49</strong> (instead of $199) while in beta!
+          🎉 Start your <strong>7-day free trial</strong> - Get full access to all premium features!
         </span>
         <button
           onClick={onClaimNow}

@@ -136,7 +136,7 @@ function App() {
     navigate('/'); // Redirect to home after logout
   };
 
-  const handleUpgradeClick = async ({ priceId, plan }: { priceId?: string; plan: 'annual' | 'quarterly' | 'lifetime' }) => {
+  const handleUpgradeClick = async ({ priceId, plan }: { priceId?: string; plan: 'monthly' | 'annual' | 'quarterly' }) => {
     if (!user) {
       // redirect unauthenticated users to login/signup flow
       window.location.href = '/login';

@@ -68,9 +68,9 @@ export function WatchlistPage() {
   // For now, allow all authenticated users to use multiple watchlists
   // TODO: Restrict to premium users later if needed
   const isPaidUser = true; // user?.subscriptionTier === 'paid' || 
+                     // user?.subscriptionTier === 'monthly' ||
                      // user?.subscriptionTier === 'quarterly' || 
-                     // user?.subscriptionTier === 'annual' || 
-                     // user?.subscriptionTier === 'lifetime';
+                     // user?.subscriptionTier === 'annual';
 
   return (
     <div className="space-y-6">
@@ -134,14 +134,12 @@ export function WatchlistPage() {
 
       {/* Watchlist Table (full-featured) */}
       {selectedWatchlistId !== null ? (
-        <div data-tour="watchlist-table">
-          <CompanyTable 
-            searchQuery={searchQuery} 
-            dataset="watchlist" 
-            activeTab="watchlist"
-            watchlistId={selectedWatchlistId}
-          />
-        </div>
+        <CompanyTable 
+          searchQuery={searchQuery} 
+          dataset="watchlist" 
+          activeTab="watchlist"
+          watchlistId={selectedWatchlistId}
+        />
       ) : watchlistsLoading ? (
         <div className="text-center text-muted-foreground py-8">Loading watchlists...</div>
       ) : (

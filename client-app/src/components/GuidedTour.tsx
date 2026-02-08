@@ -128,8 +128,8 @@ export function GuidedTour({ run, onComplete, onStop }: GuidedTourProps) {
             intro: `
               <h3 style="font-weight: 600; font-size: 1.125rem; margin-bottom: 0.5rem;">Unlock Premium</h3>
               <p style="font-size: 0.875rem;">
-                Get access to all markets (S&P 500, Nasdaq 100) and all layouts with our Lifetime Deal for just $49.
-                This is a one-time payment for lifetime access!
+                Get access to all markets (S&P 500, Nasdaq 100) and all layouts with a 7-day free trial.
+                Choose monthly ($9/mo) or annual ($49/yr) subscription.
               </p>
             `,
             element: '[data-tour="upgrade"]',
