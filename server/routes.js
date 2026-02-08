@@ -3987,6 +3987,8 @@ export function setupRoutes(app, supabase) {
           if (q.marketCap !== undefined) updates.market_cap = Number(q.marketCap);
           if (q.change !== undefined) updates.daily_change = Number(q.change);
           if (q.changesPercentage !== undefined) updates.daily_change_percent = Number(q.changesPercentage);
+          // Update timestamp when price is updated
+          updates.last_price_update = new Date().toISOString();
           return updates;
         };
 
