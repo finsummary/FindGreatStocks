@@ -3973,7 +3973,7 @@ export function setupRoutes(app, supabase) {
             let errorMsg = `FMP quote ${r.status}`;
             try {
               const errorJson = JSON.parse(errorText);
-              errorMsg += `: ${errorJson.Error Message || errorJson.message || errorText.substring(0, 200)}`;
+              errorMsg += `: ${errorJson['Error Message'] || errorJson.message || errorText.substring(0, 200)}`;
             } catch {
               errorMsg += `: ${errorText.substring(0, 200)}`;
             }
