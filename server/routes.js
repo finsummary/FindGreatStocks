@@ -2668,7 +2668,14 @@ export function setupRoutes(app, supabase) {
       }
       const { data, count, error } = await query;
       if (error) {
-        console.error(`Supabase error in listFromTable(${tableName}):`, error);
+        // Log full error details for debugging
+        console.error(`Supabase error in listFromTable(${tableName}):`, {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          fullError: JSON.stringify(error, null, 2)
+        });
         // Возвращаем пустой результат вместо 500, чтобы не падал фронт при префетче
         return res.json({ companies: [], total: 0, limit, offset, hasMore: false });
       }
