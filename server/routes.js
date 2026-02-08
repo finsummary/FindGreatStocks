@@ -2647,6 +2647,10 @@ export function setupRoutes(app, supabase) {
 
   // Helper: list from a specific table (sp500, nasdaq100, dowjones)
   async function listFromTable(tableName, req, res) {
+    // Log entry point for debugging
+    if (tableName === 'dow_jones_companies') {
+      console.log(`[${tableName}] === listFromTable called ===`);
+    }
     try {
       const limit = parseInt(req.query.limit) || 50;
       const offset = parseInt(req.query.offset) || 0;
@@ -2656,6 +2660,10 @@ export function setupRoutes(app, supabase) {
       let orderCol = sortMap[sortBy] || 'market_cap';
       if ((orderCol === 'roic_10y_avg' || orderCol === 'roic_10y_std' || orderCol === 'fcf_margin_median_10y') && tableName !== 'companies') {
         orderCol = 'market_cap';
+      }
+      
+      if (tableName === 'dow_jones_companies') {
+        console.log(`[${tableName}] Parameters: limit=${limit}, offset=${offset}, sortBy=${sortBy}, orderCol=${orderCol}`);
       }
 
       // Special handling for dow_jones_companies - try simpler query first
