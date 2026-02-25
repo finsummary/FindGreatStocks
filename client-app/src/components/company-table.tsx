@@ -111,6 +111,13 @@ export const ALL_COLUMNS: ColumnConfig[] = [
   { id: 'roicStability', label: 'ROIC Stability Ratio', width: 'w-[120px] sm:w-[140px]', defaultVisible: false },
   { id: 'roicStabilityScore', label: 'ROIC Stability Score', width: 'w-[130px] sm:w-[150px]', defaultVisible: false },
   { id: 'roicHistory', label: 'ROIC History (10Y)', width: 'w-[150px] sm:w-[180px]', defaultVisible: false },
+  { id: 'revenueGrowth1Y', label: 'Rev G 1Y', width: 'w-[72px] sm:w-[90px]', defaultVisible: false },
+  { id: 'projectedRevenue5Y', label: 'Proj Rev 5Y', width: 'w-[100px] sm:w-[120px]', defaultVisible: false },
+  { id: 'projectedRevenue10Y', label: 'Proj Rev 10Y', width: 'w-[100px] sm:w-[120px]', defaultVisible: false },
+  { id: 'projectedEarnings5Y', label: 'Proj Earn 5Y', width: 'w-[100px] sm:w-[120px]', defaultVisible: false },
+  { id: 'projectedEarnings10Y', label: 'Proj Earn 10Y', width: 'w-[100px] sm:w-[120px]', defaultVisible: false },
+  { id: 'marketCapToEarnings5Y', label: 'Mkt Cap/Earn 5Y', width: 'w-[110px] sm:w-[130px]', defaultVisible: false },
+  { id: 'marketCapToEarnings10Y', label: 'Mkt Cap/Earn 10Y', width: 'w-[110px] sm:w-[130px]', defaultVisible: false },
 ];
 
 const PRESET_LAYOUTS = {
@@ -139,6 +146,10 @@ const PRESET_LAYOUTS = {
     name: 'Cashflow & Leverage',
     columns: ['watchlist', 'rank', 'name', 'marketCap', 'price', 'freeCashFlow', 'fcfMargin', 'fcfMarginMedian10Y', 'fcfMarginHistory', 'debtToEquity', 'interestCoverage', 'cashFlowToDebt'],
   },
+  'futureEarningsMultiple': {
+    name: 'Future Earnings Multiple (FEM)',
+    columns: ['watchlist', 'rank', 'name', 'price', 'marketCap', 'revenue', 'netIncome', 'netProfitMargin', 'peRatio', 'revenueGrowth10Y', 'revenueGrowth1Y', 'revenueHistory', 'projectedRevenue5Y', 'projectedRevenue10Y', 'projectedEarnings5Y', 'projectedEarnings10Y', 'marketCapToEarnings5Y', 'marketCapToEarnings10Y'],
+  },
 };
 
 const LAYOUT_DESCRIPTIONS: Record<string, { title: string; description: string; link: string }> = {
@@ -166,10 +177,15 @@ const LAYOUT_DESCRIPTIONS: Record<string, { title: string; description: string; 
     title: "Cashflow & Leverage Analysis",
     description: "This layout focuses on a company's cash generation and debt management. It shows Free Cash Flow metrics (current and 10-year median margins) along with leverage ratios (Debt-to-Equity, Interest Coverage, Cash Flow to Debt) to assess financial health and sustainability.",
     link: "https://blog.findgreatstocks.com"
+  },
+  'futureEarningsMultiple': {
+    title: "Future Earnings Multiple (FEM) Analysis",
+    description: "This layout projects future revenue and earnings based on historical growth rates, then calculates forward-looking valuation multiples. It shows projected revenue and earnings in 5 and 10 years, and compares the current market cap to these future earnings to identify potentially undervalued or overvalued stocks.",
+    link: "https://blog.findgreatstocks.com"
   }
 };
 
-const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlist' | 'none' | 'dcfVerdict' | 'roicHistory' | 'fcfMarginHistory' | 'revenueHistory', string>> = {
+const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlist' | 'none' | 'dcfVerdict' | 'roicHistory' | 'fcfMarginHistory' | 'revenueHistory' | 'revenueGrowth1Y' | 'projectedRevenue5Y' | 'projectedRevenue10Y' | 'projectedEarnings5Y' | 'projectedEarnings10Y' | 'marketCapToEarnings5Y' | 'marketCapToEarnings10Y', string>> = {
   watchlist: 'Add to your personal watchlist. Click the star to add or the lock to sign in.',
   rank: 'Rank based on the current sorting criteria.',
   name: 'Company name and stock ticker symbol.',
@@ -217,6 +233,13 @@ const columnTooltips: Partial<Record<keyof Company | 'rank' | 'name' | 'watchlis
   debtToEquity: 'Debt-to-Equity Ratio = Total Debt ÷ Total Equity. Measures a company\'s financial leverage. Lower is generally better (green <0.5, yellow 0.5-1.0, red >1.0).',
   interestCoverage: 'Interest Coverage Ratio = EBIT ÷ Interest Expense. Measures a company\'s ability to pay interest on its debt. Higher is better (green ≥5, yellow 2-5, red <2).',
   cashFlowToDebt: 'Cash Flow to Debt Ratio = Operating Cash Flow ÷ Total Debt. Measures a company\'s ability to pay off its debt with operating cash flow. Higher is better (green ≥0.5, yellow 0.2-0.5, red <0.2).',
+  revenueGrowth1Y: 'The revenue growth rate over the last 1 year (year-over-year). Calculated as (Current Revenue - Previous Year Revenue) / Previous Year Revenue.',
+  projectedRevenue5Y: 'Projected Revenue in 5 years. Calculated as Current Revenue × (1 + Growth Rate)^5, using the 10Y Revenue Growth rate if available, otherwise 5Y or 1Y rate.',
+  projectedRevenue10Y: 'Projected Revenue in 10 years. Calculated as Current Revenue × (1 + Growth Rate)^10, using the 10Y Revenue Growth rate if available, otherwise 5Y or 1Y rate.',
+  projectedEarnings5Y: 'Projected Earnings (Net Income) in 5 years. Calculated as Projected Revenue 5Y × Earnings Margin (Net Profit Margin).',
+  projectedEarnings10Y: 'Projected Earnings (Net Income) in 10 years. Calculated as Projected Revenue 10Y × Earnings Margin (Net Profit Margin).',
+  marketCapToEarnings5Y: 'Current Market Cap to Projected Earnings in 5 years ratio. Lower values may indicate better value if growth assumptions are reasonable.',
+  marketCapToEarnings10Y: 'Current Market Cap to Projected Earnings in 10 years ratio. Lower values may indicate better value if growth assumptions are reasonable.',
 };
 
 
@@ -1890,6 +1913,229 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 cellContent = <ROICSparkline roicData={roicHistory} />;
                 break;
             }
+            case 'revenueGrowth1Y': {
+              // Calculate 1Y revenue growth from revenueY1 and revenueY2
+              const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
+              const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
+              
+              let growth1Y: number | null = null;
+              if (revenueY1 != null && revenueY2 != null) {
+                const rev1 = Number(revenueY1);
+                const rev2 = Number(revenueY2);
+                if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
+                  growth1Y = ((rev1 - rev2) / rev2) * 100;
+                }
+              }
+              
+              if (growth1Y === null || !isFinite(growth1Y)) {
+                cellContent = <span className="text-muted-foreground">-</span>;
+              } else {
+                let colorClass = '';
+                if (growth1Y < 0) {
+                  colorClass = 'text-red-600 dark:text-red-400';
+                } else if (growth1Y < 10) {
+                  colorClass = 'text-yellow-600 dark:text-yellow-400';
+                } else {
+                  colorClass = 'text-green-600 dark:text-green-400';
+                }
+                cellContent = <div className={`font-mono ${colorClass}`}>{formatPercentage(growth1Y, false, 1)}</div>;
+              }
+              break;
+            }
+            case 'projectedRevenue5Y': {
+              // Calculate projected revenue in 5 years
+              const currentRevenue = row.revenue != null ? Number(row.revenue) : null;
+              const growth10Y = row.revenueGrowth10Y != null ? Number(row.revenueGrowth10Y) / 100 : null;
+              const growth5Y = row.revenueGrowth5Y != null ? Number(row.revenueGrowth5Y) / 100 : null;
+              const growth1Y = (() => {
+                const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
+                const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
+                if (revenueY1 != null && revenueY2 != null) {
+                  const rev1 = Number(revenueY1);
+                  const rev2 = Number(revenueY2);
+                  if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
+                    return (rev1 - rev2) / rev2;
+                  }
+                }
+                return null;
+              })();
+              
+              const growthRate = growth10Y ?? growth5Y ?? growth1Y ?? null;
+              
+              if (currentRevenue === null || growthRate === null || !isFinite(currentRevenue) || !isFinite(growthRate)) {
+                cellContent = <span className="text-muted-foreground">-</span>;
+              } else {
+                const projected = currentRevenue * Math.pow(1 + growthRate, 5);
+                cellContent = <div className="font-mono">{formatMarketCap(projected)}</div>;
+              }
+              break;
+            }
+            case 'projectedRevenue10Y': {
+              // Calculate projected revenue in 10 years
+              const currentRevenue = row.revenue != null ? Number(row.revenue) : null;
+              const growth10Y = row.revenueGrowth10Y != null ? Number(row.revenueGrowth10Y) / 100 : null;
+              const growth5Y = row.revenueGrowth5Y != null ? Number(row.revenueGrowth5Y) / 100 : null;
+              const growth1Y = (() => {
+                const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
+                const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
+                if (revenueY1 != null && revenueY2 != null) {
+                  const rev1 = Number(revenueY1);
+                  const rev2 = Number(revenueY2);
+                  if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
+                    return (rev1 - rev2) / rev2;
+                  }
+                }
+                return null;
+              })();
+              
+              const growthRate = growth10Y ?? growth5Y ?? growth1Y ?? null;
+              
+              if (currentRevenue === null || growthRate === null || !isFinite(currentRevenue) || !isFinite(growthRate)) {
+                cellContent = <span className="text-muted-foreground">-</span>;
+              } else {
+                const projected = currentRevenue * Math.pow(1 + growthRate, 10);
+                cellContent = <div className="font-mono">{formatMarketCap(projected)}</div>;
+              }
+              break;
+            }
+            case 'projectedEarnings5Y': {
+              // Calculate projected earnings in 5 years = projected revenue 5Y * earnings margin
+              const currentRevenue = row.revenue != null ? Number(row.revenue) : null;
+              const growth10Y = row.revenueGrowth10Y != null ? Number(row.revenueGrowth10Y) / 100 : null;
+              const growth5Y = row.revenueGrowth5Y != null ? Number(row.revenueGrowth5Y) / 100 : null;
+              const growth1Y = (() => {
+                const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
+                const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
+                if (revenueY1 != null && revenueY2 != null) {
+                  const rev1 = Number(revenueY1);
+                  const rev2 = Number(revenueY2);
+                  if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
+                    return (rev1 - rev2) / rev2;
+                  }
+                }
+                return null;
+              })();
+              const earningsMargin = row.netProfitMargin != null ? Number(row.netProfitMargin) / 100 : null;
+              
+              const growthRate = growth10Y ?? growth5Y ?? growth1Y ?? null;
+              
+              if (currentRevenue === null || growthRate === null || earningsMargin === null || 
+                  !isFinite(currentRevenue) || !isFinite(growthRate) || !isFinite(earningsMargin)) {
+                cellContent = <span className="text-muted-foreground">-</span>;
+              } else {
+                const projectedRevenue = currentRevenue * Math.pow(1 + growthRate, 5);
+                const projectedEarnings = projectedRevenue * earningsMargin;
+                cellContent = <div className="font-mono">{formatEarnings(projectedEarnings)}</div>;
+              }
+              break;
+            }
+            case 'projectedEarnings10Y': {
+              // Calculate projected earnings in 10 years = projected revenue 10Y * earnings margin
+              const currentRevenue = row.revenue != null ? Number(row.revenue) : null;
+              const growth10Y = row.revenueGrowth10Y != null ? Number(row.revenueGrowth10Y) / 100 : null;
+              const growth5Y = row.revenueGrowth5Y != null ? Number(row.revenueGrowth5Y) / 100 : null;
+              const growth1Y = (() => {
+                const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
+                const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
+                if (revenueY1 != null && revenueY2 != null) {
+                  const rev1 = Number(revenueY1);
+                  const rev2 = Number(revenueY2);
+                  if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
+                    return (rev1 - rev2) / rev2;
+                  }
+                }
+                return null;
+              })();
+              const earningsMargin = row.netProfitMargin != null ? Number(row.netProfitMargin) / 100 : null;
+              
+              const growthRate = growth10Y ?? growth5Y ?? growth1Y ?? null;
+              
+              if (currentRevenue === null || growthRate === null || earningsMargin === null || 
+                  !isFinite(currentRevenue) || !isFinite(growthRate) || !isFinite(earningsMargin)) {
+                cellContent = <span className="text-muted-foreground">-</span>;
+              } else {
+                const projectedRevenue = currentRevenue * Math.pow(1 + growthRate, 10);
+                const projectedEarnings = projectedRevenue * earningsMargin;
+                cellContent = <div className="font-mono">{formatEarnings(projectedEarnings)}</div>;
+              }
+              break;
+            }
+            case 'marketCapToEarnings5Y': {
+              // Calculate Market Cap / Projected Earnings 5Y
+              const marketCap = row.marketCap != null ? Number(row.marketCap) : null;
+              const currentRevenue = row.revenue != null ? Number(row.revenue) : null;
+              const growth10Y = row.revenueGrowth10Y != null ? Number(row.revenueGrowth10Y) / 100 : null;
+              const growth5Y = row.revenueGrowth5Y != null ? Number(row.revenueGrowth5Y) / 100 : null;
+              const growth1Y = (() => {
+                const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
+                const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
+                if (revenueY1 != null && revenueY2 != null) {
+                  const rev1 = Number(revenueY1);
+                  const rev2 = Number(revenueY2);
+                  if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
+                    return (rev1 - rev2) / rev2;
+                  }
+                }
+                return null;
+              })();
+              const earningsMargin = row.netProfitMargin != null ? Number(row.netProfitMargin) / 100 : null;
+              
+              const growthRate = growth10Y ?? growth5Y ?? growth1Y ?? null;
+              
+              if (marketCap === null || currentRevenue === null || growthRate === null || earningsMargin === null ||
+                  !isFinite(marketCap) || !isFinite(currentRevenue) || !isFinite(growthRate) || !isFinite(earningsMargin) ||
+                  marketCap <= 0) {
+                cellContent = <span className="text-muted-foreground">-</span>;
+              } else {
+                const projectedRevenue = currentRevenue * Math.pow(1 + growthRate, 5);
+                const projectedEarnings = projectedRevenue * earningsMargin;
+                if (projectedEarnings <= 0) {
+                  cellContent = <span className="text-muted-foreground">-</span>;
+                } else {
+                  const ratio = marketCap / projectedEarnings;
+                  cellContent = <div className="font-mono">{formatNumber(ratio, 1)}</div>;
+                }
+              }
+              break;
+            }
+            case 'marketCapToEarnings10Y': {
+              // Calculate Market Cap / Projected Earnings 10Y
+              const marketCap = row.marketCap != null ? Number(row.marketCap) : null;
+              const currentRevenue = row.revenue != null ? Number(row.revenue) : null;
+              const growth10Y = row.revenueGrowth10Y != null ? Number(row.revenueGrowth10Y) / 100 : null;
+              const growth5Y = row.revenueGrowth5Y != null ? Number(row.revenueGrowth5Y) / 100 : null;
+              const growth1Y = (() => {
+                const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
+                const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
+                if (revenueY1 != null && revenueY2 != null) {
+                  const rev1 = Number(revenueY1);
+                  const rev2 = Number(revenueY2);
+                  if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
+                    return (rev1 - rev2) / rev2;
+                  }
+                }
+                return null;
+              })();
+              const earningsMargin = row.netProfitMargin != null ? Number(row.netProfitMargin) / 100 : null;
+              
+              const growthRate = growth10Y ?? growth5Y ?? growth1Y ?? null;
+              
+              if (marketCap === null || currentRevenue === null || growthRate === null || earningsMargin === null ||
+                  !isFinite(marketCap) || !isFinite(currentRevenue) || !isFinite(growthRate) || !isFinite(earningsMargin) ||
+                  marketCap <= 0) {
+                cellContent = <span className="text-muted-foreground">-</span>;
+              } else {
+                const projectedRevenue = currentRevenue * Math.pow(1 + growthRate, 10);
+                const projectedEarnings = projectedRevenue * earningsMargin;
+                if (projectedEarnings <= 0) {
+                  cellContent = <span className="text-muted-foreground">-</span>;
+                } else {
+                  const ratio = marketCap / projectedEarnings;
+                  cellContent = <div className="font-mono">{formatNumber(ratio, 1)}</div>;
+                }
+              }
+              break;
+            }
             default:
                 cellContent = <span className="text-muted-foreground">-</span>;
               break;
@@ -1901,7 +2147,9 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             'roic', 'roic10YAvg', 'roic10YStd', 'roicStability', 'roicStabilityScore', 'fcfMargin', 'fcfMarginMedian10Y',
             'marketCap','price','peRatio','priceToSalesRatio','dividendYield',
             'return3Year','return5Year','return10Year','maxDrawdown3Year','maxDrawdown5Year','maxDrawdown10Year',
-            'arMddRatio3Year','arMddRatio5Year','arMddRatio10Year','dcfEnterpriseValue','marginOfSafety','dcfImpliedGrowth'
+            'arMddRatio3Year','arMddRatio5Year','arMddRatio10Year','dcfEnterpriseValue','marginOfSafety','dcfImpliedGrowth',
+            'revenueGrowth1Y','projectedRevenue5Y','projectedRevenue10Y','projectedEarnings5Y','projectedEarnings10Y',
+            'marketCapToEarnings5Y','marketCapToEarnings10Y'
           ]);
           const a = rowA.getValue(colId) as any;
           const b = rowB.getValue(colId) as any;
@@ -2330,7 +2578,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
                 <DropdownMenuSeparator />
                 {(() => {
                   // Define the order of layouts
-                  const layoutOrder = ['compounders', 'cashflowLeverage', 'dupontRoe', 'returnOnRisk', 'dcfValuation', 'reverseDcf'];
+                  const layoutOrder = ['compounders', 'cashflowLeverage', 'dupontRoe', 'returnOnRisk', 'dcfValuation', 'reverseDcf', 'futureEarningsMultiple'];
                   
                   return layoutOrder.map((key) => {
                     // Skip compounders if feature flag is off

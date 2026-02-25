@@ -4018,7 +4018,10 @@ export function setupRoutes(app, supabase) {
                 sharesOutstandingFromSummary: sharesOutstanding,
                 calculated: sharesOutstanding && currentPrice ? sharesOutstanding * currentPrice : null,
                 finalMarketCap: marketCap,
-                summaryKeys: summary ? Object.keys(summary) : null
+                summaryKeys: summary ? Object.keys(summary) : null,
+                defaultKeyStatistics: summary?.defaultKeyStatistics ? Object.keys(summary.defaultKeyStatistics).slice(0, 10) : null,
+                summaryDetail: summary?.summaryDetail ? Object.keys(summary.summaryDetail).slice(0, 10) : null,
+                fullSummary: JSON.stringify(summary).substring(0, 500) // First 500 chars for debugging
               });
             }
           } else {
