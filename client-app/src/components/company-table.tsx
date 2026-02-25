@@ -58,7 +58,7 @@ import {
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 interface ColumnConfig {
-  id: keyof Company | 'rank' | 'name' | 'watchlist' | 'none' | 'dcfVerdict' | 'roicHistory' | 'fcfMarginHistory' | 'revenueHistory'; // 'none' for the placeholder
+  id: keyof Company | 'rank' | 'name' | 'watchlist' | 'none' | 'dcfVerdict' | 'roicHistory' | 'fcfMarginHistory' | 'revenueHistory' | 'revenueGrowth1Y' | 'projectedRevenue5Y' | 'projectedRevenue10Y' | 'projectedEarnings5Y' | 'projectedEarnings10Y' | 'marketCapToEarnings5Y' | 'marketCapToEarnings10Y'; // 'none' for the placeholder
   label: string;
   width: string;
   defaultVisible: boolean;
