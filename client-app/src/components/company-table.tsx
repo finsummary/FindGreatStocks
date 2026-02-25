@@ -1133,7 +1133,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   const tableData = useMemo(() => {
     if (data?.companies) {
       const watchlistSymbols = new Set(watchlistData?.map((item) => item.companySymbol) || []);
-      return data.companies.map((company: any) => {
+      let companies = data.companies.map((company: any) => {
         const override = watchOverrides[company.symbol];
         const explicit = (company as any).isWatched;
         const base = typeof explicit === 'boolean' ? explicit : watchlistSymbols.has(company.symbol);
@@ -1173,9 +1173,25 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
         const fcfMarginMedian10Y = (company as any).fcfMarginMedian10Y ?? (company as any).fcf_margin_median_10y ?? null;
         return { ...company, isWatched, roicStability, roicStabilityScore, fcfMargin, fcfMarginMedian10Y } as any;
       });
+
+      // Client-side sorting for computed columns
+      const computedColumns = ['revenueGrowth1Y', 'projectedRevenue5Y', 'projectedRevenue10Y', 'projectedEarnings5Y', 'projectedEarnings10Y', 'marketCapToEarnings5Y', 'marketCapToEarnings10Y'];
+      if (sortBy && sortBy !== 'none' && computedColumns.includes(sortBy)) {
+        const asc = sortOrder === 'asc';
+        companies.sort((a: any, b: any) => {
+          const valA = getComputedValue(a, sortBy);
+          const valB = getComputedValue(b, sortBy);
+          if (valA === null && valB === null) return 0;
+          if (valA === null) return 1; // nulls last
+          if (valB === null) return -1;
+          return asc ? valA - valB : valB - valA;
+        });
+      }
+
+      return companies;
     }
     return [];
-  }, [data, watchlistData, watchOverrides]);
+  }, [data, watchlistData, watchOverrides, sortBy, sortOrder]);
 
   // Синхронизация: при изменении серверного списка Watchlist сбрасываем локальные overrides,
   // чтобы звезды отражали актуальное состояние (например, после удаления во вкладке Watchlist)
@@ -2412,12 +2428,15 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       } catch {}
     },
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getRowId: (row) => row.symbol, // стабильный идентификатор строки для предотвращения мигания при пересортировке
     manualPagination: true,
     pageCount: data?.total ? Math.ceil(data.total / limit) : -1,
     onRowSelectionChange: setRowSelection,
-    manualSorting: true,
+    // Use client-side sorting for computed columns, server-side for others
+    manualSorting: sortBy !== 'none' && !['revenueGrowth1Y', 'projectedRevenue5Y', 'projectedRevenue10Y', 'projectedEarnings5Y', 'projectedEarnings10Y', 'marketCapToEarnings5Y', 'marketCapToEarnings10Y'].includes(sortBy),
+    enableSortingRemoval: false,
   });
 
   // Fire once when FTSE 100 data successfully loaded
