@@ -1551,7 +1551,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       default:
         return null;
     }
-  };
+  }, []);
 
   const columns = useMemo<ColumnDef<DisplayCompany>[]>(() => {
     return ALL_COLUMNS.map(colConfig => {
