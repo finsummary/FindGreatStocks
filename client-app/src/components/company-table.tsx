@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronUp, ChevronDown, Star, Download, Search, Settings2, X, Lock, Unlock, MoreVertical, Move, Copy, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
@@ -1130,6 +1130,183 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
     enabled: !(dataset === 'watchlist' && !session?.access_token),
   });
 
+  // Helper function to calculate computed values for sorting
+  // Must be defined before tableData useMemo to avoid "can't access lexical declaration" error
+  const getComputedValue = useCallback((row: DisplayCompany, colId: string): number | null => {
+    switch (colId) {
+      case 'revenueGrowth1Y': {
+        const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
+        const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
+        if (revenueY1 != null && revenueY2 != null) {
+          const rev1 = Number(revenueY1);
+          const rev2 = Number(revenueY2);
+          if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
+            return ((rev1 - rev2) / rev2) * 100;
+          }
+        }
+        return null;
+      }
+      case 'projectedRevenue5Y': {
+        const currentRevenue = row.revenue != null ? Number(row.revenue) : null;
+        const growth10Y = row.revenueGrowth10Y != null ? Number(row.revenueGrowth10Y) / 100 : null;
+        const growth5Y = row.revenueGrowth5Y != null ? Number(row.revenueGrowth5Y) / 100 : null;
+        const growth1Y = (() => {
+          const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
+          const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
+          if (revenueY1 != null && revenueY2 != null) {
+            const rev1 = Number(revenueY1);
+            const rev2 = Number(revenueY2);
+            if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
+              return (rev1 - rev2) / rev2;
+            }
+          }
+          return null;
+        })();
+        const growthRate = growth10Y ?? growth5Y ?? growth1Y ?? null;
+        if (currentRevenue === null || growthRate === null || !isFinite(currentRevenue) || !isFinite(growthRate)) {
+          return null;
+        }
+        return currentRevenue * Math.pow(1 + growthRate, 5);
+      }
+      case 'projectedRevenue10Y': {
+        const currentRevenue = row.revenue != null ? Number(row.revenue) : null;
+        const growth10Y = row.revenueGrowth10Y != null ? Number(row.revenueGrowth10Y) / 100 : null;
+        const growth5Y = row.revenueGrowth5Y != null ? Number(row.revenueGrowth5Y) / 100 : null;
+        const growth1Y = (() => {
+          const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
+          const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
+          if (revenueY1 != null && revenueY2 != null) {
+            const rev1 = Number(revenueY1);
+            const rev2 = Number(revenueY2);
+            if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
+              return (rev1 - rev2) / rev2;
+            }
+          }
+          return null;
+        })();
+        const growthRate = growth10Y ?? growth5Y ?? growth1Y ?? null;
+        if (currentRevenue === null || growthRate === null || !isFinite(currentRevenue) || !isFinite(growthRate)) {
+          return null;
+        }
+        return currentRevenue * Math.pow(1 + growthRate, 10);
+      }
+      case 'projectedEarnings5Y': {
+        const currentRevenue = row.revenue != null ? Number(row.revenue) : null;
+        const growth10Y = row.revenueGrowth10Y != null ? Number(row.revenueGrowth10Y) / 100 : null;
+        const growth5Y = row.revenueGrowth5Y != null ? Number(row.revenueGrowth5Y) / 100 : null;
+        const growth1Y = (() => {
+          const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
+          const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
+          if (revenueY1 != null && revenueY2 != null) {
+            const rev1 = Number(revenueY1);
+            const rev2 = Number(revenueY2);
+            if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
+              return (rev1 - rev2) / rev2;
+            }
+          }
+          return null;
+        })();
+        const earningsMargin = row.netProfitMargin != null ? Number(row.netProfitMargin) / 100 : null;
+        const growthRate = growth10Y ?? growth5Y ?? growth1Y ?? null;
+        if (currentRevenue === null || growthRate === null || earningsMargin === null ||
+            !isFinite(currentRevenue) || !isFinite(growthRate) || !isFinite(earningsMargin)) {
+          return null;
+        }
+        const projectedRevenue = currentRevenue * Math.pow(1 + growthRate, 5);
+        return projectedRevenue * earningsMargin;
+      }
+      case 'projectedEarnings10Y': {
+        const currentRevenue = row.revenue != null ? Number(row.revenue) : null;
+        const growth10Y = row.revenueGrowth10Y != null ? Number(row.revenueGrowth10Y) / 100 : null;
+        const growth5Y = row.revenueGrowth5Y != null ? Number(row.revenueGrowth5Y) / 100 : null;
+        const growth1Y = (() => {
+          const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
+          const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
+          if (revenueY1 != null && revenueY2 != null) {
+            const rev1 = Number(revenueY1);
+            const rev2 = Number(revenueY2);
+            if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
+              return (rev1 - rev2) / rev2;
+            }
+          }
+          return null;
+        })();
+        const earningsMargin = row.netProfitMargin != null ? Number(row.netProfitMargin) / 100 : null;
+        const growthRate = growth10Y ?? growth5Y ?? growth1Y ?? null;
+        if (currentRevenue === null || growthRate === null || earningsMargin === null ||
+            !isFinite(currentRevenue) || !isFinite(growthRate) || !isFinite(earningsMargin)) {
+          return null;
+        }
+        const projectedRevenue = currentRevenue * Math.pow(1 + growthRate, 10);
+        return projectedRevenue * earningsMargin;
+      }
+      case 'marketCapToEarnings5Y': {
+        const marketCap = row.marketCap != null ? Number(row.marketCap) : null;
+        const currentRevenue = row.revenue != null ? Number(row.revenue) : null;
+        const growth10Y = row.revenueGrowth10Y != null ? Number(row.revenueGrowth10Y) / 100 : null;
+        const growth5Y = row.revenueGrowth5Y != null ? Number(row.revenueGrowth5Y) / 100 : null;
+        const growth1Y = (() => {
+          const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
+          const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
+          if (revenueY1 != null && revenueY2 != null) {
+            const rev1 = Number(revenueY1);
+            const rev2 = Number(revenueY2);
+            if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
+              return (rev1 - rev2) / rev2;
+            }
+          }
+          return null;
+        })();
+        const earningsMargin = row.netProfitMargin != null ? Number(row.netProfitMargin) / 100 : null;
+        const growthRate = growth10Y ?? growth5Y ?? growth1Y ?? null;
+        if (marketCap === null || currentRevenue === null || growthRate === null || earningsMargin === null ||
+            !isFinite(marketCap) || !isFinite(currentRevenue) || !isFinite(growthRate) || !isFinite(earningsMargin) ||
+            marketCap <= 0) {
+          return null;
+        }
+        const projectedRevenue = currentRevenue * Math.pow(1 + growthRate, 5);
+        const projectedEarnings = projectedRevenue * earningsMargin;
+        if (projectedEarnings <= 0) {
+          return null;
+        }
+        return marketCap / projectedEarnings;
+      }
+      case 'marketCapToEarnings10Y': {
+        const marketCap = row.marketCap != null ? Number(row.marketCap) : null;
+        const currentRevenue = row.revenue != null ? Number(row.revenue) : null;
+        const growth10Y = row.revenueGrowth10Y != null ? Number(row.revenueGrowth10Y) / 100 : null;
+        const growth5Y = row.revenueGrowth5Y != null ? Number(row.revenueGrowth5Y) / 100 : null;
+        const growth1Y = (() => {
+          const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
+          const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
+          if (revenueY1 != null && revenueY2 != null) {
+            const rev1 = Number(revenueY1);
+            const rev2 = Number(revenueY2);
+            if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
+              return (rev1 - rev2) / rev2;
+            }
+          }
+          return null;
+        })();
+        const earningsMargin = row.netProfitMargin != null ? Number(row.netProfitMargin) / 100 : null;
+        const growthRate = growth10Y ?? growth5Y ?? growth1Y ?? null;
+        if (marketCap === null || currentRevenue === null || growthRate === null || earningsMargin === null ||
+            !isFinite(marketCap) || !isFinite(currentRevenue) || !isFinite(growthRate) || !isFinite(earningsMargin) ||
+            marketCap <= 0) {
+          return null;
+        }
+        const projectedRevenue = currentRevenue * Math.pow(1 + growthRate, 10);
+        const projectedEarnings = projectedRevenue * earningsMargin;
+        if (projectedEarnings <= 0) {
+          return null;
+        }
+        return marketCap / projectedEarnings;
+      }
+      default:
+        return null;
+    }
+  }, []);
+
   const tableData = useMemo(() => {
     if (data?.companies) {
       const watchlistSymbols = new Set(watchlistData?.map((item) => item.companySymbol) || []);
@@ -1200,7 +1377,8 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   }, [watchlistData]);
 
   // Helper function to calculate computed values for sorting
-  const getComputedValue = (row: DisplayCompany, colId: string): number | null => {
+  // Must be defined before tableData useMemo to avoid "can't access lexical declaration" error
+  const getComputedValue = useCallback((row: DisplayCompany, colId: string): number | null => {
     switch (colId) {
       case 'revenueGrowth1Y': {
         const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
