@@ -1,4 +1,7 @@
 [phases.install]
-cmds = ["npm install"]
+cmds = ["cd server && npm ci"]
+
+[start]
+cmd = "cd server && npx tsx index.ts"
 
 
