@@ -5323,6 +5323,7 @@ export function setupRoutes(app, supabase) {
         payment_method_types: ['card'],
         line_items: [{ price: resolvedPriceId, quantity: 1 }],
         mode: 'subscription',
+        payment_method_collection: 'if_required',
         success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.CLIENT_URL}/payment-cancelled`,
         metadata: { userId: req.user.id, priceId: resolvedPriceId, plan: planLower || null },

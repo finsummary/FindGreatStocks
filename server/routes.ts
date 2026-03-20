@@ -63,6 +63,37 @@ export function setupStripeWebhook(app: Express) {
 
 export function setupRoutes(app: Express, supabase: SupabaseClient) {
   const isAuthenticated = createIsAuthenticatedMiddleware(supabase);
+  const requireAdmin = (function createAdminGuard() {
+    const adminEmails = String(process.env.ADMIN_EMAILS || 'findgreatstocks@gmail.com')
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    const adminToken = process.env.ADMIN_API_TOKEN || '';
+    return async function requireAdmin(req: any, res: any, next: any) {
+      try {
+        const xToken = req.headers['x-admin-token'];
+        if (adminToken && typeof xToken === 'string' && xToken === adminToken) {
+          return next();
+        }
+        const authHeader = req.headers['authorization'] || '';
+        const token = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : null;
+        if (!token) return res.status(401).json({ message: 'Unauthorized' });
+        const { data, error } = await supabase.auth.getUser(token);
+        if (error || !data?.user) return res.status(401).json({ message: 'Unauthorized' });
+        const email = String(data.user.email || '').toLowerCase();
+        if (!adminEmails.length || !adminEmails.includes(email)) {
+          return res.status(403).json({ message: 'Forbidden' });
+        }
+        req.user = data.user;
+        return next();
+      } catch {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+    };
+  })();
+
+  let cachedFlags: { flags: Record<string, any>; ts: number } = { flags: {}, ts: 0 };
+  const FLAGS_TTL_MS = 60 * 1000;
 
   const mapDbRowToCompany = (row: any) => ({
     id: row.id,
@@ -173,6 +204,113 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
     } catch (error) {
       console.error('Error in /api/auth/me:', error);
       return res.status(500).json({ message: 'Failed to fetch user profile' });
+    }
+  });
+
+  app.get('/api/config', async (_req, res) => {
+    try {
+      if (Date.now() - cachedFlags.ts < FLAGS_TTL_MS) {
+        return res.json(cachedFlags);
+      }
+
+      let flags: Record<string, any> = {};
+      try {
+        const { data, error } = await supabase.from('feature_flags').select('key, enabled, rollout_percent, allowlist_emails');
+        if (!error && Array.isArray(data)) {
+          for (const r of data) {
+            if (!r?.key) continue;
+            flags[r.key] = {
+              enabled: !!r.enabled,
+              rolloutPercent: typeof r.rollout_percent === 'number' ? r.rollout_percent : undefined,
+              allowlistEmails: Array.isArray(r.allowlist_emails) ? r.allowlist_emails : undefined,
+            };
+          }
+        }
+      } catch {}
+
+      if (!Object.keys(flags).length) {
+        flags = { education: { enabled: false } };
+      }
+
+      cachedFlags = { flags, ts: Date.now() };
+      res.set('Cache-Control', 'no-store');
+      return res.json(cachedFlags);
+    } catch {
+      return res.json({ flags: { education: { enabled: false } } });
+    }
+  });
+
+  app.get('/api/feature-flags', requireAdmin, async (_req, res) => {
+    try {
+      const { data, error } = await supabase
+        .from('feature_flags')
+        .select('key, enabled, rollout_percent, allowlist_emails, updated_at')
+        .order('key', { ascending: true });
+      if (error) return res.status(500).json({ message: 'Failed to read feature flags' });
+      return res.json({ flags: data || [] });
+    } catch {
+      return res.status(500).json({ message: 'Failed to read feature flags' });
+    }
+  });
+
+  app.post('/api/feature-flags/:key', requireAdmin, async (req: any, res) => {
+    try {
+      const flagKey = String(req.params.key || '').trim();
+      if (!flagKey) return res.status(400).json({ message: 'key is required' });
+      const { enabled, rolloutPercent, allowlistEmails } = req.body || {};
+
+      let prev: any = null;
+      try {
+        const { data: prevRow } = await supabase
+          .from('feature_flags')
+          .select('*')
+          .eq('key', flagKey)
+          .maybeSingle();
+        if (prevRow) prev = prevRow;
+      } catch {}
+
+      const payload: Record<string, any> = { key: flagKey };
+      if (typeof enabled === 'boolean') payload.enabled = enabled;
+      if (typeof rolloutPercent === 'number') payload.rollout_percent = rolloutPercent;
+      if (Array.isArray(allowlistEmails)) payload.allowlist_emails = allowlistEmails;
+
+      const { data: upserted, error } = await supabase
+        .from('feature_flags')
+        .upsert(payload, { onConflict: 'key' })
+        .select('*')
+        .maybeSingle();
+      if (error) return res.status(500).json({ message: 'Failed to update flag' });
+
+      try {
+        await supabase.from('feature_flag_audit').insert({
+          key: flagKey,
+          actor_email: (req.user && req.user.email) ? String(req.user.email).toLowerCase() : null,
+          prev,
+          next: upserted || null,
+          changed_at: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.warn('feature_flag_audit insert failed', e);
+      }
+
+      cachedFlags = { flags: {}, ts: 0 };
+      return res.json({ ok: true });
+    } catch {
+      return res.status(500).json({ message: 'Failed to update flag' });
+    }
+  });
+
+  app.get('/api/feature-flags/audit', requireAdmin, async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 200, 2000);
+      const key = (req.query.key ? String(req.query.key) : '').trim();
+      let q = supabase.from('feature_flag_audit').select('*').order('changed_at', { ascending: false }).limit(limit);
+      if (key) q = q.eq('key', key);
+      const { data, error } = await q;
+      if (error) return res.status(500).json({ message: 'Failed to load audit log' });
+      return res.json({ items: data || [] });
+    } catch {
+      return res.status(500).json({ message: 'Failed to load audit log' });
     }
   });
 
@@ -1162,6 +1300,7 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
           },
         ],
         mode: 'subscription',
+        payment_method_collection: 'if_required',
         subscription_data: {
           trial_period_days: 7,
         },
