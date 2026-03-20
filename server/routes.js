@@ -4117,7 +4117,6 @@ export function setupRoutes(app, supabase) {
         change: change,
         changesPercentage: changePercent,
         marketCap: marketCap,
-        sharesOutstanding: sharesOutstanding,
       };
     } catch (error) {
       console.warn(`[Yahoo Finance] Error fetching ${symbol}:`, error.message);
@@ -4178,51 +4177,20 @@ export function setupRoutes(app, supabase) {
           }
           return map;
         };
-        const applyUpdate = (q, existingData = null) => {
+        const applyUpdate = (q) => {
           const updates = {};
           // use quote.price as primary (real-time/last close), fallback to previousClose
           const closePrice = (q.price !== undefined && q.price !== null)
             ? Number(q.price)
             : (q.previousClose !== undefined ? Number(q.previousClose) : undefined);
           if (closePrice !== undefined) updates.price = closePrice;
-          
-          // Shares outstanding: update if we have it from API and it's different from existing
-          if (q.sharesOutstanding !== undefined && q.sharesOutstanding !== null && q.sharesOutstanding > 0) {
-            const sharesValue = Number(q.sharesOutstanding);
-            if (!isNaN(sharesValue) && sharesValue > 0) {
-              // Only update if we don't have it in DB or if it changed significantly (>5%)
-              const existingShares = existingData?.shares_outstanding ? Number(existingData.shares_outstanding) : null;
-              if (!existingShares || Math.abs(sharesValue - existingShares) / existingShares > 0.05) {
-                updates.shares_outstanding = sharesValue;
-              }
-            }
-          }
-          
-          // Market cap: calculate from price * shares_outstanding if we have both
-          let marketCapToUse = null;
+          // Market cap: only update if we have a valid value (not null, not 0, not undefined)
           if (q.marketCap !== undefined && q.marketCap !== null && q.marketCap !== 0) {
             const marketCapValue = Number(q.marketCap);
             if (!isNaN(marketCapValue) && marketCapValue > 0) {
-              marketCapToUse = marketCapValue;
+              updates.market_cap = marketCapValue;
             }
           }
-          
-          // If no market cap from API, try to calculate from price * shares_outstanding
-          if (!marketCapToUse && closePrice) {
-            // First try shares from API response
-            if (q.sharesOutstanding && q.sharesOutstanding > 0) {
-              marketCapToUse = closePrice * Number(q.sharesOutstanding);
-            }
-            // Then try shares from existing DB data
-            else if (existingData?.shares_outstanding && existingData.shares_outstanding > 0) {
-              marketCapToUse = closePrice * Number(existingData.shares_outstanding);
-            }
-          }
-          
-          if (marketCapToUse && marketCapToUse > 0) {
-            updates.market_cap = marketCapToUse;
-          }
-          
           if (q.change !== undefined) updates.daily_change = Number(q.change);
           if (q.changesPercentage !== undefined) updates.daily_change_percent = Number(q.changesPercentage);
           // Update timestamp when price is updated
@@ -4242,15 +4210,7 @@ export function setupRoutes(app, supabase) {
                 for (const sym of group) {
                   const q = qmap.get(sym);
                   if (!q) continue;
-                  
-                  // Get existing data to check shares_outstanding
-                  const { data: existingData } = await supabase
-                    .from(t)
-                    .select('shares_outstanding')
-                    .eq('symbol', sym)
-                    .single();
-                  
-                  const updates = applyUpdate(q, existingData);
+                  const updates = applyUpdate(q);
                   if (Object.keys(updates).length === 0) continue;
                   await supabase.from(t).update(updates).eq('symbol', sym);
                 }
@@ -4286,50 +4246,19 @@ export function setupRoutes(app, supabase) {
         const tables = ['companies', 'sp500_companies', 'nasdaq100_companies', 'dow_jones_companies'];
         const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
         
-        const applyUpdate = (q, existingData = null) => {
+        const applyUpdate = (q) => {
           const updates = {};
           const closePrice = (q.price !== undefined && q.price !== null)
             ? Number(q.price)
             : (q.previousClose !== undefined ? Number(q.previousClose) : undefined);
           if (closePrice !== undefined) updates.price = closePrice;
-          
-          // Shares outstanding: update if we have it from API and it's different from existing
-          if (q.sharesOutstanding !== undefined && q.sharesOutstanding !== null && q.sharesOutstanding > 0) {
-            const sharesValue = Number(q.sharesOutstanding);
-            if (!isNaN(sharesValue) && sharesValue > 0) {
-              // Only update if we don't have it in DB or if it changed significantly (>5%)
-              const existingShares = existingData?.shares_outstanding ? Number(existingData.shares_outstanding) : null;
-              if (!existingShares || Math.abs(sharesValue - existingShares) / existingShares > 0.05) {
-                updates.shares_outstanding = sharesValue;
-              }
-            }
-          }
-          
-          // Market cap: calculate from price * shares_outstanding if we have both
-          let marketCapToUse = null;
+          // Market cap: only update if we have a valid value (not null, not 0, not undefined)
           if (q.marketCap !== undefined && q.marketCap !== null && q.marketCap !== 0) {
             const marketCapValue = Number(q.marketCap);
             if (!isNaN(marketCapValue) && marketCapValue > 0) {
-              marketCapToUse = marketCapValue;
+              updates.market_cap = marketCapValue;
             }
           }
-          
-          // If no market cap from API, try to calculate from price * shares_outstanding
-          if (!marketCapToUse && closePrice) {
-            // First try shares from API response
-            if (q.sharesOutstanding && q.sharesOutstanding > 0) {
-              marketCapToUse = closePrice * Number(q.sharesOutstanding);
-            }
-            // Then try shares from existing DB data
-            else if (existingData?.shares_outstanding && existingData.shares_outstanding > 0) {
-              marketCapToUse = closePrice * Number(existingData.shares_outstanding);
-            }
-          }
-          
-          if (marketCapToUse && marketCapToUse > 0) {
-            updates.market_cap = marketCapToUse;
-          }
-          
           if (q.change !== undefined && q.change !== null) updates.daily_change = Number(q.change);
           if (q.changesPercentage !== undefined && q.changesPercentage !== null) updates.daily_change_percent = Number(q.changesPercentage);
           updates.last_price_update = new Date().toISOString();
@@ -4348,38 +4277,66 @@ export function setupRoutes(app, supabase) {
             
             for (const sym of symbols) {
               try {
-                // Get existing data from DB (market_cap, price, shares_outstanding)
+                // Get existing market cap and price from DB to calculate shares outstanding
                 const { data: existingData } = await supabase
                   .from(t)
-                  .select('market_cap, price, shares_outstanding')
+                  .select('market_cap, price')
                   .eq('symbol', sym)
                   .single();
                 
                 const yahooQuote = await fetchYahooFinanceQuote(sym);
                 if (yahooQuote) {
-                  // If Yahoo Finance didn't provide shares outstanding, try to get from FMP API
-                  if (!yahooQuote.sharesOutstanding && process.env.FMP_API_KEY) {
-                    try {
-                      const fmpUrl = `https://financialmodelingprep.com/stable/key-metrics-ttm/${sym}?apikey=${process.env.FMP_API_KEY}`;
-                      const fmpResponse = await fetch(fmpUrl);
-                      if (fmpResponse.ok) {
-                        const fmpData = await fmpResponse.json();
-                        if (Array.isArray(fmpData) && fmpData.length > 0 && fmpData[0].sharesOutstandingTTM) {
-                          yahooQuote.sharesOutstanding = fmpData[0].sharesOutstandingTTM;
-                          if (totalUpdated < 5) {
-                            console.log(`[Yahoo Finance] ${sym}: Got shares outstanding from FMP: ${yahooQuote.sharesOutstanding}`);
-                          }
+                  // If Yahoo Finance didn't provide market cap, try to calculate it
+                  if (!yahooQuote.marketCap && yahooQuote.price) {
+                    let calculatedMarketCap = null;
+                    
+                    // First, try from existing DB data (if market_cap was not 0)
+                    if (existingData?.market_cap && existingData.market_cap > 0 && existingData?.price && existingData.price > 0) {
+                      // Calculate shares outstanding from existing data
+                      const sharesOutstanding = Number(existingData.market_cap) / Number(existingData.price);
+                      if (sharesOutstanding > 0 && !isNaN(sharesOutstanding) && isFinite(sharesOutstanding)) {
+                        // Recalculate market cap with new price
+                        calculatedMarketCap = sharesOutstanding * yahooQuote.price;
+                        if (totalUpdated < 5) {
+                          console.log(`[Yahoo Finance] ${sym}: Calculated market cap from existing DB data: ${calculatedMarketCap} (shares: ${sharesOutstanding.toFixed(0)}, old price: ${existingData.price}, new price: ${yahooQuote.price})`);
                         }
                       }
-                    } catch (fmpError) {
-                      // Ignore FMP errors
+                    }
+                    
+                    // If still no market cap, try to get from FMP API as last resort (if available)
+                    if (!calculatedMarketCap && process.env.FMP_API_KEY) {
+                      try {
+                        // Try to get shares outstanding from FMP key-metrics endpoint
+                        const fmpUrl = `https://financialmodelingprep.com/stable/key-metrics-ttm/${sym}?apikey=${process.env.FMP_API_KEY}`;
+                        const fmpResponse = await fetch(fmpUrl);
+                        if (fmpResponse.ok) {
+                          const fmpData = await fmpResponse.json();
+                          if (Array.isArray(fmpData) && fmpData.length > 0 && fmpData[0].sharesOutstandingTTM) {
+                            const sharesOutstanding = fmpData[0].sharesOutstandingTTM;
+                            calculatedMarketCap = sharesOutstanding * yahooQuote.price;
+                            if (totalUpdated < 5) {
+                              console.log(`[Yahoo Finance] ${sym}: Calculated market cap from FMP shares outstanding: ${calculatedMarketCap} (shares: ${sharesOutstanding}, price: ${yahooQuote.price})`);
+                            }
+                          }
+                        }
+                      } catch (fmpError) {
+                        // Ignore FMP errors
+                      }
+                    }
+                    
+                    // Use calculated market cap if we got one
+                    if (calculatedMarketCap && calculatedMarketCap > 0) {
+                      yahooQuote.marketCap = calculatedMarketCap;
+                    } else if (totalUpdated < 10) {
+                      // Log if we can't calculate from any source
+                      console.warn(`[Yahoo Finance] ${sym}: Cannot calculate market cap - existing market_cap: ${existingData?.market_cap}, existing price: ${existingData?.price}, new price: ${yahooQuote.price}`);
                     }
                   }
                   
-                  const updates = applyUpdate(yahooQuote, existingData);
-                  // Log for first few symbols to debug
+                  const updates = applyUpdate(yahooQuote);
+                  // Log market cap for first few symbols to debug
                   if (totalUpdated < 5) {
-                    console.log(`[Yahoo Finance] ${sym}: price=${yahooQuote.price}, sharesOutstanding=${yahooQuote.sharesOutstanding || existingData?.shares_outstanding || 'N/A'}, marketCap=${updates.market_cap || 'N/A'}`);
+                    console.log(`[Yahoo Finance] ${sym}: price=${yahooQuote.price}, marketCap=${yahooQuote.marketCap}, updates.market_cap=${updates.market_cap}`);
                   }
                   if (Object.keys(updates).length > 0) {
                     await supabase.from(t).update(updates).eq('symbol', sym);
@@ -5398,9 +5355,7 @@ export function setupRoutes(app, supabase) {
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       if (!session) return res.status(404).json({ message: 'Session not found' });
 
-      // During a free trial Checkout can be "complete" while payment is still "unpaid".
-      // We should still grant access.
-      if (session.status !== 'complete') {
+      if (session.payment_status !== 'paid' && session.status !== 'complete') {
         return res.status(400).json({ message: 'Payment not completed yet' });
       }
 
