@@ -1162,6 +1162,9 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
           },
         ],
         mode: 'subscription',
+        subscription_data: {
+          trial_period_days: 7,
+        },
         success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.CLIENT_URL}/payment-cancelled`,
         metadata: {
@@ -1189,7 +1192,7 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
         return res.status(404).json({ message: 'Session not found' });
       }
 
-      if (session.payment_status !== 'paid' && session.status !== 'complete') {
+      if (session.status !== 'complete') {
         return res.status(400).json({ message: 'Payment not completed yet' });
       }
 
@@ -1216,7 +1219,14 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
         console.warn('Stripe confirm: failed to derive price interval, defaulting to paid');
       }
 
-      await db.update(users).set({ subscriptionTier: tier, updatedAt: new Date() }).where(eq(users.id, userId));
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ subscription_tier: tier, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+      if (updateError) {
+        console.error('Stripe confirm: failed to update user tier', updateError);
+        return res.status(500).json({ message: 'Failed to update subscription' });
+      }
       return res.json({ success: true });
     } catch (error) {
       console.error('Error confirming stripe session:', error);

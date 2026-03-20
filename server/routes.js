@@ -5355,7 +5355,7 @@ export function setupRoutes(app, supabase) {
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       if (!session) return res.status(404).json({ message: 'Session not found' });
 
-      if (session.payment_status !== 'paid' && session.status !== 'complete') {
+      if (session.status !== 'complete') {
         return res.status(400).json({ message: 'Payment not completed yet' });
       }
 
