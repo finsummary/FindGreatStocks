@@ -3,11 +3,15 @@ import { storage } from "./storage";
 import { financialDataService } from "./financial-data";
 import { createIsAuthenticatedMiddleware, type User } from "./authMiddleware";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { db } from './db';
+import { db, supabase } from './db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 import express from 'express';
+import * as seo from './seo';
+import { groqChat } from './groq';
+import * as prompts from './prompts';
+import { buildScannerUrl } from '@shared/scanner-deeplink';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-04-10',
@@ -42,15 +46,21 @@ export function setupStripeWebhook(app: Express) {
             subscriptionTier = 'quarterly';
           } else if (priceId.includes('annual') || priceId.includes('year')) {
             subscriptionTier = 'annual';
+          } else if (priceId.includes('monthly') || priceId.includes('month')) {
+            subscriptionTier = 'paid';
           }
         }
         
         try {
-          await db
-            .update(users)
-            .set({ subscriptionTier })
-            .where(eq(users.id, userId));
-          console.log(`User ${userId} subscription tier updated to '${subscriptionTier}'.`);
+          const { error } = await supabase
+            .from('users')
+            .update({ subscription_tier: subscriptionTier, updated_at: new Date().toISOString() })
+            .eq('id', userId);
+          if (error) {
+            console.error(`Failed to update subscription for user ${userId}:`, error);
+          } else {
+            console.log(`User ${userId} subscription tier updated to '${subscriptionTier}'.`);
+          }
         } catch (dbError) {
           console.error(`Failed to update subscription for user ${userId}:`, dbError);
         }
@@ -120,6 +130,7 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
     dcfImpliedGrowth: row.dcf_implied_growth,
     totalEquity: row.total_equity,
     roe: row.roe,
+    roic: row.roic,
     assetTurnover: row.asset_turnover,
     financialLeverage: row.financial_leverage,
   });
@@ -1153,6 +1164,10 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
     }
 
     try {
+      // We show "7-day free trial" in the UI, so we must also configure it in Stripe Checkout.
+      // If this isn't set here (or in the Stripe Price config), Stripe will bill immediately.
+      const trialPeriodDays = 7;
+
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: [
@@ -1162,6 +1177,9 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
           },
         ],
         mode: 'subscription',
+        subscription_data: {
+          trial_period_days: trialPeriodDays,
+        },
         success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.CLIENT_URL}/payment-cancelled`,
         metadata: {
@@ -1189,7 +1207,9 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
         return res.status(404).json({ message: 'Session not found' });
       }
 
-      if (session.payment_status !== 'paid' && session.status !== 'complete') {
+      // During a free trial, Checkout can complete while the payment is still "unpaid".
+      // We should still grant access.
+      if (session.status !== 'complete') {
         return res.status(400).json({ message: 'Payment not completed yet' });
       }
 
@@ -1216,7 +1236,14 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
         console.warn('Stripe confirm: failed to derive price interval, defaulting to paid');
       }
 
-      await db.update(users).set({ subscriptionTier: tier, updatedAt: new Date() }).where(eq(users.id, userId));
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ subscription_tier: tier, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+      if (updateError) {
+        console.error('Stripe confirm: failed to update user tier', updateError);
+        return res.status(500).json({ message: 'Failed to update subscription' });
+      }
       return res.json({ success: true });
     } catch (error) {
       console.error('Error confirming stripe session:', error);
@@ -1297,6 +1324,192 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
     } catch (error) {
       console.error("Error updating Dow Jones prices:", error);
       res.status(500).json({ message: "Failed to update Dow Jones prices" });
+    }
+  });
+
+  // --- SEO programmatic pages API ---
+  const clientUrl = seo.getClientUrl();
+
+  app.get('/api/seo/company/:ticker', async (req, res) => {
+    try {
+      const ticker = (req.params.ticker || '').toUpperCase();
+      const company = await seo.getCompanyByTicker(ticker);
+      if (!company) return res.status(404).json({ message: 'Company not found' });
+      const slug = seo.tickerToSlug(ticker);
+      const cache = await seo.getPageCache('company', slug);
+      res.json({
+        company,
+        cache: cache || undefined,
+        scannerUrl: buildScannerUrl(clientUrl, { dataset: 'sp500', search: ticker }),
+      });
+    } catch (e) {
+      console.error('GET /api/seo/company/:ticker', e);
+      res.status(500).json({ message: 'Failed to fetch company' });
+    }
+  });
+
+  app.get('/api/seo/sector/:slug', async (req, res) => {
+    try {
+      const slug = (req.params.slug || '').toLowerCase();
+      const { companies, sectorName } = await seo.getCompaniesBySector(slug, 50);
+      const cache = await seo.getPageCache('sector', slug);
+      res.json({
+        slug,
+        sectorName,
+        companies,
+        scannerUrl: buildScannerUrl(clientUrl, { dataset: 'sp500', sector: sectorName }),
+      });
+    } catch (e) {
+      console.error('GET /api/seo/sector/:slug', e);
+      res.status(500).json({ message: 'Failed to fetch sector' });
+    }
+  });
+
+  app.get('/api/seo/strategy/:slug', async (req, res) => {
+    try {
+      const slug = (req.params.slug || '').toLowerCase();
+      const result = await seo.getStrategyCompanies(slug, 50);
+      if (!result) return res.status(404).json({ message: 'Strategy not found' });
+      const cache = await seo.getPageCache('strategy', slug);
+      res.json({
+        slug,
+        strategy: result.strategy,
+        companies: result.companies,
+        cache: cache || undefined,
+        scannerUrl: buildScannerUrl(clientUrl, {
+          dataset: 'sp500',
+          sortBy: result.strategy.sortBy === 'revenue_growth_5y' ? 'revenueGrowth5Y' : result.strategy.sortBy === 'roic' ? 'roic' : 'freeCashFlow',
+          sortOrder: result.strategy.sortOrder,
+        }),
+      });
+    } catch (e) {
+      console.error('GET /api/seo/strategy/:slug', e);
+      res.status(500).json({ message: 'Failed to fetch strategy' });
+    }
+  });
+
+  app.get('/api/seo/compare/:slug', async (req, res) => {
+    try {
+      const slug = (req.params.slug || '').toLowerCase();
+      const match = slug.match(/^(.+)-vs-(.+)$/);
+      if (!match) return res.status(400).json({ message: 'Invalid compare slug; use e.g. apple-vs-microsoft' });
+      const tickerA = match[1].replace(/-/g, '.').toUpperCase();
+      const tickerB = match[2].replace(/-/g, '.').toUpperCase();
+      const tickerMap: Record<string, string> = { apple: 'AAPL', microsoft: 'MSFT', nvidia: 'NVDA', amd: 'AMD' };
+      const symA = tickerMap[tickerA.toLowerCase()] || tickerA;
+      const symB = tickerMap[tickerB.toLowerCase()] || tickerB;
+      const data = await seo.getComparison(symA, symB);
+      if (!data) return res.status(404).json({ message: 'One or both companies not found' });
+      const cache = await seo.getPageCache('compare', slug);
+      res.json({
+        slug,
+        companyA: data.companyA,
+        companyB: data.companyB,
+        cache: cache || undefined,
+        scannerUrl: buildScannerUrl(clientUrl, { dataset: 'sp500' }),
+      });
+    } catch (e) {
+      console.error('GET /api/seo/compare/:slug', e);
+      res.status(500).json({ message: 'Failed to fetch comparison' });
+    }
+  });
+
+  app.get('/api/seo/valuation/:slug', async (req, res) => {
+    try {
+      const slug = (req.params.slug || '').toLowerCase();
+      let companies: Record<string, unknown>[];
+      let title: string;
+      if (slug === 'stocks-priced-for-low-growth') {
+        companies = await seo.getStocksPricedForLowGrowth(30);
+        title = 'Stocks Priced for Low Growth';
+      } else if (slug === 'stocks-undervalued-by-reverse-dcf') {
+        companies = await seo.getStocksUndervaluedByReverseDcf(30);
+        title = 'Stocks Undervalued by Reverse DCF';
+      } else {
+        return res.status(404).json({ message: 'Valuation page not found' });
+      }
+      const cache = await seo.getPageCache('valuation', slug);
+      res.json({
+        slug,
+        title,
+        companies,
+        cache: cache || undefined,
+        scannerUrl: slug === 'stocks-priced-for-low-growth'
+          ? buildScannerUrl(clientUrl, { dataset: 'sp500', sortBy: 'dcfImpliedGrowth', sortOrder: 'asc' })
+          : buildScannerUrl(clientUrl, { dataset: 'sp500', sortBy: 'marginOfSafety', sortOrder: 'desc' }),
+      });
+    } catch (e) {
+      console.error('GET /api/seo/valuation/:slug', e);
+      res.status(500).json({ message: 'Failed to fetch valuation page' });
+    }
+  });
+
+  app.get('/api/seo/page-cache', async (req, res) => {
+    try {
+      const pageType = (req.query.pageType as string) || '';
+      const pageSlug = (req.query.pageSlug as string) || '';
+      if (!pageType || !pageSlug) return res.status(400).json({ message: 'pageType and pageSlug required' });
+      const cache = await seo.getPageCache(pageType, pageSlug);
+      res.json(cache || {});
+    } catch (e) {
+      console.error('GET /api/seo/page-cache', e);
+      res.status(500).json({ message: 'Failed to get page cache' });
+    }
+  });
+
+  app.post('/api/seo/generate-summary', async (req, res) => {
+    try {
+      const { pageType, pageSlug, entityKey, payload } = req.body as {
+        pageType: string;
+        pageSlug: string;
+        entityKey: string;
+        payload: Record<string, unknown>;
+      };
+      if (!pageType || !pageSlug || !entityKey) {
+        return res.status(400).json({ message: 'pageType, pageSlug, entityKey required' });
+      }
+      let text = '';
+      if (pageType === 'company') {
+        const { system: s, user } = prompts.companySummaryPrompt(payload as any);
+        text = await groqChat([{ role: 'system', content: s }, { role: 'user', content: user }], { max_tokens: 400 });
+      } else if (pageType === 'strategy') {
+        const { system: s, user } = prompts.strategySummaryPrompt(payload as any);
+        text = await groqChat([{ role: 'system', content: s }, { role: 'user', content: user }], { max_tokens: 300 });
+      } else if (pageType === 'sector') {
+        const { system: s, user } = prompts.sectorSummaryPrompt(payload as any);
+        text = await groqChat([{ role: 'system', content: s }, { role: 'user', content: user }], { max_tokens: 300 });
+      } else if (pageType === 'compare') {
+        const { system: s, user } = prompts.comparisonSummaryPrompt(payload as any);
+        text = await groqChat([{ role: 'system', content: s }, { role: 'user', content: user }], { max_tokens: 350 });
+      } else if (pageType === 'valuation') {
+        const { system: s, user } = prompts.valuationPageSummaryPrompt(payload as any);
+        text = await groqChat([{ role: 'system', content: s }, { role: 'user', content: user }], { max_tokens: 300 });
+      } else {
+        return res.status(400).json({ message: 'Unsupported pageType' });
+      }
+      let aiJson: unknown = null;
+      try {
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        const raw = jsonMatch ? jsonMatch[0] : text;
+        aiJson = JSON.parse(raw);
+      } catch {
+        aiJson = { summary: text };
+      }
+      const summary = typeof (aiJson as any)?.summary === 'string' ? (aiJson as any).summary : text;
+      await seo.setPageCache({
+        pageType,
+        pageSlug,
+        entityKey,
+        aiSummary: summary,
+        aiJson,
+        title: (aiJson as any)?.title ?? undefined,
+        metaDescription: (aiJson as any)?.meta_description ?? undefined,
+        h1: (aiJson as any)?.h1 ?? undefined,
+      });
+      res.json({ aiJson, aiSummary: summary });
+    } catch (e) {
+      console.error('POST /api/seo/generate-summary', e);
+      res.status(500).json({ message: 'Failed to generate summary', error: (e as Error).message });
     }
   });
 }
