@@ -1,8 +1,6 @@
 import { CronJob } from 'cron';
-import { updateDowJonesPrices } from './dowjones-daily-updater';
-import { updateNasdaq100Prices } from './nasdaq100-daily-updater';
-import { updateSp500Prices } from './sp500-daily-updater';
 import { supabase } from './db';
+import { runYahooBulkPriceUpdate } from './yahoo-price-update';
 
 export class DataScheduler {
     private priceJob: CronJob;
@@ -33,12 +31,10 @@ export class DataScheduler {
     }
 
     private async performDailyPrices() {
-        console.log("📈 Running daily price updates (DJI, NDX, S&P 500)...");
+        console.log("📈 Running daily Yahoo Finance price updates (no FMP key required)...");
         try {
-            await updateDowJonesPrices();
-            await updateNasdaq100Prices();
-            await updateSp500Prices();
-            console.log("✅ Price updates completed.");
+            const { totalUpdated, totalFailed } = await runYahooBulkPriceUpdate(supabase);
+            console.log(`✅ Price updates completed. Updated: ${totalUpdated}, failed: ${totalFailed}`);
         } catch (error) {
             console.error("❌ Error during price updates:", error);
         }

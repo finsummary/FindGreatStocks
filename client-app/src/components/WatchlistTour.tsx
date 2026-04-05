@@ -101,12 +101,12 @@ export function WatchlistTour({ run, onComplete, onStop }: WatchlistTourProps) {
           </p>
           <ul style="font-size: 0.875rem; margin-top: 0.5rem; padding-left: 1.5rem; list-style: disc;">
             <li style="margin-bottom: 0.25rem;">View detailed financial metrics</li>
-            <li style="margin-bottom: 0.25rem;">Remove companies by clicking the star icon</li>
+            <li style="margin-bottom: 0.25rem;">Add or remove companies by clicking on 3 dots</li>
             <li style="margin-bottom: 0.25rem;">Sort and filter columns</li>
             <li style="margin-bottom: 0.25rem;">Search for specific companies</li>
           </ul>
         `,
-        element: '[data-tour="watchlist-table"]',
+        element: '[data-tour="columns"]',
         position: isMobile ? 'top' : 'top',
       });
 
@@ -311,10 +311,10 @@ export function useWatchlistTour(user?: { id?: string } | null) {
       const startTourIfReady = () => {
         // Check if required elements exist before starting tour
         const watchlistHeader = document.querySelector('[data-tour="watchlist-header"]');
-        const watchlistTable = document.querySelector('[data-tour="watchlist-table"]');
+        const columnsHeader = document.querySelector('[data-tour="columns"]');
         
-        // Header and table are required, selector and manage button are optional
-        if (watchlistHeader && watchlistTable) {
+        // Header and columns header are required, selector and manage button are optional
+        if (watchlistHeader && columnsHeader) {
           setShouldRun(true);
           return true;
         }

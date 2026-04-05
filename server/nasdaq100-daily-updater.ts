@@ -9,6 +9,7 @@ import { batcher } from "./utils/batcher";
 import { FinancialDataService } from "./financial-data.ts";
 import { updateDcfMetricsForCompany } from "./dcf-daily-updater";
 import { calculateDerivedMetrics, formatDerivedMetricsForDB } from "./utils/derived-metrics";
+import { fmpRequestUrl, normalizeFmpQuoteJson } from "./fmp-request-url";
 
 const BATCH_SIZE = 100;
 
@@ -17,7 +18,7 @@ if (!process.env.FMP_API_KEY) {
 }
 
 const API_KEY = process.env.FMP_API_KEY;
-const BASE_URL = 'https://financialmodelingprep.com/api/v3';
+const FMP_V3 = 'https://financialmodelingprep.com/api/v3';
 
 // Rate limiting
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -45,15 +46,17 @@ interface QuoteData {
 
 async function fetchQuoteData(symbol: string): Promise<QuoteData | null> {
   try {
-    const response = await fetch(`${BASE_URL}/quote/${symbol}?apikey=${API_KEY}`);
+    const ep = `/quote/${symbol}`;
+    const response = await fetch(fmpRequestUrl(ep, API_KEY));
     
     if (!response.ok) {
       console.log(`Quote API error for ${symbol}: ${response.status}`);
       return null;
     }
 
-    const data = await response.json();
-    return data?.[0] || null;
+    const raw = await response.json();
+    const data = normalizeFmpQuoteJson(ep, raw) as QuoteData[] | null;
+    return (Array.isArray(data) && data[0]) ? data[0] : null;
   } catch (error) {
     console.error(`Error fetching quote for ${symbol}:`, error);
     return null;
@@ -88,7 +91,7 @@ async function updateCompanyPrice(symbol: string) {
     // Fallback to ratios-ttm dividend yield (TTM)
     if (false && !updateData.dividendYield) {
       try {
-        const ttm = await fetch(`${BASE_URL}/ratios-ttm/${symbol}?apikey=${API_KEY}`).then(r => r.ok ? r.json() : null);
+        const ttm = await fetch(`${FMP_V3}/ratios-ttm/${symbol}?apikey=${API_KEY}`).then(r => r.ok ? r.json() : null);
         const raw = Array.isArray(ttm) && ttm.length ? (ttm as any[])[0] : null;
         const dy = raw && (raw.dividendYieldTTM ?? raw.dividendYielTTM);
         if (dy !== null && dy !== undefined) {

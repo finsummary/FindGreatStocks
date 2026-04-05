@@ -1,4 +1,5 @@
 import { storage } from './storage';
+import { fmpRequestUrl } from './fmp-request-url';
 
 interface PriceUpdate {
   symbol: string;
@@ -45,7 +46,7 @@ export class DailyPriceUpdater {
         
         try {
           const response = await fetch(
-            `https://financialmodelingprep.com/api/v3/quote/${symbolsQuery}?apikey=${this.apiKey}`
+            fmpRequestUrl(`/quote/${symbolsQuery}`, this.apiKey)
           );
           
           if (!response.ok) {

@@ -761,6 +761,20 @@ export function setupRoutes(app: Express, supabase: SupabaseClient) {
     }
   });
 
+  /** Bulk price update via Yahoo Finance (no FMP subscription). Fire-and-forget background job. */
+  app.post("/api/prices/update-all-yahoo", async (_req, res) => {
+    try {
+      const { runYahooBulkPriceUpdate } = await import("./yahoo-price-update");
+      res.json({ status: "started", source: "yahoo-finance", at: new Date().toISOString() });
+      void runYahooBulkPriceUpdate(supabase)
+        .then((r) => console.log("[Yahoo] bulk price update finished:", r))
+        .catch((e) => console.error("[Yahoo] bulk price update error:", e));
+    } catch (error) {
+      console.error("prices/update-all-yahoo error:", error);
+      res.status(500).json({ message: "Failed to start Yahoo Finance price update" });
+    }
+  });
+
   // FTSE 100 import endpoint
   app.post("/api/ftse100/import", async (req, res) => {
     try {

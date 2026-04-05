@@ -1,4 +1,5 @@
 import { storage } from './storage';
+import { fmpRequestUrl, normalizeFmpQuoteJson } from './fmp-request-url';
 
 interface SP500Constituent {
   symbol: string;
@@ -47,7 +48,7 @@ class CompleteSP500Importer {
   }
 
   private async makeRequest(endpoint: string): Promise<any> {
-    const url = `https://financialmodelingprep.com/api/v3${endpoint}${endpoint.includes('?') ? '&' : '?'}apikey=${this.apiKey}`;
+    const url = fmpRequestUrl(endpoint, this.apiKey);
     console.log(`Making request to: ${endpoint}`);
     
     const response = await fetch(url);
@@ -57,7 +58,8 @@ class CompleteSP500Importer {
       throw new Error(`FMP API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
     
-    return response.json();
+    const json = await response.json();
+    return normalizeFmpQuoteJson(endpoint, json);
   }
 
   // Get ALL S&P 500 constituents

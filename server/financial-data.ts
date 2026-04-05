@@ -1,6 +1,6 @@
 import type { InsertCompany, Company } from "@shared/schema";
+import { fmpRequestUrl, normalizeFmpQuoteJson } from "./fmp-request-url";
 
-const FMP_BASE_URL = "https://financialmodelingprep.com/api/v3";
 const FMP_API_KEY = process.env.FMP_API_KEY;
 
 export interface FMPCompany {
@@ -32,7 +32,7 @@ export class FinancialDataService {
       throw new Error("FMP_API_KEY is not configured");
     }
 
-    const url = `${FMP_BASE_URL}${endpoint}${endpoint.includes('?') ? '&' : '?'}apikey=${FMP_API_KEY}`;
+    const url = fmpRequestUrl(endpoint, FMP_API_KEY);
     console.log(`Fetching: ${endpoint}`);
     console.log(`Full URL: ${url.replace(FMP_API_KEY, '[HIDDEN]')}`);
     
@@ -45,7 +45,8 @@ export class FinancialDataService {
       throw new Error(`FMP API error: ${response.status} ${response.statusText}`);
     }
     
-    return response.json();
+    const json = await response.json();
+    return normalizeFmpQuoteJson(endpoint, json);
   }
 
   async fetchTopCompaniesByMarketCap(limit: number = 100): Promise<FMPCompany[]> {

@@ -1,5 +1,6 @@
 import { supabase } from './db';
 import { calculateDerivedMetrics, formatDerivedMetricsForDB } from './utils/derived-metrics';
+import { fmpRequestUrl, normalizeFmpQuoteJson } from './fmp-request-url';
 
 const BASE_URL = 'https://financialmodelingprep.com/api/v3';
 const API_KEY = process.env.FMP_API_KEY || '';
@@ -19,9 +20,11 @@ type Quote = {
 async function fetchQuote(symbol: string): Promise<Quote | null> {
   if (!API_KEY) return null;
   try {
-    const r = await fetch(`${BASE_URL}/quote/${symbol}?apikey=${API_KEY}`);
+    const ep = `/quote/${symbol}`;
+    const r = await fetch(fmpRequestUrl(ep, API_KEY));
     if (!r.ok) return null;
-    const arr = await r.json();
+    const raw = await r.json();
+    const arr = normalizeFmpQuoteJson(ep, raw);
     return Array.isArray(arr) && arr[0] ? arr[0] : null;
   } catch {
     return null;

@@ -440,6 +440,15 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
         }
       }
     } catch {}
+    // Scanner deep-link from SEO: URL params override stored prefs (e.g. /?dataset=sp500&sortBy=roic&sortOrder=desc)
+    try {
+      const urlSort = (window as any).__fgsScannerSort as { sortBy?: string; sortOrder?: 'asc' | 'desc' } | undefined;
+      if (urlSort?.sortBy) {
+        setSortBy(urlSort.sortBy);
+        if (urlSort.sortOrder) setSortOrder(urlSort.sortOrder);
+        delete (window as any).__fgsScannerSort;
+      }
+    } catch {}
     setDidLoadPrefs(true);
   }, [authLoading, isPaidUser, dataset, didLoadPrefs]);
 

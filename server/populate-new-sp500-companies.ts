@@ -25,6 +25,7 @@ import * as schema from '../shared/schema';
 import { eq } from 'drizzle-orm';
 import { FinancialDataService } from './financial-data';
 import { updateDcfMetricsForCompany } from './dcf-daily-updater';
+import { fmpRequestUrl, normalizeFmpQuoteJson } from './fmp-request-url';
 
 const FMP_API_KEY = process.env.FMP_API_KEY;
 
@@ -127,9 +128,11 @@ async function populateBaseMetrics(symbol: string) {
     // Fetch quote data
     let quoteData = null;
     try {
-      const quoteResponse = await fetch(`https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${FMP_API_KEY}`);
+      const quoteEp = `/quote/${symbol}`;
+      const quoteResponse = await fetch(fmpRequestUrl(quoteEp, FMP_API_KEY!));
       if (quoteResponse.ok) {
-        const quoteArray = await quoteResponse.json();
+        const rawQuote = await quoteResponse.json();
+        const quoteArray = normalizeFmpQuoteJson(quoteEp, rawQuote);
         quoteData = Array.isArray(quoteArray) && quoteArray.length > 0 ? quoteArray[0] : null;
       }
     } catch (error) {

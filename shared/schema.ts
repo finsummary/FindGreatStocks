@@ -106,6 +106,7 @@ export const dowJonesCompanies = pgTable("dow_jones_companies", {
 	interestCoverage: numeric("interest_coverage", { precision: 10, scale:  4 }),
 	returnDrawdownRatio10Year: doublePrecision("return_drawdown_ratio_10_year"),
 	latestFcf: numeric("latest_fcf", { precision: 20, scale:  0 }),
+	sharesOutstanding: numeric("shares_outstanding", { precision: 20, scale:  0 }),
 }, (table) => {
 	return {
 		dowJonesCompaniesSymbolUnique: unique("dow_jones_companies_symbol_unique").on(table.symbol),
@@ -210,6 +211,7 @@ export const companies = pgTable("companies", {
 	fcfMarginMedian10Y: numeric("fcf_margin_median_10y", { precision: 10, scale:  4 }),
 	debtToEquity: numeric("debt_to_equity", { precision: 10, scale:  4 }),
 	interestCoverage: numeric("interest_coverage", { precision: 10, scale:  4 }),
+	sharesOutstanding: numeric("shares_outstanding", { precision: 20, scale:  0 }),
 }, (table) => {
 	return {
 		companiesSymbolUnique: unique("companies_symbol_unique").on(table.symbol),
@@ -354,6 +356,7 @@ export const nasdaq100Companies = pgTable("nasdaq100_companies", {
 	fcfMarginMedian10Y: numeric("fcf_margin_median_10y", { precision: 10, scale:  4 }),
 	debtToEquity: numeric("debt_to_equity", { precision: 10, scale:  4 }),
 	interestCoverage: numeric("interest_coverage", { precision: 10, scale:  4 }),
+	sharesOutstanding: numeric("shares_outstanding", { precision: 20, scale:  0 }),
 }, (table) => {
 	return {
 		nasdaq100CompaniesSymbolUnique: unique("nasdaq100_companies_symbol_unique").on(table.symbol),
@@ -462,8 +465,43 @@ export const sp500Companies = pgTable("sp500_companies", {
 	fcfMargin: numeric("fcf_margin", { precision: 10, scale: 4 }),
 	debtToEquity: numeric("debt_to_equity", { precision: 10, scale:  4 }),
 	interestCoverage: numeric("interest_coverage", { precision: 10, scale:  4 }),
+	sharesOutstanding: numeric("shares_outstanding", { precision: 20, scale:  0 }),
 }, (table) => {
 	return {
 		sp500CompaniesSymbolUnique: unique("sp500_companies_symbol_unique").on(table.symbol),
 	}
+});
+
+// SEO programmatic pages: cache for AI summaries and metadata
+export const pageCache = pgTable("page_cache", {
+	id: serial().primaryKey().notNull(),
+	pageType: varchar("page_type", { length: 64 }).notNull(),
+	pageSlug: varchar("page_slug", { length: 256 }).notNull(),
+	entityKey: varchar("entity_key", { length: 256 }).notNull(),
+	title: text(),
+	metaDescription: text("meta_description"),
+	h1: text(),
+	aiSummary: text("ai_summary"),
+	aiJson: jsonb("ai_json"),
+	renderedPayloadJson: jsonb("rendered_payload_json"),
+	versionHash: varchar("version_hash", { length: 64 }),
+	lastGeneratedAt: timestamp("last_generated_at", { mode: "string" }),
+	lastRevalidatedAt: timestamp("last_revalidated_at", { mode: "string" }),
+	createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
+	updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow(),
+}, (table) => {
+	return {
+		pageCacheTypeSlugUnique: unique("page_cache_type_slug_unique").on(table.pageType, table.pageSlug),
+		pageCacheEntityKeyIdx: index("page_cache_entity_key_idx").on(table.entityKey),
+	};
+});
+
+// Internal linking: source -> target with score for SEO
+export const internalLinks = pgTable("internal_links", {
+	id: serial().primaryKey().notNull(),
+	sourceSlug: varchar("source_slug", { length: 256 }).notNull(),
+	targetSlug: varchar("target_slug", { length: 256 }).notNull(),
+	linkType: varchar("link_type", { length: 64 }).notNull(),
+	score: integer().default(0),
+	updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow(),
 });

@@ -1,4 +1,5 @@
 import { storage } from './storage';
+import { fmpRequestUrl, normalizeFmpQuoteJson } from './fmp-request-url';
 
 interface FinancialMetrics {
   symbol: string;
@@ -60,7 +61,7 @@ class FinancialDataEnhancer {
   }
 
   private async makeRequest(endpoint: string): Promise<any> {
-    const url = `https://financialmodelingprep.com/api/v3${endpoint}${endpoint.includes('?') ? '&' : '?'}apikey=${this.apiKey}`;
+    const url = fmpRequestUrl(endpoint, this.apiKey);
     
     const response = await fetch(url);
     
@@ -69,7 +70,8 @@ class FinancialDataEnhancer {
       throw new Error(`FMP API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
     
-    return response.json();
+    const json = await response.json();
+    return normalizeFmpQuoteJson(endpoint, json);
   }
 
   // Get financial metrics for a single company

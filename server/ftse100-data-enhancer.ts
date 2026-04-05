@@ -1,12 +1,17 @@
 import { supabase } from './db';
+import { fmpRequestUrl, normalizeFmpQuoteJson } from './fmp-request-url';
 
 const BASE_URL = 'https://financialmodelingprep.com/api/v3';
 const API_KEY = process.env.FMP_API_KEY || '';
 
 async function fetchJson(path: string) {
-  const r = await fetch(`${BASE_URL}${path}${path.includes('?') ? '&' : '?'}apikey=${API_KEY}`);
+  const url = path.startsWith('/quote/')
+    ? fmpRequestUrl(path, API_KEY)
+    : `${BASE_URL}${path}${path.includes('?') ? '&' : '?'}apikey=${API_KEY}`;
+  const r = await fetch(url);
   if (!r.ok) throw new Error(`FMP ${path} ${r.status}`);
-  return r.json();
+  const json = await r.json();
+  return normalizeFmpQuoteJson(path, json);
 }
 
 async function enhanceOne(symbol: string) {

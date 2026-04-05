@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input"
 import { CompanyTable } from "@/components/company-table";
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ChevronDown, HelpCircle, BookOpen } from "lucide-react";
@@ -26,7 +27,10 @@ const YouTubeIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
   </svg>
 );
 
+const VALID_DATASETS = ['sp500', 'nasdaq100', 'dowjones', 'spmid400', 'ftse100', 'tsx60', 'asx200', 'dax40', 'cac40', 'ibex35', 'nikkei225', 'hangseng', 'nifty50', 'ibovespa'] as const;
+
 export function HomePage() {
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<
     'sp500' | 'nasdaq100' | 'dowjones' |
     'spmid400' | 'ftse100' | 'tsx60' | 'asx200' | 'dax40' | 'cac40' |
@@ -44,6 +48,25 @@ export function HomePage() {
       return true;
     }
   });
+
+  // Scanner deep-link: apply URL params from SEO pages (e.g. /?dataset=sp500&sortBy=roic&sortOrder=desc&search=AAPL)
+  useEffect(() => {
+    const dataset = searchParams.get('dataset');
+    const sortBy = searchParams.get('sortBy');
+    const sortOrder = searchParams.get('sortOrder');
+    const search = searchParams.get('search') ?? searchParams.get('q') ?? '';
+    if (dataset && VALID_DATASETS.includes(dataset as any)) {
+      setActiveTab(dataset as typeof activeTab);
+    }
+    if (sortBy && typeof sortBy === 'string') {
+      // CompanyTable will read initial sort from URL via a separate mechanism or we pass as prop
+      try { (window as any).__fgsScannerSort = { sortBy, sortOrder: sortOrder === 'asc' ? 'asc' : 'desc' }; } catch {}
+    }
+    if (search && typeof search === 'string') {
+      setSearchQuery(search.trim());
+      setSearchInput(search.trim());
+    }
+  }, []); // run once on mount; searchParams are read on first render
 
   // Don't automatically mark landing as seen - only when user explicitly navigates from landing page
 
