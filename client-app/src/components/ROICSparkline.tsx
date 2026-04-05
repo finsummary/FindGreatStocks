@@ -9,10 +9,7 @@ interface ROICSparklineProps {
 }
 
 export function ROICSparkline({ roicData }: ROICSparklineProps) {
-  // Преобразуем данные: roicData идет от Y1 (новый) к Y10 (старый)
-  // Но для графика нужно от старых к новым (Y10 → Y1)
-  // roicData идет от Y1 (новый, 2025) к Y10 (старый, 2016): [roicY1, roicY2, ..., roicY10]
-  // Нужно отобразить Y10 (старый, 2016) слева, Y1 (новый, 2025) справа
+  // roicData: [roicY1 … roicY10] — от нового периода к старому; на графике слева старые, справа новые.
   const chartData = roicData
     .map((value, index) => {
       // index 0 -> roicY1 (новый, 2025) -> yearIndex должен быть 1 (Y1)
@@ -27,15 +24,12 @@ export function ROICSparkline({ roicData }: ROICSparklineProps) {
         else if (roicPercent > 5) fillColor = "hsl(38, 92%, 50%)"; // yellow-500
         else if (roicPercent > 0) fillColor = "hsl(0, 84%, 60%)"; // red-500
       }
-      // Используем год, который на 2 года меньше текущего, так как большинство компаний
-      // публикуют годовые отчеты за предыдущий календарный год в начале следующего года
-      // Например, в начале 2026 года последний доступный отчет обычно за 2024 год
-      // Это предотвращает переключение на новый год до публикации отчетов
-      const baseYear = new Date().getFullYear() - 2;
-      // yearLabel: для Y1 (index 0) это базовый год (обычно предыдущий календарный год), для Y10 (index 9) это 10 лет назад
+      // Подпись оси: Y1 = самый новый год в ряду (обычно последний завершённый календарный год относительно «сейчас»).
+      // Данные roicY1 приходят из FMP как последний доступный FY (в т.ч. FY, заканчивающийся в 2026, что соответствует отчётности «2025» в сравнении с TradingView).
+      const baseYear = new Date().getFullYear() - 1;
       return {
         year: `Y${yearIndex}`,
-        yearLabel: `${baseYear - yearIndex + 1}`, // Y1 = базовый год, Y10 = 10 лет назад
+        yearLabel: `${baseYear - yearIndex + 1}`,
         roic: roicPercent,
         fill: fillColor,
       };

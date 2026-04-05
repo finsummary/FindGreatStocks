@@ -9,7 +9,8 @@
     "dev": "cd server && npm run dev",
     "backfill:rev10y": "tsx server/scripts/backfill-revenue-10y.ts",
     "seo:dev": "cd seo-app && npm run dev",
-    "seo:build": "cd seo-app && npm run build"
+    "seo:build": "cd seo-app && npm run build",
+    "update:roic-history": "tsx server/scripts/update-all-roic-history-fmp.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.3",
