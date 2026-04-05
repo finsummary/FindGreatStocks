@@ -1,4 +1,5 @@
 import { companies, nasdaq100Companies, sp500Companies, watchlist, users, type User, type UpsertUser, type Company, type Nasdaq100Company, type InsertCompany, type InsertNasdaq100Company, type Watchlist, type InsertWatchlist, type DowJonesCompany, type InsertDowJonesCompany, dowJonesCompanies } from "@shared/schema";
+import { INDEX_STOCK_SORT_MAP } from "@shared/indexStockSortMap";
 import { db, supabase } from "./db";
 import { eq, sql, desc, asc, and, or, ilike, inArray, SQL } from "drizzle-orm";
 
@@ -444,31 +445,7 @@ export class DatabaseStorage implements IStorage {
     search?: string
   ): Promise<Nasdaq100Company[]> {
     try {
-      const sortMap: Record<string, string> = {
-        rank: 'rank',
-        name: 'name',
-        marketCap: 'market_cap',
-        price: 'price',
-        revenue: 'revenue',
-        netIncome: 'net_income',
-        peRatio: 'pe_ratio',
-        dividendYield: 'dividend_yield',
-        freeCashFlow: 'free_cash_flow',
-        revenueGrowth3Y: 'revenue_growth_3y',
-        revenueGrowth5Y: 'revenue_growth_5y',
-        revenueGrowth10Y: 'revenue_growth_10y',
-        return3Year: 'return_3_year',
-        return5Year: 'return_5_year',
-        return10Year: 'return_10_year',
-        maxDrawdown3Year: 'max_drawdown_3_year',
-        maxDrawdown5Year: 'max_drawdown_5_year',
-        maxDrawdown10Year: 'max_drawdown_10_year',
-        roic: 'roic',
-        roe: 'roe',
-        dcfImpliedGrowth: 'dcf_implied_growth',
-        marginOfSafety: 'margin_of_safety',
-      };
-      const orderCol = sortMap[sortBy] || 'market_cap';
+      const orderCol = INDEX_STOCK_SORT_MAP[sortBy] || 'market_cap';
 
       let query = supabase
         .from('nasdaq100_companies')
@@ -535,31 +512,7 @@ export class DatabaseStorage implements IStorage {
     search?: string
   ): Promise<any[]> {
     try {
-      const sortMap: Record<string, string> = {
-        rank: 'rank',
-        name: 'name',
-        marketCap: 'market_cap',
-        price: 'price',
-        revenue: 'revenue',
-        netIncome: 'net_income',
-        peRatio: 'pe_ratio',
-        dividendYield: 'dividend_yield',
-        freeCashFlow: 'free_cash_flow',
-        revenueGrowth3Y: 'revenue_growth_3y',
-        revenueGrowth5Y: 'revenue_growth_5y',
-        revenueGrowth10Y: 'revenue_growth_10y',
-        return3Year: 'return_3_year',
-        return5Year: 'return_5_year',
-        return10Year: 'return_10_year',
-        maxDrawdown3Year: 'max_drawdown_3_year',
-        maxDrawdown5Year: 'max_drawdown_5_year',
-        maxDrawdown10Year: 'max_drawdown_10_year',
-        roic: 'roic',
-        roe: 'roe',
-        dcfImpliedGrowth: 'dcf_implied_growth',
-        marginOfSafety: 'margin_of_safety',
-      };
-      const orderCol = sortMap[sortBy] || 'market_cap';
+      const orderCol = INDEX_STOCK_SORT_MAP[sortBy] || 'market_cap';
 
       let query = supabase
         .from('sp500_companies')
@@ -618,31 +571,7 @@ export class DatabaseStorage implements IStorage {
     search?: string
   ): Promise<DowJonesCompany[]> {
     try {
-      const sortMap: Record<string, string> = {
-        rank: 'rank',
-        name: 'name',
-        marketCap: 'market_cap',
-        price: 'price',
-        revenue: 'revenue',
-        netIncome: 'net_income',
-        peRatio: 'pe_ratio',
-        dividendYield: 'dividend_yield',
-        freeCashFlow: 'free_cash_flow',
-        revenueGrowth3Y: 'revenue_growth_3y',
-        revenueGrowth5Y: 'revenue_growth_5y',
-        revenueGrowth10Y: 'revenue_growth_10y',
-        return3Year: 'return_3_year',
-        return5Year: 'return_5_year',
-        return10Year: 'return_10_year',
-        maxDrawdown3Year: 'max_drawdown_3_year',
-        maxDrawdown5Year: 'max_drawdown_5_year',
-        maxDrawdown10Year: 'max_drawdown_10_year',
-        roic: 'roic',
-        roe: 'roe',
-        dcfImpliedGrowth: 'dcf_implied_growth',
-        marginOfSafety: 'margin_of_safety',
-      };
-      const orderCol = sortMap[sortBy] || 'market_cap';
+      const orderCol = INDEX_STOCK_SORT_MAP[sortBy] || 'market_cap';
 
       let query = supabase
         .from('dow_jones_companies')
@@ -709,31 +638,7 @@ export class DatabaseStorage implements IStorage {
     search?: string
   ): Promise<Ftse100Company[]> {
     try {
-      const sortMap: Record<string, string> = {
-        rank: 'rank',
-        name: 'name',
-        marketCap: 'market_cap',
-        price: 'price',
-        revenue: 'revenue',
-        netIncome: 'net_income',
-        peRatio: 'pe_ratio',
-        dividendYield: 'dividend_yield',
-        freeCashFlow: 'free_cash_flow',
-        revenueGrowth3Y: 'revenue_growth_3y',
-        revenueGrowth5Y: 'revenue_growth_5y',
-        revenueGrowth10Y: 'revenue_growth_10y',
-        return3Year: 'return_3_year',
-        return5Year: 'return_5_year',
-        return10Year: 'return_10_year',
-        maxDrawdown3Year: 'max_drawdown_3_year',
-        maxDrawdown5Year: 'max_drawdown_5_year',
-        maxDrawdown10Year: 'max_drawdown_10_year',
-        roic: 'roic',
-        roe: 'roe',
-        dcfImpliedGrowth: 'dcf_implied_growth',
-        marginOfSafety: 'margin_of_safety',
-      };
-      const orderCol = sortMap[sortBy] || 'market_cap';
+      const orderCol = INDEX_STOCK_SORT_MAP[sortBy] || 'market_cap';
 
       let query = supabase
         .from('ftse100_companies')

@@ -28,6 +28,8 @@ import { useFlag } from "@/providers/FeatureFlagsProvider";
 import { useToast } from "@/hooks/use-toast";
 import type { Company, Nasdaq100Company } from "../types";
 import { supabase } from "@/lib/supabaseClient";
+import { getComputedMetricValue, needsFullIndexClientSort, COMPUTED_SORT_COLUMN_IDS } from "@/lib/computed-metric-value";
+import { INDEX_STOCK_SORT_MAP } from "../../../shared/indexStockSortMap";
 
 type DisplayCompany = Company & { isWatched?: boolean };
 import { authFetch } from "@/lib/authFetch";
@@ -788,15 +790,13 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
         number | undefined,
       ];
 
-      const isDerived = currentSortBy === 'roicStability' || currentSortBy === 'roicStabilityScore' || currentSortBy === 'fcfMargin';
+      const needsFullClientSort = needsFullIndexClientSort(currentSortBy);
       const params = new URLSearchParams({
-        offset: String(isDerived ? 0 : (page * limit)),
-        // fetch all to sort client-side when derived sorting is requested
-        limit: String(isDerived ? 5000 : limit),
+        offset: String(needsFullClientSort ? 0 : (page * limit)),
+        limit: String(needsFullClientSort ? 5000 : limit),
       });
 
-      // Only add server-side sorting if not a derived column
-      if (currentSortBy && currentSortBy !== 'none' && !isDerived) {
+      if (currentSortBy && currentSortBy !== 'none' && !needsFullClientSort) {
         params.append("sortBy", currentSortBy);
         params.append("sortOrder", sortOrder);
       }
@@ -889,19 +889,17 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
       }
       // Client-side fallback for FTSE 100 while server endpoint may be unavailable
       if (url === '/api/ftse100') {
-        // Build Supabase filter and pagination
-        const offsetNum = Number(params.get('offset') || 0);
-        const limitNum = Number(params.get('limit') || 50);
-        let supa = supabase.from('ftse100_companies').select('*', { count: 'exact' });
-        if (search) {
-          supa = supa.or(`name.ilike.%${search}%,symbol.ilike.%${search}%`);
-        }
-        const { data: rows, error: err } = await supabase
-          .from('ftse100_companies')
-          .select('*')
-          .range(offsetNum, offsetNum + limitNum - 1)
-          .or(search ? `name.ilike.%${search}%,symbol.ilike.%${search}%` : undefined as any);
-        if (err) throw err;
+        const limitNum = limit;
+        const offsetNum = page * limitNum;
+        const orderCol =
+          currentSortBy && currentSortBy !== 'none'
+            ? INDEX_STOCK_SORT_MAP[currentSortBy] || 'market_cap'
+            : 'market_cap';
+        const asc =
+          currentSortBy && currentSortBy !== 'none'
+            ? String(sortOrder).toLowerCase() === 'asc'
+            : false;
+
         const mapRow = (row: any) => ({
           id: row.id,
           name: row.name,
@@ -977,14 +975,16 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
           fcfMarginMedian10Y: row.fcf_margin_median_10y,
           assetTurnover: row.asset_turnover,
           financialLeverage: row.financial_leverage,
+          revenueY1: row.revenue_y1,
+          revenueY2: row.revenue_y2,
+          fcfY1: row.fcf_y1,
         });
-        const companies = (rows || []).map(mapRow).map((c) => {
-          // Use values from DB if available, otherwise calculate dynamically
+
+        const enrichFtse = (c: any) => {
           let roicStability = (c as any).roic_stability ? parseFloat((c as any).roic_stability) : null;
           let roicStabilityScore = (c as any).roic_stability_score ? parseFloat((c as any).roic_stability_score) : null;
           let fcfMargin = (c as any).fcf_margin ? parseFloat((c as any).fcf_margin) : null;
 
-          // Fallback to dynamic calculation if not in DB
           if (roicStability === null || roicStabilityScore === null) {
             const avg = c.roic10YAvg != null ? Number(c.roic10YAvg) : null;
             const std = c.roic10YStd != null ? Number(c.roic10YStd) : null;
@@ -994,17 +994,13 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             if (roicStabilityScore === null) roicStabilityScore = score;
           }
 
-          // Fallback to dynamic calculation for fcfMargin if not in DB
-          // Use fcfY1 / revenueY1 (latest full year) instead of freeCashFlow / revenue (which may be from different periods)
           if (fcfMargin === null) {
-            // Try to use the latest full year data (fcfY1 / revenueY1) for consistency with fcfMarginHistory
             const fcfY1 = (c as any).fcfY1 ?? (c as any).fcf_y1;
             const revenueY1 = (c as any).revenueY1 ?? (c as any).revenue_y1;
-            
+
             if (fcfY1 != null && revenueY1 != null && revenueY1 !== 0) {
               fcfMargin = Number(fcfY1) / Number(revenueY1);
             } else {
-              // Fallback to freeCashFlow / revenue if Y1 data is not available
               const revenue = c.revenue != null ? Number(c.revenue) : null;
               const fcf = c.freeCashFlow != null ? Number(c.freeCashFlow) : null;
               fcfMargin = (revenue !== null && revenue !== 0 && fcf != null) ? (fcf / revenue) : null;
@@ -1013,25 +1009,59 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
 
           const median = c.fcfMarginMedian10Y != null ? Number(c.fcfMarginMedian10Y) : null;
           return { ...c, roicStability, roicStabilityScore, fcfMargin, fcfMarginMedian10Y: median };
-        });
-        // Client-side sort, same as below
-        if (currentSortBy && currentSortBy !== 'none') {
-          const asc = (String(sortOrder).toLowerCase() === 'asc');
-          const toNum = (v: any) => {
-            if (v === null || v === undefined) return Number.NEGATIVE_INFINITY;
-            if (typeof v === 'number') return v;
-            const n = parseFloat(String(v).replace(/[%,$\s]/g, ''));
-            return Number.isNaN(n) ? Number.NEGATIVE_INFINITY : n;
-          };
-          companies.sort((a: any, b: any) => {
-            const na = toNum((a as any)[currentSortBy]);
-            const nb = toNum((b as any)[currentSortBy]);
-            if (na === nb) return 0;
-            return asc ? (na - nb) : (nb - na);
-          });
+        };
+
+        let query = supabase.from('ftse100_companies').select('*');
+        if (search) {
+          query = query.or(`name.ilike.%${search}%,symbol.ilike.%${search}%`);
         }
-        const hasMore = (rows || []).length === limitNum; // optimistic
-        const total = offsetNum + (rows?.length || 0) + (hasMore ? 1 : 0);
+
+        if (needsFullClientSort && currentSortBy && currentSortBy !== 'none') {
+          const { data: allRaw, error: errAll } = await query.limit(2000);
+          if (errAll) throw errAll;
+          let companies = (allRaw || []).map(mapRow).map(enrichFtse);
+          const sortAsc = String(sortOrder).toLowerCase() === 'asc';
+          const isComputedSort = (COMPUTED_SORT_COLUMN_IDS as readonly string[]).includes(currentSortBy);
+          companies.sort((a: any, b: any) => {
+            const va = isComputedSort
+              ? getComputedMetricValue(a, currentSortBy)
+              : (a as any)[currentSortBy];
+            const vb = isComputedSort
+              ? getComputedMetricValue(b, currentSortBy)
+              : (b as any)[currentSortBy];
+            const aNull = va === null || va === undefined;
+            const bNull = vb === null || vb === undefined;
+            if (aNull && bNull) return 0;
+            if (aNull) return 1;
+            if (bNull) return -1;
+            const na = typeof va === 'number' ? va : parseFloat(String(va).replace(/[%,$\s]/g, ''));
+            const nb = typeof vb === 'number' ? vb : parseFloat(String(vb).replace(/[%,$\s]/g, ''));
+            if (!Number.isNaN(na) && !Number.isNaN(nb)) return sortAsc ? na - nb : nb - na;
+            return sortAsc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+          });
+          const total = companies.length;
+          const pageRows = companies.slice(offsetNum, offsetNum + limitNum);
+          return {
+            companies: pageRows,
+            total,
+            limit: limitNum,
+            offset: offsetNum,
+            hasMore: offsetNum + limitNum < total,
+          };
+        }
+
+        const { data: rows, error: err } = await query
+          .order(orderCol, { ascending: asc, nullsFirst: false })
+          .range(offsetNum, offsetNum + limitNum - 1);
+        if (err) throw err;
+        const companies = (rows || []).map(mapRow).map(enrichFtse);
+        const totalCountQuery = supabase.from('ftse100_companies').select('*', { count: 'exact', head: true });
+        const countQ = search
+          ? totalCountQuery.or(`name.ilike.%${search}%,symbol.ilike.%${search}%`)
+          : totalCountQuery;
+        const { count: ftseTotal } = await countQ;
+        const total = typeof ftseTotal === 'number' ? ftseTotal : offsetNum + companies.length;
+        const hasMore = offsetNum + companies.length < total;
         return { companies, total, limit: limitNum, offset: offsetNum, hasMore };
       }
       const response = await fetch(`${url}?${qs}`, { cache: 'no-store' });
@@ -1107,24 +1137,38 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
             return { ...c, roicStability, roicStabilityScore, fcfMargin, fcfMarginMedian10Y: median };
           });
         }
-        if (json?.companies && currentSortBy && currentSortBy !== 'none') {
+        if (
+          json?.companies &&
+          needsFullClientSort &&
+          currentSortBy &&
+          currentSortBy !== 'none'
+        ) {
           const rows = [...json.companies];
-          const asc = (String(sortOrder).toLowerCase() === 'asc');
+          const asc = String(sortOrder).toLowerCase() === 'asc';
+          const isComputedSort = (COMPUTED_SORT_COLUMN_IDS as readonly string[]).includes(currentSortBy);
           rows.sort((a: any, b: any) => {
-            const va = a?.[currentSortBy];
-            const vb = b?.[currentSortBy];
-            const aNull = (va === null || va === undefined);
-            const bNull = (vb === null || vb === undefined);
+            const va = isComputedSort
+              ? getComputedMetricValue(a, currentSortBy)
+              : a?.[currentSortBy];
+            const vb = isComputedSort
+              ? getComputedMetricValue(b, currentSortBy)
+              : b?.[currentSortBy];
+            const aNull = va === null || va === undefined;
+            const bNull = vb === null || vb === undefined;
             if (aNull && bNull) return 0;
-            if (aNull) return 1; // nulls last
+            if (aNull) return 1;
             if (bNull) return -1;
-            const na = (typeof va === 'number') ? va : parseFloat(String(va).replace(/[%,$\s]/g, ''));
-            const nb = (typeof vb === 'number') ? vb : parseFloat(String(vb).replace(/[%,$\s]/g, ''));
-            if (!Number.isNaN(na) && !Number.isNaN(nb)) return asc ? (na - nb) : (nb - na);
-            // fallback to string compare
+            const na = typeof va === 'number' ? va : parseFloat(String(va).replace(/[%,$\s]/g, ''));
+            const nb = typeof vb === 'number' ? vb : parseFloat(String(vb).replace(/[%,$\s]/g, ''));
+            if (!Number.isNaN(na) && !Number.isNaN(nb)) return asc ? na - nb : nb - na;
             return asc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
           });
-          json.companies = rows;
+          const total = rows.length;
+          json.total = total;
+          json.companies = rows.slice(page * limit, page * limit + limit);
+          json.offset = page * limit;
+          json.limit = limit;
+          json.hasMore = page * limit + limit < total;
         }
       } catch {}
       return json;
@@ -1142,178 +1186,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
   // Helper function to calculate computed values for sorting
   // Must be defined before tableData useMemo to avoid "can't access lexical declaration" error
   const getComputedValue = useCallback((row: DisplayCompany, colId: string): number | null => {
-    switch (colId) {
-      case 'revenueGrowth1Y': {
-        const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
-        const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
-        if (revenueY1 != null && revenueY2 != null) {
-          const rev1 = Number(revenueY1);
-          const rev2 = Number(revenueY2);
-          if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
-            return ((rev1 - rev2) / rev2) * 100;
-          }
-        }
-        return null;
-      }
-      case 'projectedRevenue5Y': {
-        const currentRevenue = row.revenue != null ? Number(row.revenue) : null;
-        const growth10Y = row.revenueGrowth10Y != null ? Number(row.revenueGrowth10Y) / 100 : null;
-        const growth5Y = row.revenueGrowth5Y != null ? Number(row.revenueGrowth5Y) / 100 : null;
-        const growth1Y = (() => {
-          const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
-          const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
-          if (revenueY1 != null && revenueY2 != null) {
-            const rev1 = Number(revenueY1);
-            const rev2 = Number(revenueY2);
-            if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
-              return (rev1 - rev2) / rev2;
-            }
-          }
-          return null;
-        })();
-        const growthRate = growth10Y ?? growth5Y ?? growth1Y ?? null;
-        if (currentRevenue === null || growthRate === null || !isFinite(currentRevenue) || !isFinite(growthRate)) {
-          return null;
-        }
-        return currentRevenue * Math.pow(1 + growthRate, 5);
-      }
-      case 'projectedRevenue10Y': {
-        const currentRevenue = row.revenue != null ? Number(row.revenue) : null;
-        const growth10Y = row.revenueGrowth10Y != null ? Number(row.revenueGrowth10Y) / 100 : null;
-        const growth5Y = row.revenueGrowth5Y != null ? Number(row.revenueGrowth5Y) / 100 : null;
-        const growth1Y = (() => {
-          const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
-          const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
-          if (revenueY1 != null && revenueY2 != null) {
-            const rev1 = Number(revenueY1);
-            const rev2 = Number(revenueY2);
-            if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
-              return (rev1 - rev2) / rev2;
-            }
-          }
-          return null;
-        })();
-        const growthRate = growth10Y ?? growth5Y ?? growth1Y ?? null;
-        if (currentRevenue === null || growthRate === null || !isFinite(currentRevenue) || !isFinite(growthRate)) {
-          return null;
-        }
-        return currentRevenue * Math.pow(1 + growthRate, 10);
-      }
-      case 'projectedEarnings5Y': {
-        const currentRevenue = row.revenue != null ? Number(row.revenue) : null;
-        const growth10Y = row.revenueGrowth10Y != null ? Number(row.revenueGrowth10Y) / 100 : null;
-        const growth5Y = row.revenueGrowth5Y != null ? Number(row.revenueGrowth5Y) / 100 : null;
-        const growth1Y = (() => {
-          const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
-          const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
-          if (revenueY1 != null && revenueY2 != null) {
-            const rev1 = Number(revenueY1);
-            const rev2 = Number(revenueY2);
-            if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
-              return (rev1 - rev2) / rev2;
-            }
-          }
-          return null;
-        })();
-        const earningsMargin = row.netProfitMargin != null ? Number(row.netProfitMargin) / 100 : null;
-        const growthRate = growth10Y ?? growth5Y ?? growth1Y ?? null;
-        if (currentRevenue === null || growthRate === null || earningsMargin === null ||
-            !isFinite(currentRevenue) || !isFinite(growthRate) || !isFinite(earningsMargin)) {
-          return null;
-        }
-        const projectedRevenue = currentRevenue * Math.pow(1 + growthRate, 5);
-        return projectedRevenue * earningsMargin;
-      }
-      case 'projectedEarnings10Y': {
-        const currentRevenue = row.revenue != null ? Number(row.revenue) : null;
-        const growth10Y = row.revenueGrowth10Y != null ? Number(row.revenueGrowth10Y) / 100 : null;
-        const growth5Y = row.revenueGrowth5Y != null ? Number(row.revenueGrowth5Y) / 100 : null;
-        const growth1Y = (() => {
-          const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
-          const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
-          if (revenueY1 != null && revenueY2 != null) {
-            const rev1 = Number(revenueY1);
-            const rev2 = Number(revenueY2);
-            if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
-              return (rev1 - rev2) / rev2;
-            }
-          }
-          return null;
-        })();
-        const earningsMargin = row.netProfitMargin != null ? Number(row.netProfitMargin) / 100 : null;
-        const growthRate = growth10Y ?? growth5Y ?? growth1Y ?? null;
-        if (currentRevenue === null || growthRate === null || earningsMargin === null ||
-            !isFinite(currentRevenue) || !isFinite(growthRate) || !isFinite(earningsMargin)) {
-          return null;
-        }
-        const projectedRevenue = currentRevenue * Math.pow(1 + growthRate, 10);
-        return projectedRevenue * earningsMargin;
-      }
-      case 'marketCapToEarnings5Y': {
-        const marketCap = row.marketCap != null ? Number(row.marketCap) : null;
-        const currentRevenue = row.revenue != null ? Number(row.revenue) : null;
-        const growth10Y = row.revenueGrowth10Y != null ? Number(row.revenueGrowth10Y) / 100 : null;
-        const growth5Y = row.revenueGrowth5Y != null ? Number(row.revenueGrowth5Y) / 100 : null;
-        const growth1Y = (() => {
-          const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
-          const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
-          if (revenueY1 != null && revenueY2 != null) {
-            const rev1 = Number(revenueY1);
-            const rev2 = Number(revenueY2);
-            if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
-              return (rev1 - rev2) / rev2;
-            }
-          }
-          return null;
-        })();
-        const earningsMargin = row.netProfitMargin != null ? Number(row.netProfitMargin) / 100 : null;
-        const growthRate = growth10Y ?? growth5Y ?? growth1Y ?? null;
-        if (marketCap === null || currentRevenue === null || growthRate === null || earningsMargin === null ||
-            !isFinite(marketCap) || !isFinite(currentRevenue) || !isFinite(growthRate) || !isFinite(earningsMargin) ||
-            marketCap <= 0) {
-          return null;
-        }
-        const projectedRevenue = currentRevenue * Math.pow(1 + growthRate, 5);
-        const projectedEarnings = projectedRevenue * earningsMargin;
-        if (projectedEarnings <= 0) {
-          return null;
-        }
-        return marketCap / projectedEarnings;
-      }
-      case 'marketCapToEarnings10Y': {
-        const marketCap = row.marketCap != null ? Number(row.marketCap) : null;
-        const currentRevenue = row.revenue != null ? Number(row.revenue) : null;
-        const growth10Y = row.revenueGrowth10Y != null ? Number(row.revenueGrowth10Y) / 100 : null;
-        const growth5Y = row.revenueGrowth5Y != null ? Number(row.revenueGrowth5Y) / 100 : null;
-        const growth1Y = (() => {
-          const revenueY1 = (row as any).revenueY1 ?? (row as any).revenue_y1;
-          const revenueY2 = (row as any).revenueY2 ?? (row as any).revenue_y2;
-          if (revenueY1 != null && revenueY2 != null) {
-            const rev1 = Number(revenueY1);
-            const rev2 = Number(revenueY2);
-            if (!isNaN(rev1) && !isNaN(rev2) && rev2 > 0) {
-              return (rev1 - rev2) / rev2;
-            }
-          }
-          return null;
-        })();
-        const earningsMargin = row.netProfitMargin != null ? Number(row.netProfitMargin) / 100 : null;
-        const growthRate = growth10Y ?? growth5Y ?? growth1Y ?? null;
-        if (marketCap === null || currentRevenue === null || growthRate === null || earningsMargin === null ||
-            !isFinite(marketCap) || !isFinite(currentRevenue) || !isFinite(growthRate) || !isFinite(earningsMargin) ||
-            marketCap <= 0) {
-          return null;
-        }
-        const projectedRevenue = currentRevenue * Math.pow(1 + growthRate, 10);
-        const projectedEarnings = projectedRevenue * earningsMargin;
-        if (projectedEarnings <= 0) {
-          return null;
-        }
-        return marketCap / projectedEarnings;
-      }
-      default:
-        return null;
-    }
+    return getComputedMetricValue(row as unknown as Record<string, unknown>, colId);
   }, []);
 
   const tableData = useMemo(() => {
@@ -2444,8 +2317,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
     manualPagination: true,
     pageCount: data?.total ? Math.ceil(data.total / limit) : -1,
     onRowSelectionChange: setRowSelection,
-    // Use client-side sorting for computed columns, server-side for others
-    manualSorting: sortBy !== 'none' && !['revenueGrowth1Y', 'projectedRevenue5Y', 'projectedRevenue10Y', 'projectedEarnings5Y', 'projectedEarnings10Y', 'marketCapToEarnings5Y', 'marketCapToEarnings10Y'].includes(sortBy),
+    manualSorting: true,
     enableSortingRemoval: false,
   });
 
@@ -2609,9 +2481,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
     if (dataset === 'watchlist') {
       return;
     }
-    const isDerivedSort = sortBy === 'roicStability' || sortBy === 'roicStabilityScore' || sortBy === 'fcfMargin';
-    // Для производных колонок пропускаем префетч, чтобы не кэшировать серверно отсортированные страницы
-    if (isDerivedSort) {
+    if (needsFullIndexClientSort(sortBy)) {
       return;
     }
     const datasets: Array<{ key: CompanyTableProps['dataset']; endpoint: string }> = [
@@ -2626,7 +2496,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
     const pagesToPrefetchCurrent = [page + 1, page + 2].filter(p => p >= 0);
     for (const p of pagesToPrefetchCurrent) {
       const params = new URLSearchParams({ offset: String(p * limit), limit: String(limit) });
-      if (sortBy && sortBy !== 'none' && !isDerivedSort) { params.append('sortBy', sortBy); params.append('sortOrder', sortOrder); }
+      if (sortBy && sortBy !== 'none') { params.append('sortBy', sortBy); params.append('sortOrder', sortOrder); }
       if (searchQuery) params.append('search', searchQuery);
       const qk = [current.endpoint, p, sortBy, sortOrder, searchQuery] as const;
       queryClient.prefetchQuery({
@@ -2645,7 +2515,7 @@ export function CompanyTable({ searchQuery, dataset, activeTab, watchlistId }: C
     for (const d of others) {
       for (const p of [0, 1, 2]) {
         const params = new URLSearchParams({ offset: String(p * limit), limit: String(limit) });
-        if (sortBy && sortBy !== 'none' && !isDerivedSort) { params.append('sortBy', sortBy); params.append('sortOrder', sortOrder); }
+        if (sortBy && sortBy !== 'none') { params.append('sortBy', sortBy); params.append('sortOrder', sortOrder); }
         if (searchQuery) params.append('search', searchQuery);
         const qk = [d.endpoint, p, sortBy, sortOrder, searchQuery] as const;
         queryClient.prefetchQuery({
