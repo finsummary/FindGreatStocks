@@ -86,6 +86,16 @@ export async function fetchRoicRecentYearsFromFmpStable(
   }
 }
 
+/** Latest filed annual ROIC (decimal), e.g. most recent FY in FMP — one HTTP GET with limit=1. */
+export async function fetchLatestAnnualRoicDecimal(
+  symbol: string,
+  apiKey: string
+): Promise<number | null> {
+  const series = await fetchRoicRecentYearsFromFmpStable(symbol, apiKey, 1);
+  const v = series[0];
+  return v !== null && v !== undefined ? v : null;
+}
+
 async function fetchStableJsonArray(url: string): Promise<Record<string, unknown>[]> {
   try {
     const r = await fetch(url);
