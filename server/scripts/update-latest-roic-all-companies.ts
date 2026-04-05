@@ -1,11 +1,12 @@
 #!/usr/bin/env tsx
 /**
- * One-shot: set headline `roic` and `roic_y1` from FMP Stable latest annual FY
- * (returnOnInvestedCapital — for most issuers this is the newest filed year, e.g. "2025" performance).
+ * One-shot: set headline `roic` and `roic_y1` from latest available ratio.
  *
- * Deduplicates symbols across index tables so each ticker = 1 FMP request.
+ * Default: Yahoo Finance quoteSummary (financialData), no API key; optional FMP fallback.
  *
  * Env:
+ *   ROIC_SOURCE           — `yahoo` | `fmp` | `yahoo_then_fmp` (default: yahoo_then_fmp)
+ *   FMP_API_KEY           — required if ROIC_SOURCE is `fmp` or fallback is used
  *   ROIC_UPDATE_DELAY_MS  — pause between symbols (default 5000)
  *   ROIC_MAX_SYMBOLS      — process only first N symbols (smoke test)
  *   ROIC_TABLES           — comma-separated tables (default: all four indices)
@@ -15,11 +16,20 @@ dotenv.config();
 
 import { supabase } from "../db";
 import { fetchLatestAnnualRoicDecimal } from "../fmp-roic-history";
+import { fetchLatestAnnualRoicFromYahoo } from "../yahoo-roic";
 
 const FMP_API_KEY = process.env.FMP_API_KEY;
-if (!FMP_API_KEY) {
-  console.error("FMP_API_KEY is required");
+
+const ROIC_SOURCE = (process.env.ROIC_SOURCE || "yahoo_then_fmp").toLowerCase().trim();
+
+if (ROIC_SOURCE === "fmp" && !FMP_API_KEY) {
+  console.error("ROIC_SOURCE=fmp requires FMP_API_KEY");
   process.exit(1);
+}
+if ((ROIC_SOURCE === "yahoo_then_fmp" || ROIC_SOURCE === "") && !FMP_API_KEY) {
+  console.warn(
+    "No FMP_API_KEY: Yahoo-only attempts will not fall back to FMP when Yahoo returns no ROIC."
+  );
 }
 
 const DEFAULT_TABLES = [
@@ -36,6 +46,28 @@ const delayMs = Math.max(
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+async function fetchRoicForSymbol(symbol: string): Promise<{ value: number | null; source: string }> {
+  if (ROIC_SOURCE === "fmp") {
+    if (!FMP_API_KEY) return { value: null, source: "fmp" };
+    const v = await fetchLatestAnnualRoicDecimal(symbol, FMP_API_KEY);
+    return { value: v, source: "fmp" };
+  }
+  if (ROIC_SOURCE === "yahoo") {
+    const v = await fetchLatestAnnualRoicFromYahoo(symbol);
+    return { value: v, source: "yahoo" };
+  }
+  // yahoo_then_fmp (default)
+  const y = await fetchLatestAnnualRoicFromYahoo(symbol);
+  if (y !== null && Number.isFinite(y)) {
+    return { value: y, source: "yahoo" };
+  }
+  if (FMP_API_KEY) {
+    const f = await fetchLatestAnnualRoicDecimal(symbol, FMP_API_KEY);
+    return { value: f, source: "fmp" };
+  }
+  return { value: null, source: "none" };
 }
 
 async function main() {
@@ -69,7 +101,7 @@ async function main() {
   }
 
   console.log(
-    `Updating latest annual ROIC for ${symbols.length} unique symbols (${delayMs}ms between symbols)…`
+    `ROIC_SOURCE=${ROIC_SOURCE} | ${symbols.length} unique symbols | ${delayMs}ms between symbols…`
   );
 
   let ok = 0;
@@ -78,10 +110,10 @@ async function main() {
 
   for (let i = 0; i < symbols.length; i++) {
     const symbol = symbols[i];
-    const roic = await fetchLatestAnnualRoicDecimal(symbol, FMP_API_KEY);
+    const { value: roic, source: src } = await fetchRoicForSymbol(symbol);
 
     if (roic === null || !Number.isFinite(roic)) {
-      console.warn(`[${i + 1}/${symbols.length}] ${symbol}: no ROIC from FMP`);
+      console.warn(`[${i + 1}/${symbols.length}] ${symbol}: no ROIC (${src})`);
       skipped++;
     } else {
       const payload = {
@@ -99,7 +131,7 @@ async function main() {
         }
       }
       console.log(
-        `[${i + 1}/${symbols.length}] ${symbol}: ${(roic * 100).toFixed(2)}% → ${[...tableSet].join(", ")}`
+        `[${i + 1}/${symbols.length}] ${symbol}: ${(roic * 100).toFixed(2)}% [${src}] → ${[...tableSet].join(", ")}`
       );
     }
 
